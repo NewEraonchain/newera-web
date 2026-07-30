@@ -15,7 +15,7 @@ export function Docs() {
     <Article
       kicker="Docs"
       title="How to use NewEra"
-      standfirst="NewEra indexes every token created on Robinhood Chain and tells you what it means before it has a price. Everything below is free and public — the API included."
+      standfirst="NewEra indexes every token created on Robinhood Chain and tells you what it means before it has a price. Everything below is free and public, the API included."
     >
       <Section title="Getting started">
         <p>There is nothing to set up. Open the live feed and it is already running.</p>
@@ -33,11 +33,11 @@ export function Docs() {
         <p>Each row on the live tape is one token, newest first.</p>
         <Bullets
           items={[
-            <><b>Age</b> — how long ago it launched. Most of what matters happens in the first few minutes.</>,
-            <><b>Ticker and name</b> — exactly as deployed, including any characters you cannot see.</>,
-            <><b>Stake</b> — ETH the creator committed at launch, when there is any. Real stake is uncommon.</>,
-            <><b>Flags</b> — <Mono>COPY</Mono>, <Mono>INVISIBLE</Mono>, <Mono>LOOKALIKE</Mono>. Hover for what each means.</>,
-            <><b>Risk</b> — 0 to 100. Green under 15, amber to 40, red above.</>,
+            <><b>Age</b>: how long ago it launched. Most of what matters happens in the first few minutes.</>,
+            <><b>Ticker and name</b>: exactly as deployed, including any characters you cannot see.</>,
+            <><b>Stake</b>: ETH the creator committed at launch, when there is any. Real stake is uncommon.</>,
+            <><b>Flags</b>: <Mono>COPY</Mono>, <Mono>INVISIBLE</Mono>, <Mono>LOOKALIKE</Mono>. Hover for what each means.</>,
+            <><b>Risk</b>: 0 to 100. Green under 15, amber to 40, red above.</>,
           ]}
         />
       </Section>
@@ -49,11 +49,11 @@ export function Docs() {
         </p>
         <Bullets
           items={[
-            <><Mono>GET /intel/feed</Mono> — the live tape. Query: <Mono>limit</Mono>, <Mono>maxRisk</Mono>, <Mono>organicOnly=1</Mono>, <Mono>themeId</Mono>, <Mono>since</Mono>.</>,
-            <><Mono>GET /intel/themes</Mono> — themes forming now, EMERGING first. Query: <Mono>limit</Mono>, <Mono>status</Mono>, <Mono>organicOnly=1</Mono>.</>,
-            <><Mono>GET /intel/themes/:slug</Mono> — one theme in full, with its launch list and a velocity series.</>,
-            <><Mono>GET /intel/creators/:wallet</Mono> — a deployer&apos;s history: launches, distinct themes, densest burst, duplicate rate, spam score, total staked.</>,
-            <><Mono>GET /intel/stats</Mono> — headline counters, plus the block indexing has reached.</>,
+            <><Mono>GET /intel/feed</Mono>: the live tape. Query: <Mono>limit</Mono>, <Mono>maxRisk</Mono>, <Mono>organicOnly=1</Mono>, <Mono>themeId</Mono>, <Mono>since</Mono>.</>,
+            <><Mono>GET /intel/themes</Mono>: themes forming now, EMERGING first. Query: <Mono>limit</Mono>, <Mono>status</Mono>, <Mono>organicOnly=1</Mono>.</>,
+            <><Mono>GET /intel/themes/:slug</Mono>: one theme in full, with its launch list and a velocity series.</>,
+            <><Mono>GET /intel/creators/:wallet</Mono>: a deployer&apos;s history: launches, distinct themes, densest burst, duplicate rate, spam score, total staked.</>,
+            <><Mono>GET /intel/stats</Mono>: headline counters, plus the block indexing has reached.</>,
           ]}
         />
         <Callout label="Rate limits">
@@ -118,7 +118,7 @@ export function Terms() {
         <Bullets
           items={[
             <><b>You control your wallet, not us.</b> We never hold your private keys, seed phrase, or funds.</>,
-            <><b>Connecting is optional.</b> The feed works without it. Signing a message proves the address is yours — it authorises no transaction and can move no funds.</>,
+            <><b>Connecting is optional.</b> The feed works without it. Signing a message proves the address is yours. It authorises no transaction and can move no funds.</>,
             <><b>You are responsible for your wallet&apos;s security.</b> If you lose access to it, we cannot recover it.</>,
           ]}
         />
@@ -236,7 +236,7 @@ export function Privacy() {
           keys. What we do store falls into four groups.
         </p>
 
-        <p><b>Before you connect anything</b> — a random identifier is generated in your browser and sent with each onboarding step, so we can measure how many people drop out and where. It identifies a browser, not a person.</p>
+        <p><b>Before you connect anything</b>: a random identifier is generated in your browser and sent with each onboarding step, so we can measure how many people drop out and where. It identifies a browser, not a person.</p>
         <Bullets
           items={[
             "A random visitor ID stored in your browser",
@@ -247,7 +247,7 @@ export function Privacy() {
           ]}
         />
 
-        <p><b>If you connect a wallet</b> — the address becomes your identifier and the visitor ID above is linked to it.</p>
+        <p><b>If you connect a wallet</b>: the address becomes your identifier and the visitor ID above is linked to it.</p>
         <Bullets
           items={[
             "Your wallet address, and the address that signed the login message",
@@ -257,7 +257,7 @@ export function Privacy() {
           ]}
         />
 
-        <p><b>If you choose to give them</b> — all optional; skipping them changes nothing about what the product does.</p>
+        <p><b>If you choose to give them</b>: all optional; skipping them changes nothing about what the product does.</p>
         <Bullets
           items={[
             "An email address, plus whether you confirmed it. Confirmation codes are stored only as a hash and expire.",
@@ -265,7 +265,7 @@ export function Privacy() {
           ]}
         />
 
-        <p><b>Derived from public blockchain data</b> — after you connect we read your wallet&apos;s public history and store a summary, used to estimate whether an account is a real person rather than an automated one.</p>
+        <p><b>Derived from public blockchain data</b>: after you connect we read your wallet&apos;s public history and store a summary, used to estimate whether an account is a real person rather than an automated one.</p>
         <Bullets
           items={[
             "Age of the wallet, number of transactions, native balance",
@@ -310,10 +310,10 @@ export function Privacy() {
       <Section title="5. Sharing &amp; third parties">
         <Bullets
           items={[
-            <><b>Blockchain nodes and explorers</b> — to read public chain data</>,
-            <><b>Wallet providers</b> — when you connect or sign</>,
-            <><b>Hosting and database providers</b> — to run the site and store the above</>,
-            <><b>An email provider</b> — only if you supply an email, and only to deliver it</>,
+            <><b>Blockchain nodes and explorers</b>: to read public chain data</>,
+            <><b>Wallet providers</b>: when you connect or sign</>,
+            <><b>Hosting and database providers</b>: to run the site and store the above</>,
+            <><b>An email provider</b>: only if you supply an email, and only to deliver it</>,
           ]}
         />
         <p>We do not sell your information. We may disclose it where the law requires it.</p>
@@ -363,7 +363,7 @@ export function Risk() {
     <Article
       kicker="Legal"
       title="Risk Statement"
-      standfirst="NewEra is an information service, not a trading venue — but acting on information carries risk. Please read this before you use anything here to make a decision."
+      standfirst="NewEra is an information service, not a trading venue, but acting on information carries risk. Please read this before you use anything here to make a decision."
     >
       <Section><Meta /></Section>
 
@@ -416,7 +416,7 @@ export function Risk() {
 
       <Section title="5. On-chain finality">
         <p>
-          NewEra does not execute transactions — but anything you do elsewhere as a result of
+          NewEra does not execute transactions, but anything you do elsewhere as a result of
           reading it is <b>permanent and irreversible</b>.
         </p>
         <Callout tone="danger">

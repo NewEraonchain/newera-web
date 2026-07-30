@@ -59,74 +59,78 @@ export default function Feed() {
   const live = lagSeconds !== null && lagSeconds < 120
 
   return (
-    <div className="mx-auto max-w-[1320px] px-5 pb-24 pt-10">
-      <header className="mb-6">
-        <h1 className="flex flex-wrap items-center gap-3 font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">
-          Live launch intelligence
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.05em] ${
-              live
-                ? "border-acid-500/30 bg-acid-500/10 text-acid-500"
-                : "border-warn/30 bg-warn/10 text-warn"
-            }`}
-          >
-            <span className={`h-[7px] w-[7px] rounded-full ${live ? "animate-pulse bg-acid-500" : "bg-warn"}`} />
-            {/* "Live" is a claim — only make it when the data supports it. */}
+    <div className="px-[4vw] pb-[14vh] pt-[13vh]">
+      <header className="grid gap-x-12 gap-y-6 md:grid-cols-[10rem_1fr]">
+        <p className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
+          {/* "Live" is a claim — only make it when the data supports it. */}
+          <span className={live ? "text-acid-500" : "text-warn"}>
             {stats === null
               ? "Connecting…"
               : live
-                ? "Live"
+                ? "● Live"
                 : lagSeconds === null
                   ? "Indexer offline"
                   : `Delayed ${ago(lagSeconds)}`}
           </span>
-        </h1>
-        <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
-          Every token created on Robinhood Chain, grouped by what it means — not by what it has
-          traded. A cluster is only a narrative when independent wallets launch into it, so creator
-          count sits beside every launch count.
         </p>
+
+        <div>
+          <h1
+            className="font-display max-w-[14ch] text-[clamp(2rem,5.2vw,4.2rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
+            style={{ fontStretch: "72%" }}
+          >
+            Live launch intelligence
+          </h1>
+          <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
+            Every token created on Robinhood Chain, grouped by what it means — not by what it has
+            traded. A cluster is only a narrative when independent wallets launch into it, so
+            creator count sits beside every launch count.
+          </p>
+        </div>
       </header>
 
-      {/* stat strip */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* The measurements, as a ruled row. Five bordered boxes was the single
+          most dashboard-like thing on the page. */}
+      <dl className="mt-[7vh] flex flex-wrap gap-x-14 gap-y-6 border-y border-edge py-6">
         {stats === null
-          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={82} />)
+          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={48} />)
           : [
               { v: stats.launchesLastHour, l: "launches / last hour", accent: true },
-              { v: stats.activeThemes, l: "themes active now" },
+              { v: stats.activeThemes, l: "clusters active now" },
               { v: stats.distinctCreators24h, l: "distinct creators / 24h" },
               { v: `${stats.duplicatePct}%`, l: "near-duplicates / 24h", warn: stats.duplicatePct > 30 },
               { v: `${stats.highRiskPct}%`, l: "high-risk / 24h", warn: stats.highRiskPct > 10 },
             ].map((m) => (
-              <div key={m.l} className="rounded-2xl border border-edge bg-white/[.03] px-4 py-4">
-                <div
-                  className={`font-display text-2xl font-bold leading-none tracking-[-0.02em] ${
+              <div key={m.l}>
+                <dt
+                  className={`font-mono text-3xl font-medium leading-none ${
                     m.accent ? "text-acid-500" : m.warn ? "text-warn" : "text-fg"
                   }`}
                 >
                   {m.v}
-                </div>
-                <div className="mt-1.5 text-xs text-fg-dim">{m.l}</div>
+                </dt>
+                <dd className="mt-2 font-mono text-micro uppercase tracking-[0.1em] text-fg-dim">
+                  {m.l}
+                </dd>
               </div>
             ))}
-      </div>
+      </dl>
 
       {/* controls */}
-      <div className="mb-5 flex flex-wrap gap-2.5">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Toggle on={organicOnly} onClick={() => setOrganicOnly((v) => !v)}>
-          Organic themes only
+          Organic clusters only
         </Toggle>
         <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
           Hide high-risk launches
         </Toggle>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div className="mt-10 grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* themes */}
         <section>
-          <PanelHead title="Themes forming" count={themes ? `${themes.length} active` : "loading…"} />
-          <div className="flex flex-col gap-3">
+          <PanelHead title="Clusters forming" count={themes ? `${themes.length} active` : "loading…"} />
+          <div className="border-t border-edge">
             {themes === null ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={104} />)
             ) : themes.length === 0 ? (
@@ -144,7 +148,7 @@ export default function Feed() {
         {/* tape */}
         <section>
           <PanelHead title="Live tape" count={launches ? `${launches.length} shown` : "loading…"} />
-          <div className="flex max-h-[78vh] flex-col gap-2 overflow-y-auto pr-1">
+          <div className="max-h-[78vh] overflow-y-auto border-t border-edge pr-1">
             {launches === null ? (
               Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} />)
             ) : failures >= 3 ? (
@@ -168,8 +172,8 @@ export default function Feed() {
 function PanelHead({ title, count }: { title: string; count: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-base font-bold text-fg">{title}</h2>
-      <span className="text-xs text-fg-dim">{count}</span>
+      <h2 className="font-mono text-micro uppercase tracking-[0.14em] text-fg">{title}</h2>
+      <span className="font-mono text-micro text-fg-dim">{count}</span>
     </div>
   )
 }

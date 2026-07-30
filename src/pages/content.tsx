@@ -12,7 +12,6 @@ export function HowItWorks() {
     >
       <Section>
         <Step
-          n="01"
           title="Watch every launch, on every launchpad"
           plain="Discovery is chain-wide rather than tied to one launchpad, so a theme that spans several pads is visible as one narrative."
           runs={
@@ -27,7 +26,6 @@ export function HowItWorks() {
           }
         />
         <Step
-          n="02"
           title="Cluster by meaning, not by ticker"
           plain='"Trust in Trump", "Trump Trust" and "Trumpp" are one narrative, not three unrelated tokens.'
           runs={
@@ -41,7 +39,6 @@ export function HowItWorks() {
           }
         />
         <Step
-          n="03"
           title="Flag copies and impersonation at block zero"
           plain="Most launches copy something minutes old. Some go further and impersonate a specific token using characters you cannot see."
           runs={
@@ -53,7 +50,6 @@ export function HowItWorks() {
           }
         />
         <Step
-          n="04"
           title="Separate a narrative from one wallet talking to itself"
           plain="Thirty launches from one address is not a trend. Creator count sits beside every launch count."
           runs={
@@ -179,7 +175,7 @@ export function Detection() {
             { v: "56.0%", l: "of low-risk launches still active", n: "n=134" },
             { v: "13.3%", l: "of high-risk launches still active", n: "n=98" },
           ].map((s) => (
-            <div key={s.l} className="rounded-2xl border border-edge bg-ink-850 p-5">
+            <div key={s.l} className="border-t border-edge pt-5">
               <div className="font-display text-3xl font-bold leading-none text-acid-500">{s.v}</div>
               <p className="mt-2 text-sm text-fg-muted">{s.l}</p>
               <p className="mt-1 font-mono text-xs text-fg-dim">{s.n}</p>

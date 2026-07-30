@@ -1,7 +1,12 @@
 import { Link } from "react-router-dom"
 
 /* Shared layout for every long-form page: features, docs, about, legal.
-   One place to change type rhythm rather than nine. */
+   One place to change type rhythm rather than nine.
+ *
+ * Read mode, in the Aperture world. Comprehension and wayfinding come first —
+ * no aperture over prose, no display type where a reader has to stay for
+ * paragraphs — but the furniture is the same: full bleed to a 4vw margin,
+ * a mono rail carrying the page's own reference, and rules instead of cards. */
 
 export function Article({
   kicker,
@@ -15,62 +20,75 @@ export function Article({
   children: React.ReactNode
 }) {
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-28 pt-16">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.09em] text-acid-500">
-        {kicker}
-      </p>
-      <h1 className="font-display text-[clamp(1.9rem,4.5vw,3rem)] font-bold leading-[1.05] tracking-[-0.025em]">
-        {title}
-      </h1>
-      {standfirst && (
-        <p className="mt-5 text-[clamp(1rem,1.5vw,1.1rem)] leading-relaxed text-fg-muted">
-          {standfirst}
+    <div className="px-[4vw] pb-[16vh] pt-[14vh]">
+      <div className="grid gap-x-12 gap-y-8 md:grid-cols-[10rem_1fr]">
+        {/* The kicker was a tracked uppercase label stacked directly above the
+            heading, which is banned outright — the heading carries its own
+            weight. The same words work as a reference in the rail beside it,
+            where they read as a document slug rather than a label. */}
+        <p className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
+          {kicker}
         </p>
-      )}
-      <div className="mt-12 flex flex-col gap-12">{children}</div>
+
+        <div>
+          <h1
+            className="font-display max-w-[16ch] text-[clamp(2.2rem,6vw,4.8rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
+            style={{ fontStretch: "72%" }}
+          >
+            {title}
+          </h1>
+          {standfirst && (
+            <p className="measure mt-8 text-lg leading-relaxed text-fg-muted">{standfirst}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-[10vh] flex flex-col gap-[7vh]">{children}</div>
     </div>
   )
 }
 
 export function Section({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <section>
-      {title && (
-        <h2 className="mb-4 font-display text-[clamp(1.25rem,2.4vw,1.6rem)] font-bold tracking-[-0.015em]">
-          {title}
-        </h2>
-      )}
-      <div className="flex flex-col gap-4 text-base leading-[1.75] text-fg-muted [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
+    <section className="grid gap-x-12 gap-y-5 border-t border-edge pt-8 md:grid-cols-[10rem_1fr]">
+      <h2 className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">{title}</h2>
+      <div className="measure flex flex-col gap-4 text-base leading-[1.75] text-fg-muted [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
         {children}
       </div>
     </section>
   )
 }
 
-/** Numbered step with a plain explanation and what runs underneath. */
+/** A pipeline stage: a plain explanation, and what runs underneath it.
+ *  Unnumbered — the headings and their order already carry the sequence, so
+ *  digits beside them are editorial scaffolding rather than structure. */
 export function Step({
-  n,
   title,
   plain,
   runs,
 }: {
-  n: string
   title: string
   plain: string
   runs: React.ReactNode
 }) {
   return (
-    <div className="grid gap-4 rounded-2xl border border-edge bg-ink-850 p-6 md:grid-cols-[52px_1fr]">
-      <div className="font-mono text-sm text-acid-500">{n}</div>
+    /* Was a card containing a second card. Rules and columns carry the same
+       hierarchy without stacking two containers.
+     *
+       Three columns on wide screens rather than one narrow one: the plain
+       explanation and the detail sit side by side, which uses the page instead
+       of leaving half of it empty beside a 54ch column. They stack below lg. */
+    <div className="grid gap-x-12 gap-y-6 border-t border-edge pt-8 md:grid-cols-[10rem_1fr] lg:grid-cols-[10rem_minmax(0,30rem)_minmax(0,26rem)]">
+      <div aria-hidden />
       <div>
-        <h3 className="font-display text-lg font-bold tracking-[-0.01em] text-fg">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-fg-muted">{plain}</p>
-        <div className="mt-4 rounded-xl border border-edge bg-white/[.02] p-4">
-          <span className="mb-1.5 block text-micro font-bold uppercase tracking-[0.08em] text-fg-dim">
-            Underneath
-          </span>
-          <p className="text-sm leading-relaxed text-fg-dim">{runs}</p>
-        </div>
+        <h3 className="text-xl font-semibold text-fg">{title}</h3>
+        <p className="mt-3 text-base leading-relaxed text-fg-muted">{plain}</p>
+      </div>
+      <div className="border-l border-edge-strong pl-5 lg:col-start-3 lg:row-start-1">
+        <span className="mb-2 block font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
+          Underneath
+        </span>
+        <p className="text-sm leading-relaxed text-fg-dim">{runs}</p>
       </div>
     </div>
   )
@@ -85,15 +103,25 @@ export function Callout({
   label?: string
   children: React.ReactNode
 }) {
-  const style = {
-    info: "border-acid-500/25 bg-acid-500/[.06]",
-    warn: "border-warn/25 bg-warn/[.06]",
-    danger: "border-danger/25 bg-danger/[.06]",
+  /* A 1px rule in the tone's colour rather than a filled, rounded, tinted box.
+     Colour still carries the signal; it just stops building another container. */
+  const rule = {
+    info: "border-acid-500/60",
+    warn: "border-warn/60",
+    danger: "border-danger/60",
+  }[tone]
+  const labelTone = {
+    info: "text-acid-500",
+    warn: "text-warn",
+    danger: "text-danger",
   }[tone]
   return (
-    <div className={`rounded-2xl border p-5 text-sm leading-relaxed text-fg-muted ${style}`}>
+    <div className={`border-l pl-5 text-sm leading-relaxed text-fg-muted ${rule}`}>
       {label && (
-        <span className="mb-1.5 block text-micro font-bold uppercase tracking-[0.08em] text-fg">
+        /* Not uppercased. Callers pass whole sentences here ("Observed live,
+           four launches two seconds apart"), and forcing caps on a sentence
+           makes it a shout rather than a label. */
+        <span className={`mb-2 block font-mono text-xs tracking-[0.04em] ${labelTone}`}>
           {label}
         </span>
       )}
@@ -104,10 +132,12 @@ export function Callout({
 
 export function Bullets({ items }: { items: React.ReactNode[] }) {
   return (
-    <ul className="flex flex-col gap-2.5">
+    <ul className="flex flex-col gap-3">
       {items.map((it, i) => (
-        <li key={i} className="flex gap-3 text-sm leading-relaxed text-fg-muted">
-          <span className="mt-[9px] h-1 w-1 flex-none rounded-full bg-acid-500" />
+        <li key={i} className="flex gap-4 text-base leading-relaxed text-fg-muted">
+          {/* A hairline, matching the pipeline's markers — the same mark used
+              everywhere for "an item in a list" rather than a lime dot. */}
+          <span aria-hidden className="mt-[13px] h-px w-3 flex-none bg-edge-strong" />
           <span className="[&_b]:text-fg [&_strong]:text-fg">{it}</span>
         </li>
       ))}
@@ -117,32 +147,36 @@ export function Bullets({ items }: { items: React.ReactNode[] }) {
 
 export function Mono({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded-md border border-edge bg-white/[.04] px-1.5 py-0.5 font-mono text-sm text-fg">
-      {children}
-    </code>
+    <code className="border-b border-edge-strong px-0.5 font-mono text-sm text-fg">{children}</code>
   )
 }
 
 /** Small definition grid — used for glossaries and score bands. */
 export function Terms({ items }: { items: { term: string; body: string }[] }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <dl className="border-t border-edge">
       {items.map((t) => (
-        <div key={t.term} className="rounded-2xl border border-edge bg-ink-850 p-5">
-          <h4 className="font-display text-sm font-bold text-fg">{t.term}</h4>
-          <p className="mt-2 text-sm leading-relaxed text-fg-dim">{t.body}</p>
+        <div
+          key={t.term}
+          className="grid gap-x-8 gap-y-1 border-b border-edge py-4 sm:grid-cols-[12rem_1fr]"
+        >
+          {/* Not uppercased. These are terms, not labels — they carry words a
+              reader has to read, and forcing caps on running content slows it
+              down and strips the shapes the eye recognises. */}
+          <dt className="font-mono text-xs tracking-[0.04em] text-fg">{t.term}</dt>
+          <dd className="text-sm leading-relaxed text-fg-dim">{t.body}</dd>
         </div>
       ))}
-    </div>
+    </dl>
   )
 }
 
 export function FootNote() {
   return (
-    <p className="border-t border-edge pt-6 text-xs leading-relaxed text-fg-dim">
+    <p className="measure border-t border-edge pt-8 text-xs leading-relaxed text-fg-dim">
       NewEra is an independent project and is not affiliated with, endorsed by, or sponsored by
       Robinhood Markets, Inc. Nothing here is investment advice.{" "}
-      <Link to="/app" className="text-acid-500 hover:underline">
+      <Link to="/app" className="scan-link text-acid-500">
         Open the live feed
       </Link>
     </p>

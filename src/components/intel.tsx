@@ -2,6 +2,18 @@ import { Link } from "react-router-dom"
 import type { Launch, Theme, ThemeStatus } from "@/lib/api"
 import { ago } from "@/lib/api"
 
+/* The Operate surface, in the Aperture world.
+ *
+ * Same vocabulary as the rest of the site — rules instead of cards, mono for
+ * data, colour as signal only — but no aperture and no display type. This is a
+ * tape somebody reads at speed to make a decision, so density, scanability and
+ * a stable row rhythm outrank expression. A cluster row that dims because the
+ * pointer is elsewhere would be actively hostile here.
+ *
+ * Every card, pill and rounded container is gone. Cards inside cards were most
+ * of what made this page read as a generic dashboard: a bordered box per
+ * cluster, each holding bordered boxes per sample. */
+
 /* Plain-language explanations. A flag nobody understands is just noise. */
 export const FLAG_TEXT: Record<string, string> = {
   INVISIBLE_CHARS:
@@ -21,17 +33,17 @@ export const FLAG_SHORT: Record<string, string> = {
 
 export const EXPLORER = "https://robinhoodchain.blockscout.com"
 
-const STATUS_STYLE: Record<ThemeStatus, string> = {
-  EMERGING: "text-acid-500 bg-acid-500/12",
-  HOT: "text-[#ff9f45] bg-[#ff9f45]/12",
-  SATURATED: "text-[#8b93a1] bg-[#8b93a1]/12",
-  DECAYING: "text-fg-dim bg-white/[.06]",
+const STATUS_TONE: Record<ThemeStatus, string> = {
+  EMERGING: "text-acid-500",
+  HOT: "text-warn",
+  SATURATED: "text-fg-muted",
+  DECAYING: "text-fg-dim",
 }
 
 export function StatusBadge({ status }: { status: ThemeStatus }) {
   return (
     <span
-      className={`flex-none rounded-md px-2 py-[3px] text-micro font-bold uppercase tracking-[0.06em] ${STATUS_STYLE[status]}`}
+      className={`flex-none font-mono text-micro font-semibold uppercase tracking-[0.1em] ${STATUS_TONE[status]}`}
     >
       {status}
     </span>
@@ -39,15 +51,10 @@ export function StatusBadge({ status }: { status: ThemeStatus }) {
 }
 
 export function RiskPill({ score }: { score: number }) {
-  const tone =
-    score >= 40
-      ? "text-danger bg-danger/12"
-      : score >= 15
-        ? "text-warn bg-warn/12"
-        : "text-acid-500 bg-acid-500/10"
+  const tone = score >= 40 ? "text-danger" : score >= 15 ? "text-warn" : "text-acid-500"
   return (
     <span
-      className={`min-w-[34px] rounded-md px-[7px] py-[3px] text-center font-mono text-micro font-semibold ${tone}`}
+      className={`min-w-[2.2rem] text-right font-mono text-sm font-semibold ${tone}`}
       title={`Spam risk ${score}/100 — how much this looks like machine-generated noise, not a price prediction`}
     >
       {score}
@@ -58,7 +65,7 @@ export function RiskPill({ score }: { score: number }) {
 export function FlagPill({ flag }: { flag: string }) {
   return (
     <span
-      className="rounded-[5px] border border-danger/25 bg-danger/12 px-[6px] py-[2px] text-micro font-bold tracking-[0.04em] text-danger"
+      className="font-mono text-micro font-semibold tracking-[0.06em] text-danger"
       title={FLAG_TEXT[flag] || flag}
     >
       {FLAG_SHORT[flag] || flag}
@@ -68,26 +75,25 @@ export function FlagPill({ flag }: { flag: string }) {
 
 /** One row of the live tape. */
 export function LaunchRow({ launch, isNew }: { launch: Launch; isNew?: boolean }) {
+  const risky = launch.riskScore >= 40
   return (
     <a
       href={`${EXPLORER}/token/${launch.address}`}
       target="_blank"
       rel="noopener"
-      className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-white/[.022] px-3.5 py-3 transition-colors hover:border-edge-strong ${
-        launch.riskScore >= 40 ? "border-l-2 border-l-danger/55 border-edge" : "border-edge"
-      } ${isNew ? "animate-[flash_1.4s_ease-out]" : ""}`}
+      className={`scan-row grid grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-4 border-b border-edge py-3 pl-3 ${
+        isNew ? "animate-[flash_1.4s_ease-out]" : ""
+      }`}
     >
-      <div className="text-right font-mono text-xs text-fg-dim">{ago(launch.ageSeconds)}</div>
-      <div className="min-w-0">
-        <div className="truncate font-mono text-sm font-semibold text-fg">
-          {launch.symbol || "—"}
-        </div>
-        <div className="truncate text-xs text-fg-dim">{launch.name}</div>
-      </div>
-      <div className="flex flex-none items-center gap-2">
+      <span className="font-mono text-micro text-fg-dim">{ago(launch.ageSeconds)}</span>
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+        <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
+      </span>
+      <span className="flex flex-none items-baseline gap-3">
         {launch.devBuyEth > 0 && (
           <span
-            className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-micro text-acid-500"
+            className="font-mono text-micro text-fg-dim"
             title={`Creator committed ${launch.devBuyEth} ETH at launch`}
           >
             {launch.devBuyEth.toFixed(2)}Ξ
@@ -96,60 +102,61 @@ export function LaunchRow({ launch, isNew }: { launch: Launch; isNew?: boolean }
         {(launch.spoofFlags || []).slice(0, 2).map((f) => (
           <FlagPill key={f} flag={f} />
         ))}
+        {/* Only when no collision flag already says it. NAME_COLLISION shortens
+            to "COPY", so rendering both printed COPY twice on the same row. */}
+        {launch.dupeCount > 0 &&
+          !(launch.spoofFlags || []).some(
+            (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
+          ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
         <RiskPill score={launch.riskScore} />
-      </div>
+      </span>
+      {/* A high-risk row keeps a marker, but as a hairline in the gutter rather
+          than a 2px coloured border on a card. */}
+      {risky && (
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-px bg-danger/70" />
+      )}
     </a>
   )
 }
 
-/** One theme card in the left panel. */
+/** One cluster in the left panel. */
 export function ThemeCard({ theme }: { theme: Theme }) {
   return (
     <Link
       to={`/app/theme/${theme.slug}`}
-      className={`block rounded-2xl border p-4 transition-colors ${
-        theme.status === "EMERGING"
-          ? "border-acid-500/35 bg-acid-500/[.035] hover:border-acid-500/60"
-          : "border-edge bg-white/[.025] hover:border-edge-strong"
-      } ${theme.isOrganic ? "" : "opacity-60"}`}
+      className={`scan-row block border-b border-edge py-4 pl-3 ${
+        theme.isOrganic ? "" : "opacity-70"
+      }`}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2.5">
+      <span className="flex flex-wrap items-baseline gap-x-3">
         <span className="min-w-0 flex-1 truncate text-base font-semibold text-fg">
           {theme.label}
         </span>
         <StatusBadge status={theme.status} />
-      </div>
+      </span>
 
-      <div className="flex flex-wrap gap-3.5 text-xs text-fg-dim">
+      <span className="mt-1.5 flex flex-wrap gap-x-4 font-mono text-micro text-fg-dim">
         <span>
-          <b className="font-semibold text-[#c8cdd6]">{theme.launchCount}</b> launches
+          <b className="font-semibold text-fg-muted">{theme.launchCount}</b> launches
         </span>
         {/* The comparison that carries the whole judgement. */}
-        <span className={theme.isOrganic ? "text-acid-500" : "font-semibold text-danger"}>
-          {theme.isOrganic ? (
-            <>
-              <b className="font-semibold">{theme.creatorCount}</b> creators
-            </>
-          ) : (
-            <>
-              {theme.creatorCount} creator{theme.creatorCount === 1 ? "" : "s"} · one-wallet spam
-            </>
-          )}
+        <span className={theme.isOrganic ? "text-acid-500" : "text-danger"}>
+          {theme.isOrganic
+            ? `${theme.creatorCount} creators`
+            : `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"} · one-wallet spam`}
         </span>
         <span>{ago(theme.ageMinutes * 60)} old</span>
-      </div>
+      </span>
 
       {theme.samples?.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {theme.samples.map((s) => (
-            <span
-              key={s.address}
-              className="max-w-[130px] truncate rounded-md border border-edge bg-white/[.04] px-2 py-[3px] font-mono text-micro text-fg-muted"
-            >
+        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-micro text-fg-dim">
+          {theme.samples.slice(0, 6).map((s, i) => (
+            <span key={s.address} className="max-w-[10rem] truncate">
+              {i > 0 && <span className="mr-3 opacity-40">/</span>}
               {s.symbol || s.name}
             </span>
           ))}
-        </div>
+        </span>
       )}
     </Link>
   )
@@ -169,10 +176,10 @@ export function Toggle({
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors ${
+      className={`block-btn border ${
         on
-          ? "border-acid-500/45 bg-acid-500/[.09] text-acid-500"
-          : "border-edge bg-white/[.03] text-fg-muted hover:border-edge-strong hover:text-fg"
+          ? "border-acid-500 bg-acid-500 text-ink-950"
+          : "border-edge-strong text-fg-muted hover:text-fg"
       }`}
     >
       {children}
@@ -180,19 +187,15 @@ export function Toggle({
   )
 }
 
-export function Skeleton({ h = 58 }: { h?: number }) {
+export function Skeleton({ h = 48 }: { h?: number }) {
   return (
-    <div
-      className="animate-pulse rounded-xl bg-white/[.04]"
-      style={{ height: h }}
-      aria-hidden
-    />
+    <div className="animate-pulse border-b border-edge bg-white/[.02]" style={{ height: h }} aria-hidden />
   )
 }
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-edge bg-white/[.02] px-5 py-11 text-center text-sm leading-relaxed text-fg-dim">
+    <div className="border-l border-edge-strong py-8 pl-5 text-sm leading-relaxed text-fg-dim">
       {children}
     </div>
   )

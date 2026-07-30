@@ -70,7 +70,7 @@ export default function ThemeDetail() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-4xl px-5 pb-24 pt-10">
+    <div className="px-[4vw] pb-[14vh] pt-[13vh]">
       <Link
         to="/app"
         className="mb-5 inline-flex items-center gap-2 text-sm text-fg-dim transition-colors hover:text-acid-500"
@@ -147,7 +147,7 @@ function Verdict({ theme, launches }: { theme: Theme; launches: Launch[] }) {
   }[tone]
 
   return (
-    <div className={`mb-6 rounded-2xl border p-4 text-sm leading-relaxed ${style}`}>
+    <div className={`mb-8 border-l pl-5 text-sm leading-relaxed ${style}`}>
       <span className="[&_b]:text-fg">{body}</span>
     </div>
   )
@@ -171,7 +171,7 @@ function Metrics({ theme, launches }: { theme: Theme; launches: Launch[] }) {
   return (
     <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {items.map((m) => (
-        <div key={m.l} className="rounded-2xl border border-edge bg-white/[.03] px-4 py-4">
+        <div key={m.l} className="border-t border-edge pt-4">
           <div
             className={`font-display text-2xl font-bold leading-none ${
               m.tone === "acid" ? "text-acid-500" : m.tone === "bad" ? "text-danger" : m.tone === "warn" ? "text-warn" : "text-fg"
@@ -204,7 +204,7 @@ function Velocity({ series }: { series: Detail["series"] }) {
   }, [series])
 
   return (
-    <div className="mb-7 rounded-2xl border border-edge bg-white/[.025] px-5 pb-3 pt-4">
+    <div className="mb-9 border-y border-edge py-5">
       <div className="mb-3 flex items-baseline justify-between">
         <span className="text-sm font-semibold text-fg">Launch velocity</span>
         <span className="text-xs text-fg-dim">
@@ -256,7 +256,7 @@ function Creators({ launches }: { launches: Launch[] }) {
               target="_blank"
               rel="noopener"
               title={`View ${r.wallet} on Blockscout`}
-              className="flex items-center gap-3 rounded-xl border border-edge bg-white/[.022] px-3.5 py-2.5 transition-colors hover:border-edge-strong"
+              className="scan-row flex items-center gap-3 border-b border-edge py-3 pl-3"
             >
               <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#c8cdd6]">
                 {shortAddr(r.wallet)}
@@ -292,7 +292,7 @@ function Launches({ launches }: { launches: Launch[] }) {
               href={`${EXPLORER}/token/${l.address}`}
               target="_blank"
               rel="noopener"
-              className={`grid grid-cols-[54px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-white/[.022] px-3.5 py-3 transition-colors hover:border-edge-strong ${
+              className={`scan-row grid grid-cols-[3.4rem_minmax(0,1fr)_auto] items-baseline gap-3 border-b py-3 pl-3 ${
                 l.riskScore >= 40 ? "border-l-2 border-l-danger/55 border-edge" : "border-edge"
               }`}
             >
@@ -303,7 +303,7 @@ function Launches({ launches }: { launches: Launch[] }) {
               </div>
               <div className="flex flex-none items-center gap-2">
                 {l.devBuyEth > 0 && (
-                  <span className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-micro text-acid-500">
+                  <span className="font-mono text-micro text-acid-500">
                     {l.devBuyEth.toFixed(2)}Ξ
                   </span>
                 )}

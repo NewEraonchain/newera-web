@@ -161,6 +161,64 @@ p { text-wrap: pretty; }
    keep it. */
 .reticle-on input, .reticle-on textarea, .reticle-on [contenteditable] { cursor: text; }
 
+/* ── Interaction vocabulary ──────────────────────────────────────────────
+   Every hover and press in this world is the same gesture the aperture makes:
+   something resolves, and a hairline marks what the instrument is on. A page
+   whose buttons fade their background colour is wearing a different design's
+   behaviour, however good its type is. */
+
+/* Links: a rule draws in from the left as the text resolves. */
+.scan-link {
+  position: relative;
+  color: var(--color-fg-muted);
+  transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scan-link::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: var(--color-acid-500);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scan-link:hover, .scan-link:focus-visible { color: var(--color-fg); }
+.scan-link:hover::after, .scan-link:focus-visible::after { transform: scaleX(1); }
+
+/* Actions are blocks, not pills. Pressing one seats it rather than dimming it:
+   150ms, which is the feedback band — anything slower reads as latency. */
+.block-btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 150ms linear;
+}
+.block-btn:hover { transform: translateY(-2px); }
+.block-btn:active { transform: translateY(0); transition-duration: 90ms; }
+
+/* Rows in a record resolve on hover and take the band's hairline on their left
+   edge — the aperture snapping to the row under the pointer. */
+.scan-row {
+  position: relative;
+  transition: background-color 160ms linear;
+}
+.scan-row::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--color-acid-500);
+  transform: scaleY(0);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scan-row:hover { background: rgba(255, 255, 255, 0.022); }
+.scan-row:hover::before { transform: scaleY(1); }
+
 /* Focus must resolve its own row regardless of where the pointer is, or the
    keyboard path reads an unresolved page. */
 .plate :focus-visible { color: var(--color-fg); outline: 1px solid var(--color-acid-500); outline-offset: 3px; }

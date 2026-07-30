@@ -123,11 +123,11 @@ export default function Account() {
       <Wrap>
         <EmptyState>
           <p className="mb-2 text-base font-semibold text-fg">Your data has been deleted.</p>
-          <p className="mb-5">
+          <p className="measure mb-5">
             Nothing is left on our side. Anything recorded on the public blockchain is not ours and
             remains there.
           </p>
-          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-sm font-bold text-[#0a0d05]">
+          <Link to="/app" className="block-btn bg-acid-500 text-ink-950">
             Back to the feed
           </Link>
         </EmptyState>
@@ -142,11 +142,11 @@ export default function Account() {
       <Wrap>
         <EmptyState>
           <p className="mb-2 text-base font-semibold text-fg">No wallet connected</p>
-          <p className="mb-5">
+          <p className="measure mb-5">
             The live feed works without one. Connect only if you want preferences saved against your
             address.
           </p>
-          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-sm font-bold text-[#0a0d05]">
+          <Link to="/app" className="block-btn bg-acid-500 text-ink-950">
             Back to the feed
           </Link>
         </EmptyState>
@@ -178,7 +178,7 @@ export default function Account() {
       </p>
 
       <Section title="Wallet">
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white/[.022] px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 border-y border-edge py-4">
           <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#c8cdd6]">{addr}</span>
           <Btn onClick={() => navigator.clipboard.writeText(addr)}>Copy</Btn>
           <Btn onClick={() => { disconnect(); location.reload() }}>Disconnect</Btn>
@@ -190,7 +190,7 @@ export default function Account() {
           {rows.map(([label, value, hint]) => {
             const empty = value === null || value === undefined || value === ""
             return (
-              <div key={label} className="flex items-center gap-3 rounded-xl border border-edge bg-white/[.022] px-4 py-3">
+              <div key={label} className="flex items-center gap-3 border-b border-edge py-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-[#c8cdd6]">{label}</div>
                   {hint && <div className="mt-0.5 text-xs text-fg-dim">{hint}</div>}
@@ -209,7 +209,7 @@ export default function Account() {
       </Section>
 
       <Section title="Your data">
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white/[.022] px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 border-y border-edge py-4">
           <span className="min-w-[220px] flex-1 text-sm text-[#c8cdd6]">
             Download everything we hold, or remove the optional contact details while keeping the account.
           </span>
@@ -224,7 +224,7 @@ export default function Account() {
       </Section>
 
       <Section title="Delete everything">
-        <div className="rounded-2xl border border-danger/25 bg-danger/[.04] p-5">
+        <div className="border-l border-danger/60 pl-5">
           <p className="mb-2 text-sm leading-relaxed text-fg-muted">
             This erases your NewEra record permanently: onboarding answers, contact details, session
             history and the cached summary of your wallet. It cannot be undone.
@@ -246,7 +246,7 @@ export default function Account() {
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder="DELETE"
                   spellCheck={false}
-                  className="w-[200px] rounded-xl border border-edge-strong bg-white/[.04] px-3.5 py-2.5 text-sm outline-none focus:border-danger/55"
+                  className="w-[200px] border-b border-edge-strong bg-transparent px-1 py-2 font-mono text-sm outline-none focus:border-danger"
                 />
                 <Btn danger onClick={erase} disabled={busy}>Erase permanently</Btn>
                 <Btn onClick={() => { setConfirming(false); setConfirmText(""); setMsg(null) }}>Cancel</Btn>
@@ -267,7 +267,7 @@ export default function Account() {
 }
 
 function Wrap({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-3xl px-5 pb-28 pt-12">{children}</div>
+  return <div className="px-[4vw] pb-[14vh] pt-[13vh]">{children}</div>
 }
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
@@ -293,7 +293,7 @@ function Btn({ children, onClick, disabled, danger }: {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+      className={`block-btn border disabled:opacity-50 ${
         danger
           ? "border-danger/40 text-danger hover:border-danger/70 hover:bg-danger/10"
           : "border-edge bg-white/[.03] text-fg-muted hover:border-edge-strong hover:text-fg"
