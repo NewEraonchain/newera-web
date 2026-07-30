@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState, lazy, Suspense } from "react"
+import { useLenis } from "lenis/react"
+import SmoothScroll from "@/components/SmoothScroll"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
 import { isOnboarded } from "@/lib/onboarding"
@@ -24,12 +26,18 @@ const Risk = lazy(() => import("@/pages/legal").then((m) => ({ default: m.Risk }
 
 /* Router keeps scroll position between pages otherwise, which reads as broken.
    Braces matter: an effect that returns a non-undefined value crashes React 19
-   on unmount. */
+   on unmount.
+ *
+ * Goes through Lenis rather than window.scrollTo — Lenis owns the scroll
+ * position, so a raw scrollTo gets interpolated back to where it was. immediate
+ * skips the animation: a route change should land at the top, not glide there. */
 function ScrollToTop() {
   const { pathname } = useLocation()
+  const lenis = useLenis()
   useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [pathname])
+    if (lenis) lenis.scrollTo(0, { immediate: true })
+    else window.scrollTo(0, 0)
+  }, [pathname, lenis])
   return null
 }
 
@@ -103,7 +111,9 @@ function Shell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Shell />
+      <SmoothScroll>
+        <Shell />
+      </SmoothScroll>
     </BrowserRouter>
   )
 }
