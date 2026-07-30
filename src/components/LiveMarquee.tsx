@@ -68,7 +68,12 @@ export default function LiveMarquee() {
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-ink-950 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-ink-950 to-transparent" />
 
-      <div ref={trackRef} className="flex w-max gap-2.5 will-change-transform">
+      {/* Flat items on one plane, divided by rules rather than each sitting in
+          its own bordered, filled box. A row of cards inside a bordered strip
+          is a card inside a card, and forty-eight of them was most of what the
+          detector found on this page. A tape is a continuous surface anyway —
+          the boxes were arguing against the thing they depicted. */}
+      <div ref={trackRef} className="flex w-max will-change-transform">
         {doubled.map((l, i) => {
           const flagged = l.riskScore >= 40 || l.spoofFlags.length > 0
           const dupe = l.dupeCount > 0
@@ -76,20 +81,18 @@ export default function LiveMarquee() {
             <div
               key={`${l.address}-${i}`}
               aria-hidden={i >= items.length}
-              className="flex flex-none items-center gap-2.5 rounded-lg border border-edge bg-ink-850 px-3.5 py-2"
+              className="flex flex-none items-baseline gap-2.5 border-r border-edge px-5"
             >
               <span className="font-mono text-xs font-semibold tracking-tight text-fg">
                 {l.symbol || "—"}
               </span>
               <span className="max-w-[13rem] truncate text-xs text-fg-dim">{l.name}</span>
               {dupe && (
-                <span className="rounded bg-warn/15 px-1.5 py-0.5 font-mono text-micro font-semibold text-warn">
-                  COPY
-                </span>
+                <span className="font-mono text-micro font-semibold text-warn">COPY</span>
               )}
               <span
-                className={`rounded px-1.5 py-0.5 font-mono text-micro font-semibold ${
-                  flagged ? "bg-danger/15 text-danger" : "bg-acid-500/12 text-acid-500"
+                className={`font-mono text-xs font-semibold ${
+                  flagged ? "text-danger" : "text-acid-500"
                 }`}
               >
                 {l.riskScore}

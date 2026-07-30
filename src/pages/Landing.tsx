@@ -2,13 +2,16 @@ import { Link } from "react-router-dom"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import Aurora from "@/components/Aurora"
+import { AnimatePresence, motion } from "motion/react"
 import CountUp from "@/components/CountUp"
-import DecryptedText from "@/components/DecryptedText"
-import SpotlightCard from "@/components/SpotlightCard"
-import ShinyText from "@/components/ShinyText"
 import LiveMarquee from "@/components/LiveMarquee"
-import Reveal from "@/components/Reveal"
+import CaseFile from "@/components/CaseFile"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { getJSON, type Stats } from "@/lib/api"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -17,45 +20,33 @@ const reduced = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-/* Every number on this page is measured from live chain data. If a figure here
-   can't be reproduced from the API, it shouldn't be here. */
-const STATS = [
-  { to: 69, suffix: "%", label: "of launches are near-copies of something minutes old" },
-  { to: 70, suffix: "%", label: "are effectively dead within thirty minutes" },
-  { to: 4.2, suffix: "x", label: "fewer high-risk launches survive their first hour" },
-  // Literal rather than counted: "0" is the claim, and watching it tick up from
-  // zero to zero would be silly. It is also verifiable — the app holds no keys
-  // and signs nothing, which is what the legal pages commit to.
-  { to: 0, suffix: "", label: "transactions NewEra performs — it only reads", literal: "0" },
-]
-
+/* The pipeline, in the order it runs. The sequence carries information — each
+   stage only has inputs because the one before it ran — so it is numbered.
+   None of these have a label above the heading: the heading carries it. */
 const STEPS = [
   {
     n: "01",
-    kicker: "Watch",
-    title: "Every launch, every launchpad",
+    title: "Watch every launchpad, not one",
     body:
       "Discovery is chain-wide rather than tied to one launchpad — watching a single factory captures about a fifth of the market, and most launchpad contracts publish nothing readable. NewEra watches the one event every token emits when its supply is minted.",
     points: [
-      "Position NFTs, LP tokens and existing tokens filtered out",
-      "Creator and stake read from the launch transaction",
+      "Position NFTs, LP tokens and existing contracts filtered out",
+      "Creator and stake read from the launch transaction itself",
     ],
   },
   {
     n: "02",
-    kicker: "Read",
     title: "Cluster by meaning, not by ticker",
     body:
       "Names are normalised and grouped so variations of one idea land together. “Trust in Trump”, “Trump Trust” and “Trumpp” are one narrative, visible while it is still forming.",
     points: [
       "Word-overlap and edit-distance matching",
-      "Velocity tracked per theme — rate of change, not a total",
+      "Velocity tracked per cluster — rate of change, not a total",
     ],
   },
   {
     n: "03",
-    kicker: "Flag",
-    title: "Copies and impersonation, at block zero",
+    title: "Flag the copies at block zero",
     body:
       "Most launches copy something minutes old. Some go further: a ticker padded with an invisible character, or Latin letters swapped for Cyrillic lookalikes, renders identically to the token it imitates.",
     points: [
@@ -65,14 +56,32 @@ const STEPS = [
   },
   {
     n: "04",
-    kicker: "Separate",
-    title: "A narrative, or one wallet talking to itself",
+    title: "Tell a narrative from one wallet talking to itself",
     body:
       "Thirty launches from one address is not a trend. Creator count sits beside every launch count, so a cluster only reads as emerging when independent wallets are launching into it.",
     points: [
       "Creator reputation from launch history: bursts, duplicates, stake",
-      "Themes ranked so genuinely emerging ones surface first",
+      "Clusters ranked so genuinely emerging ones surface first",
     ],
+  },
+]
+
+/* Real strings, not illustrations. Both are set in the mono because it is the
+   only face on the site carrying a Cyrillic subset — in a face without one the
+   substituted characters would fall back to a different font and the mismatch
+   would give the spoof away, which is the opposite of the point. */
+const SPOOFS = [
+  {
+    shown: "SOLANA",
+    real: "SОLАNА",
+    note: "Cyrillic О and А substituted for their Latin lookalikes",
+    flag: "HOMOGLYPH",
+  },
+  {
+    shown: "PEPE",
+    real: "PEPE⁠",
+    note: "Word joiner appended — invisible on screen, a different string underneath",
+    flag: "INVISIBLE_CHARS",
   },
 ]
 
@@ -83,11 +92,15 @@ const FAQ = [
   },
   {
     q: "How is this different from a trading terminal?",
-    a: "Terminals index transactions, so a token has to trade before they can show you anything. Attention platforms need an audience it doesn't have yet. Both are blind during the first minutes — the entire window that matters for a new launch. NewEra indexes name, ticker, creator and stake, the only data that exists at block zero.",
+    a: "Terminals index transactions, so a token has to trade before they can show you anything. Attention platforms need an audience it does not have yet. Both are blind during the first minutes — the entire window that matters for a new launch. NewEra indexes name, ticker, creator and stake, the only data that exists at block zero.",
+  },
+  {
+    q: "How current is the feed?",
+    a: "Ingest runs roughly nine to ten minutes behind the chain head. That is live in the sense that matters — you see a launch long before it has a price — but it is not instant, and we would rather state the number than imply otherwise.",
   },
   {
     q: "What does it cost?",
-    a: "Nothing. The feed, theme pages and API are free and public. Connecting a wallet is optional and only needed to save a watchlist or set alerts.",
+    a: "Nothing. The feed, cluster pages and API are free and public. Connecting a wallet is optional and only needed to save a watchlist or set alerts.",
   },
   {
     q: "What does the risk score actually measure?",
@@ -100,13 +113,13 @@ export default function Landing() {
     <>
       <Hero />
       <LiveMarquee />
-      <BlindSpot />
-      <HowItWorks />
+      <CaseFile />
+      <BlockZero />
+      <Pipeline />
       <Detection />
       <Evidence />
-      <Capabilities />
-      <Faq />
-      <Finale />
+      <Questions />
+      <Close />
     </>
   )
 }
@@ -114,111 +127,73 @@ export default function Landing() {
 /* ── Hero ─────────────────────────────────────────────────────────────── */
 
 function Hero() {
-  const root = useRef<HTMLElement>(null)
   const [live, setLive] = useState<Stats | null>(null)
 
   useEffect(() => {
     let alive = true
-    getJSON<Stats>("/intel/stats")
-      .then((s) => {
-        if (alive) setLive(s)
-      })
-      .catch((err) => {
-        console.error("[Hero] stats unavailable:", err)
-      })
+    const load = () =>
+      getJSON<Stats>("/intel/stats")
+        .then((s) => {
+          if (alive) setLive(s)
+        })
+        .catch((err) => {
+          console.error("[Hero] stats unavailable:", err)
+        })
+    load()
+    const t = setInterval(load, 60000)
     return () => {
       alive = false
-    }
-  }, [])
-
-  useLayoutEffect(() => {
-    if (reduced()) return
-    const ctx = gsap.context(() => {
-      // Content drifts up and dims as it leaves; the atmosphere behind it moves
-      // slower. Parallax, so the hero reads as depth rather than a flat card
-      // sliding away.
-      gsap.to("[data-hero-copy]", {
-        y: -70,
-        opacity: 0.15,
-        ease: "none",
-        scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true },
-      })
-      gsap.to("[data-hero-glow]", {
-        y: 130,
-        ease: "none",
-        scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true },
-      })
-    }, root)
-    return () => {
-      ctx.revert()
+      clearInterval(t)
     }
   }, [])
 
   return (
-    <section ref={root} className="relative flex min-h-[94vh] items-center overflow-hidden">
-      <div data-hero-glow className="pointer-events-none absolute inset-x-0 top-0 h-[58vh] opacity-45">
-        <Aurora colorStops={["#1d6b4f", "#cdff4d", "#124034"]} amplitude={0.75} blend={0.85} speed={0.45} />
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[58vh] bg-gradient-to-b from-transparent via-transparent to-ink-950" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-ink-950 to-transparent" />
-
-      <div data-hero-copy className="relative mx-auto w-full max-w-6xl px-5 pt-24">
-        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-[rgba(205,255,77,.28)] bg-[rgba(205,255,77,.08)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-acid-500">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-acid-500 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-acid-500" />
-          </span>
-          Live on Robinhood Chain
-        </div>
-
-        <h1 className="max-w-4xl font-display text-[clamp(2.4rem,7.6vw,5.6rem)] font-bold leading-[0.95] tracking-[-0.035em]">
-          See what&apos;s launching
-          <br />
-          before it has a{" "}
-          <span className="text-acid-500">
-            <DecryptedText
-              text="price"
-              animateOn="view"
-              sequential
-              revealDirection="start"
-              speed={55}
-              maxIterations={14}
-              className="text-acid-500"
-              encryptedClassName="text-acid-600 opacity-60"
-            />
-          </span>
+    <section className="relative flex min-h-[72vh] items-center border-b border-edge pb-16 pt-28 sm:pb-20">
+      <div className="mx-auto w-full max-w-6xl px-5">
+        <h1 className="max-w-[15ch] text-5xl font-semibold sm:text-6xl lg:text-7xl">
+          See what is launching before it has a price
         </h1>
 
-        <p className="mt-7 max-w-2xl text-[clamp(1rem,1.6vw,1.15rem)] leading-relaxed text-fg-muted">
-          Tens of thousands of tokens are created every day. At the moment one launches it has no
-          chart, no holders and no followers — so every analytics tool is blind to it. NewEra reads
-          the only thing that exists yet: what the token <em className="text-fg">means</em>.
+        <p className="measure mt-8 text-lg leading-relaxed text-fg-muted">
+          Thousands of tokens are created on Robinhood Chain every day. At the moment one
+          launches it has no chart, no holders and no followers, so every analytics tool is
+          blind to it. NewEra reads the only thing that exists yet: what the token means.
         </p>
 
-        <div className="mt-10 flex flex-wrap items-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
           <Link
             to="/app"
-            className="group inline-flex items-center gap-2 rounded-xl bg-acid-500 px-6 py-3.5 text-base font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
+            className="rounded-lg bg-acid-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-acid-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
           >
-            Open live feed
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
-              <path d="M7 17 17 7M9 7h8v8" />
-            </svg>
+            Open the live feed
           </Link>
           <Link
             to="/how-it-works"
-            className="inline-flex items-center rounded-xl border border-edge-strong px-6 py-3.5 text-base font-semibold text-fg transition-colors hover:border-[rgba(255,255,255,.3)] hover:bg-white/[.03]"
+            className="rounded-lg border border-edge-strong px-6 py-3 text-sm font-semibold text-fg transition-colors hover:bg-ink-850 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
           >
             How it works
           </Link>
 
-          {/* Real counter, or nothing. An invented number on this page would
-              undercut the one thing being sold. */}
+          {/* Motion's job on this page: the figure changes on its own every
+              minute, and a number that swaps in place with no transition reads
+              as a glitch. This is state motion — a function of fetched data,
+              not of scroll position — which is why it is Motion and not GSAP. */}
           {live && (
-            <span className="ml-1 font-mono text-xs text-fg-dim">
-              <span className="text-acid-500">{live.launchesLastHour}</span> launches indexed in the
-              last hour
-            </span>
+            <p className="flex items-baseline gap-2 font-mono text-xs text-fg-dim">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={live.launchesLastHour}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="font-semibold text-acid-500"
+                >
+                  {live.launchesLastHour}
+                </motion.span>
+              </AnimatePresence>
+              launches indexed in the last hour
+            </p>
           )}
         </div>
       </div>
@@ -226,86 +201,54 @@ function Hero() {
   )
 }
 
-/* ── The blind spot ───────────────────────────────────────────────────── */
+/* ── The mechanism ────────────────────────────────────────────────────── */
 
-const LINES = [
-  "A terminal needs a transaction.",
-  "An attention platform needs an audience.",
-  "For the first minutes a token has neither.",
-]
-
-function BlindSpot() {
-  const root = useRef<HTMLElement>(null)
-
-  useLayoutEffect(() => {
-    if (reduced()) return
-    const ctx = gsap.context(() => {
-      // Each line brightens as it reaches the middle of the viewport, so the
-      // argument lands one clause at a time instead of all at once.
-      gsap.utils.toArray<HTMLElement>("[data-line]").forEach((line) => {
-        gsap.fromTo(
-          line,
-          { opacity: 0.16 },
-          {
-            opacity: 1,
-            ease: "none",
-            scrollTrigger: { trigger: line, start: "top 78%", end: "top 42%", scrub: true },
-          }
-        )
-      })
-    }, root)
-    return () => {
-      ctx.revert()
-    }
-  }, [])
-
+function BlockZero() {
   return (
-    <section ref={root} className="border-b border-edge bg-ink-950">
-      <div className="mx-auto max-w-5xl px-5 py-32 sm:py-44">
-        <p className="mb-12 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
-          The blind spot
-        </p>
-        <div className="flex flex-col gap-7">
-          {LINES.map((l) => (
-            <p
-              key={l}
-              data-line
-              className="font-display text-[clamp(1.6rem,4.4vw,3.1rem)] font-bold leading-[1.12] tracking-[-0.025em]"
-            >
-              {l}
-            </p>
-          ))}
+    <section className="border-b border-edge bg-ink-900">
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <h2 className="max-w-[18ch] text-4xl font-semibold sm:text-5xl">
+          Nobody else can show you this, and it is not because they are worse
+        </h2>
+        <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
+          <p className="measure text-base leading-relaxed text-fg-muted">
+            A trading terminal indexes transactions, so a token has to trade before it can show
+            you anything. An attention platform needs an audience the token does not have yet.
+            Both are structurally blind for the first minutes — which is the entire window in
+            which the outcome is decided.
+          </p>
+          <p className="measure text-base leading-relaxed text-fg-muted">
+            At block zero exactly four things exist: a name, a ticker, a creator, and whatever
+            they staked. That is not much. It is also enough to tell you that forty tokens with
+            this name appeared in the last four minutes, and that this ticker is one invisible
+            character away from something you already trust.
+          </p>
         </div>
-        <p className="mt-12 max-w-xl text-base leading-relaxed text-fg-muted">
-          That window is the entire opportunity, and it is the one window nothing else indexes.
-          What does exist at block zero is a name, a ticker, a creator and a stake — so that is
-          what NewEra reads.
-        </p>
       </div>
     </section>
   )
 }
 
-/* ── How it works: horizontal scroll ──────────────────────────────────── */
+/* ── Pipeline ─────────────────────────────────────────────────────────── */
 
-function HowItWorks() {
+/* The page's one pinned moment. The stages are a sequence — each has inputs
+   only because the previous one ran — so moving through them sideways while the
+   section holds is the scroll doing the same thing the pipeline does.
+ *
+ * Desktop only, via gsap.matchMedia. ScrollTrigger.matchMedia is deprecated and
+ * a silent no-op in GSAP 3.15: it throws nothing, the pin simply never engages
+ * and the last panel sits clipped off-screen. */
+function Pipeline() {
   const root = useRef<HTMLElement>(null)
   const track = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     if (reduced()) return
-    // gsap.matchMedia, not ScrollTrigger.matchMedia — the latter is deprecated
-    // and silently does nothing in GSAP 3.15, which left the panels sitting
-    // still with the last one clipped off the right edge.
-    //
-    // Horizontal panning is a desktop affordance anyway: on a narrow screen it
-    // fights the browser's own gesture, so below 900px the panels just scroll
-    // sideways by hand.
     const mm = gsap.matchMedia()
     mm.add("(min-width: 900px)", () => {
       const el = track.current
       if (!el) return
-      const distance = () => el.scrollWidth - window.innerWidth
+      const distance = () => el.scrollWidth - window.innerWidth + 80
       if (distance() <= 0) return
       gsap.to(el, {
         x: () => -distance(),
@@ -327,50 +270,36 @@ function HowItWorks() {
   }, [])
 
   return (
-    /* pt-28 clears the fixed header: once pinned the section is position:fixed
-       at the top of the viewport, so main's pt-16 no longer applies to it and
-       the heading slid underneath the nav. */
     <section
       ref={root}
-      className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-900 pb-16 pt-28"
+      /* pt-28, not pt-16: a pinned section becomes position:fixed, so main's
+         top padding stops applying and the heading slides under the header. */
+      className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-950 pb-16 pt-28"
     >
-      <div className="mx-auto w-full max-w-6xl px-5 lg:px-[max(1.25rem,calc((100vw-72rem)/2))]">
-        <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
-          How it works
-        </p>
-        <h2 className="max-w-2xl font-display text-[clamp(1.8rem,3.6vw,2.8rem)] font-bold leading-tight tracking-[-0.025em]">
-          Four steps, none of which need a price
+      <div className="mx-auto w-full max-w-6xl px-5">
+        <h2 className="max-w-[20ch] text-4xl font-semibold sm:text-5xl">
+          Four stages, in the order they run
         </h2>
       </div>
 
-      <div
-        ref={track}
-        className="mt-12 flex w-max gap-5 px-5 will-change-transform lg:px-[max(1.25rem,calc((100vw-72rem)/2))]"
-      >
+      <div ref={track} className="mt-14 flex gap-14 px-5 lg:pl-[max(1.25rem,calc((100vw-72rem)/2))]">
         {STEPS.map((s) => (
-          <article
-            key={s.n}
-            className="flex w-[min(88vw,30rem)] flex-none flex-col rounded-2xl border border-edge bg-ink-850 p-8"
-          >
-            <div className="flex items-baseline gap-3">
-              <span className="font-mono text-sm text-acid-500">{s.n}</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-dim">
-                {s.kicker}
-              </span>
-            </div>
-            <h3 className="mt-5 font-display text-2xl font-bold leading-snug tracking-[-0.015em]">
-              {s.title}
-            </h3>
+          <div key={s.n} className="w-[min(88vw,30rem)] flex-none border-t border-edge-strong pt-6">
+            {/* No 01/02/03 label. The heading says the stages run in order and
+                the track moves through them in order — the digits restated what
+                the structure already carried, which is decoration wearing the
+                costume of structure. */}
+            <h3 className="text-2xl font-semibold">{s.title}</h3>
             <p className="mt-4 text-sm leading-relaxed text-fg-muted">{s.body}</p>
-            <ul className="mt-6 flex flex-col gap-2.5 border-t border-edge pt-5">
+            <ul className="mt-6 space-y-2.5">
               {s.points.map((p) => (
-                <li key={p} className="flex gap-2.5 text-sm leading-relaxed text-fg-dim">
-                  <span className="mt-[7px] h-1 w-1 flex-none rounded-full bg-acid-500" />
+                <li key={p} className="flex gap-3 text-sm leading-relaxed text-fg-dim">
+                  <span aria-hidden className="mt-2 h-px w-3 flex-none bg-edge-strong" />
                   {p}
                 </li>
               ))}
             </ul>
-          </article>
+          </div>
         ))}
       </div>
     </section>
@@ -379,70 +308,36 @@ function HowItWorks() {
 
 /* ── Detection ────────────────────────────────────────────────────────── */
 
-/* Real spoofing techniques, rendered as they would appear on a tape. The
-   Cyrillic sample genuinely contains С, О and А — copy it and it will not
-   match the Latin string it looks identical to. */
-const SPOOFS = [
-  {
-    shown: "SOLANA",
-    real: "SОLАNА",
-    note: "Cyrillic О and А substituted for Latin",
-    flag: "HOMOGLYPH",
-  },
-  {
-    shown: "PEPE",
-    real: "PEPE⁠",
-    note: "Word joiner appended — invisible, and a different string",
-    flag: "INVISIBLE_CHARS",
-  },
-]
-
 function Detection() {
   return (
-    <section className="border-b border-edge bg-ink-950">
-      <div className="mx-auto grid max-w-6xl gap-14 px-5 py-24 lg:grid-cols-[1fr_1.1fr] lg:items-center">
-        <Reveal>
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
-            Impersonation
-          </p>
-          <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
-            Two tickers that render identically
-          </h2>
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-fg-muted">
-            A ticker padded with a zero-width character, or with Latin letters swapped for Cyrillic
-            lookalikes, is a different string to the chain and the same string to your eye. NewEra
-            folds both before clustering, so a spoof lands next to the token it imitates instead of
-            hiding as a narrative of its own.
-          </p>
-          <Link
-            to="/detection"
-            className="mt-7 inline-flex items-center gap-1.5 text-sm font-semibold text-acid-500 hover:underline"
-          >
-            See the method
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </Link>
-        </Reveal>
+    <section className="border-b border-edge bg-ink-900">
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <h2 className="max-w-[18ch] text-4xl font-semibold sm:text-5xl">
+          Two tickers that render identically
+        </h2>
+        <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
+          These are the real strings, not pictures of them. Your browser is rendering both right
+          now, and if you cannot tell them apart, that is the entire attack.
+        </p>
 
-        <Reveal stagger className="flex flex-col gap-3.5">
+        <div className="mt-14 border-t border-edge-strong">
           {SPOOFS.map((s) => (
-            <div key={s.flag} className="rounded-2xl border border-edge bg-ink-850 p-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-mono text-lg font-semibold text-fg">{s.shown}</span>
-                <span className="text-fg-dim">vs</span>
-                <span className="font-mono text-lg font-semibold text-danger">{s.real}</span>
-                <span className="ml-auto rounded bg-danger/15 px-2 py-1 font-mono text-micro font-semibold text-danger">
-                  {s.flag}
-                </span>
+            <div
+              key={s.flag}
+              className="grid gap-x-10 gap-y-4 border-b border-edge py-8 sm:grid-cols-[auto_1fr]"
+            >
+              <div className="flex items-baseline gap-5">
+                <span className="font-mono text-2xl font-semibold text-fg">{s.shown}</span>
+                <span className="text-sm text-fg-dim">vs</span>
+                <span className="font-mono text-2xl font-semibold text-danger">{s.real}</span>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-fg-dim">{s.note}</p>
+              <div className="sm:text-right">
+                <span className="font-mono text-micro font-semibold text-danger">{s.flag}</span>
+                <p className="mt-2 text-sm leading-relaxed text-fg-muted">{s.note}</p>
+              </div>
             </div>
           ))}
-          <p className="px-1 font-mono text-xs leading-relaxed text-fg-dim">
-            Both examples are live techniques, not mock-ups.
-          </p>
-        </Reveal>
+        </div>
       </div>
     </section>
   )
@@ -451,190 +346,177 @@ function Detection() {
 /* ── Evidence ─────────────────────────────────────────────────────────── */
 
 function Evidence() {
-  return (
-    <section className="border-b border-edge bg-ink-900">
-      <div className="mx-auto max-w-6xl px-5 py-24">
-        <Reveal>
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
-            Measured, not projected
-          </p>
-          <h2 className="max-w-2xl font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
-            What the data actually shows
-          </h2>
-        </Reveal>
+  const [live, setLive] = useState<Stats | null>(null)
 
-        <Reveal stagger className="mt-14 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label}>
-              <div className="font-display text-[clamp(2.2rem,4.2vw,3.4rem)] font-bold leading-none tracking-[-0.035em] text-acid-500">
-                {s.literal ? (
-                  s.literal
-                ) : (
-                  <>
-                    <CountUp to={s.to} duration={1.6} separator="," />
-                    <span>{s.suffix}</span>
-                  </>
-                )}
-              </div>
-              <p className="mt-3.5 max-w-[16rem] text-sm leading-relaxed text-fg-muted">
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </Reveal>
+  useEffect(() => {
+    let alive = true
+    getJSON<Stats>("/intel/stats")
+      .then((s) => {
+        if (alive) setLive(s)
+      })
+      .catch((err) => {
+        console.error("[Evidence] stats unavailable:", err)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
-        {/* The limit belongs on the landing page, not buried in the docs. It is
-            the difference between this and everything else in the category. */}
-        <Reveal>
-          <div className="mt-16 max-w-2xl rounded-2xl border border-edge bg-ink-850 p-7">
-            <p className="text-sm leading-relaxed text-fg-muted">
-              <span className="font-semibold text-fg">What this is not.</span> Survival means
-              somebody traded a token at all — not that it made money. NewEra does not forecast
-              price, and no number here should be read as a return. It is a filter on noise, and
-              that is a different claim.
-            </p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
-/* ── Capabilities ─────────────────────────────────────────────────────── */
-
-const CAPS = [
-  {
-    to: "/app",
-    title: "Live tape",
-    body: "Every launch as it happens, with age, creator stake and risk on each row. Filter to clean launches in one click.",
-    cta: "Open the feed",
-  },
-  {
-    to: "/themes",
-    title: "Theme intelligence",
-    body: "Narratives grouped as they form, with velocity, saturation and how many independent wallets are behind each one.",
-    cta: "How clustering works",
-  },
-  {
-    to: "/detection",
-    title: "Impersonation detection",
-    body: "Invisible characters, cross-alphabet lookalikes and duplicate bursts, scored 0–100 from data available at launch.",
-    cta: "See the method",
-  },
-  {
-    to: "/docs",
-    title: "Open API",
-    body: "The same endpoints the site runs on — feed, themes, creators and stats — public and unauthenticated.",
-    cta: "Read the docs",
-  },
-]
-
-function Capabilities() {
   return (
     <section className="border-b border-edge bg-ink-950">
-      <div className="mx-auto max-w-6xl px-5 py-24">
-        <Reveal>
-          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
-            What you get
-          </p>
-          <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
-            Everything is free, and public
-          </h2>
-          <p className="mt-4 max-w-xl text-base text-fg-muted">
-            No tiers, no paywall. Connect a wallet only when you want something saved.
-          </p>
-        </Reveal>
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <h2 className="max-w-[16ch] text-4xl font-semibold sm:text-5xl">
+          Measured, not projected
+        </h2>
+        <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
+          Every figure here is read from the live index when the page loads. The one exception is
+          labelled, because it comes from a backtest rather than a counter.
+        </p>
 
-        <Reveal stagger className="mt-12 grid gap-4 sm:grid-cols-2">
-          {CAPS.map((c) => (
-            <Link key={c.to} to={c.to} className="group block">
-              <SpotlightCard
-                className="h-full border-edge bg-ink-850 p-7 transition-colors group-hover:border-edge-strong"
-                spotlightColor="rgba(205, 255, 77, 0.14)"
-              >
-                <h3 className="font-display text-xl font-bold tracking-[-0.01em]">{c.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-fg-muted">{c.body}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-acid-500">
-                  {c.cta}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </span>
-              </SpotlightCard>
-            </Link>
-          ))}
-        </Reveal>
+        <dl className="mt-14 border-t border-edge-strong">
+          {live && (
+            <>
+              {/* Counts animate from 92% of the target rather than from zero.
+                  A count-up from zero spends two seconds displaying a figure
+                  that is materially wrong — captured at 6,361 against a real
+                  9,172 — which is a strange thing to do beneath the word
+                  "Measured". Starting close keeps the number landing, which is
+                  the point of the motion, without ever showing a false one. */}
+              <Fact
+                label="Launches indexed"
+                value={
+                  <CountUp
+                    from={Math.round(live.launchesLast24h * 0.92)}
+                    to={live.launchesLast24h}
+                    duration={1.1}
+                    separator=","
+                  />
+                }
+                unit="in the last 24 hours"
+              />
+              {/* The percentages and the backtest figure render at their true
+                  value immediately, with no count-up.
+               *
+                  A count-up displays a number that is wrong for the two seconds
+                  it runs — a screenshot of this section caught "2.9x" where the
+                  measurement is 4.2x, and "31.8%" where it is 46.5%. Under a
+                  heading that reads "Measured, not projected", a figure counting
+                  up from zero is projecting, and anyone glancing mid-animation
+                  reads a false claim. The counts below keep the animation
+                  because their size is the point and their exact digit is not;
+                  the claims do not. */}
+              <Fact
+                label="Near-copies"
+                value={<>{live.duplicatePct}%</>}
+                unit="of them duplicate something minutes old"
+              />
+              <Fact
+                label="High risk"
+                value={<>{live.highRiskPct}%</>}
+                unit="score above the manufactured-noise threshold"
+              />
+              <Fact
+                label="Distinct creators"
+                value={
+                  <CountUp
+                    from={Math.round(live.distinctCreators24h * 0.92)}
+                    to={live.distinctCreators24h}
+                    duration={1.1}
+                    separator=","
+                  />
+                }
+                unit={`across ${live.activeThemes} active clusters`}
+              />
+            </>
+          )}
+          <Fact
+            label="Risk separation"
+            value={<>4.2x</>}
+            unit="fewer high-risk launches survive their first hour — from backtest, not a counter"
+          />
+          <Fact
+            label="Transactions signed"
+            value={<span>0</span>}
+            unit="NewEra reads the chain and holds no keys"
+          />
+        </dl>
       </div>
     </section>
   )
 }
 
-/* ── FAQ ──────────────────────────────────────────────────────────────── */
+function Fact({
+  label,
+  value,
+  unit,
+}: {
+  label: string
+  value: React.ReactNode
+  unit: string
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-edge py-6">
+      <dt className="w-40 shrink-0 font-mono text-micro uppercase tracking-[0.08em] text-fg-dim">
+        {label}
+      </dt>
+      <dd className="flex flex-1 flex-wrap items-baseline gap-x-4">
+        <span className="font-mono text-3xl font-medium text-fg">{value}</span>
+        <span className="text-sm text-fg-muted">{unit}</span>
+      </dd>
+    </div>
+  )
+}
 
-function Faq() {
-  const [open, setOpen] = useState<number | null>(0)
+/* ── Questions ────────────────────────────────────────────────────────── */
+
+/* shadcn's accordion rather than a hand-rolled disclosure: it carries the
+   keyboard handling, the aria-expanded wiring and the focus management that a
+   div with an onClick does not. It is here for behaviour; the styling is ours. */
+function Questions() {
   return (
     <section className="border-b border-edge bg-ink-900">
-      <div className="mx-auto max-w-3xl px-5 py-24">
-        <Reveal>
-          <h2 className="mb-10 font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold tracking-[-0.025em]">
-            Frequently asked
-          </h2>
-        </Reveal>
-        <div className="flex flex-col gap-2.5">
-          {FAQ.map((f, i) => {
-            const isOpen = open === i
-            return (
-              <div key={f.q} className="overflow-hidden rounded-xl border border-edge bg-ink-850">
-                <button
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-                  onClick={() => setOpen(isOpen ? null : i)}
-                  aria-expanded={isOpen}
-                >
-                  <span className="text-base font-semibold">{f.q}</span>
-                  <span className={`flex-none text-acid-500 transition-transform ${isOpen ? "rotate-45" : ""}`}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </span>
-                </button>
-                <div className={`grid transition-[grid-template-rows] duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                  <div className="overflow-hidden">
-                    <p className="px-6 pb-6 text-sm leading-relaxed text-fg-muted">{f.a}</p>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <h2 className="max-w-[16ch] text-4xl font-semibold sm:text-5xl">
+          The questions worth asking first
+        </h2>
+
+        <Accordion type="single" collapsible className="mt-12 border-t border-edge-strong">
+          {/* pb-1 so the collapsed content wrapper is not flush against the
+              rule below it. */}
+          {FAQ.map((f) => (
+            <AccordionItem key={f.q} value={f.q} className="border-b border-edge pb-1">
+              <AccordionTrigger className="py-6 text-left text-lg font-medium hover:no-underline">
+                {f.q}
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="measure pb-2 text-base leading-relaxed text-fg-muted">{f.a}</p>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
     </section>
   )
 }
 
-/* ── Finale ───────────────────────────────────────────────────────────── */
+/* ── Close ────────────────────────────────────────────────────────────── */
 
-function Finale() {
+function Close() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 opacity-40">
-        <Aurora colorStops={["#1d6b4f", "#cdff4d", "#0a0c12"]} amplitude={0.8} blend={0.5} speed={0.4} />
-      </div>
-      <div className="relative mx-auto max-w-3xl px-5 py-32 text-center">
-        <h2 className="font-display text-[clamp(1.9rem,4.4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.03em]">
-          <ShinyText text="Stop reading charts that don't exist yet." speed={4} />
+    <section className="bg-ink-950">
+      <div className="mx-auto max-w-6xl px-5 py-28 sm:py-36">
+        <h2 className="max-w-[14ch] text-4xl font-semibold sm:text-5xl">
+          The feed is open, and it is free
         </h2>
-        <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-fg-muted">
-          Open the live feed and see what is being created right now.
+        <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
+          No account, no wallet, no gate. Connecting a wallet is optional and only saves a
+          watchlist.
         </p>
         <Link
           to="/app"
-          className="mt-9 inline-flex items-center gap-2 rounded-xl bg-acid-500 px-7 py-4 text-base font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
+          className="mt-10 inline-block rounded-lg bg-acid-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-acid-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
         >
-          Open live feed
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 17 17 7M9 7h8v8" />
-          </svg>
+          Open the live feed
         </Link>
       </div>
     </section>

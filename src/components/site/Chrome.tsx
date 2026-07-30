@@ -178,9 +178,11 @@ export function Footer() {
 function FootCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-dim">
+      {/* h3, not h4: pages close on an h2, so an h4 here skips a level and
+          breaks the document outline screen readers navigate by. */}
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-dim">
         {title}
-      </h4>
+      </h3>
       <div className="flex flex-col gap-2">
         {links.map(([to, label]) => (
           <Link

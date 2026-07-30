@@ -34,9 +34,14 @@
   --color-danger: #ff8a97;
 
   /* One grotesque, mono only where data lives. Both are variable and
-     self-hosted; see main.tsx for why the mono carries Cyrillic. */
-  --font-sans: "Instrument Sans Variable", system-ui, -apple-system, sans-serif;
-  --font-display: "Instrument Sans Variable", system-ui, sans-serif;
+     self-hosted; see main.tsx for why the mono carries Cyrillic.
+   *
+   * Archivo rather than Instrument Sans: the latter is on impeccable's list of
+   * faces a model reaches for by habit, and picking one needs a reason no other
+   * face could satisfy. Archivo also carries 100–900 against Instrument's
+   * 400–700 and a 62–125 width axis, which the dense app tables will use. */
+  --font-sans: "Archivo Variable", system-ui, -apple-system, sans-serif;
+  --font-display: "Archivo Variable", system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
   /* Display sizes keep Tailwind's px values so nothing reflows, but take the

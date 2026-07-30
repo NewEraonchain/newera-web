@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client'
  * beside their Latin twins, and if those characters fell back to a different
  * face the mismatch would give the spoof away — which is the opposite of the
  * point. Homoglyphs are always set in the mono. */
-import '@fontsource-variable/instrument-sans'
+import '@fontsource-variable/archivo'
 import '@fontsource-variable/geist-mono'
 
 import './index.css'
