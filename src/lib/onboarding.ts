@@ -73,19 +73,18 @@ export function track(step: Step, meta?: Record<string, unknown>) {
     body.landingPath = location.pathname + location.search
   }
 
-  const json = JSON.stringify(body)
-  try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(`${API}/onboarding/event`, new Blob([json], { type: "application/json" }))
-      return
-    }
-  } catch {
-    /* fall through to fetch */
-  }
+  // fetch(keepalive) rather than sendBeacon. A beacon carrying an
+  // application/json Blob needs a CORS preflight and the browser rejects the
+  // response — verified against the deployed API, where the beacon failed with
+  // "Response to preflight request doesn't pass access control check" while the
+  // identical fetch reached the server. Since the API is on another origin,
+  // every event was being dropped silently and the funnel read zero.
+  // keepalive gives the same survives-unload guarantee that sendBeacon was
+  // chosen for.
   fetch(`${API}/onboarding/event`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: json,
+    body: JSON.stringify(body),
     keepalive: true,
   }).catch(() => {})
 }

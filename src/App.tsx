@@ -1,14 +1,26 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom"
-import { useEffect, useState } from "react"
+import { useEffect, useState, lazy, Suspense } from "react"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
 import { isOnboarded } from "@/lib/onboarding"
 import Landing from "@/pages/Landing"
-import Feed from "@/pages/Feed"
-import ThemeDetail from "@/pages/ThemeDetail"
-import Account from "@/pages/Account"
-import { HowItWorks, Themes, Detection, About, Contact } from "@/pages/content"
-import { Docs, Terms, Privacy, Risk } from "@/pages/legal"
+
+/* Landing stays eager — it is the entry point, and deferring it only buys a
+   blank frame. Everything else loads on navigation so a visitor reading the
+   marketing pages never downloads the feed's polling and charting code, and
+   nobody downloads the legal pages until they ask for them. */
+const Feed = lazy(() => import("@/pages/Feed"))
+const ThemeDetail = lazy(() => import("@/pages/ThemeDetail"))
+const Account = lazy(() => import("@/pages/Account"))
+const HowItWorks = lazy(() => import("@/pages/content").then((m) => ({ default: m.HowItWorks })))
+const Themes = lazy(() => import("@/pages/content").then((m) => ({ default: m.Themes })))
+const Detection = lazy(() => import("@/pages/content").then((m) => ({ default: m.Detection })))
+const About = lazy(() => import("@/pages/content").then((m) => ({ default: m.About })))
+const Contact = lazy(() => import("@/pages/content").then((m) => ({ default: m.Contact })))
+const Docs = lazy(() => import("@/pages/legal").then((m) => ({ default: m.Docs })))
+const Terms = lazy(() => import("@/pages/legal").then((m) => ({ default: m.Terms })))
+const Privacy = lazy(() => import("@/pages/legal").then((m) => ({ default: m.Privacy })))
+const Risk = lazy(() => import("@/pages/legal").then((m) => ({ default: m.Risk })))
 
 /* Router keeps scroll position between pages otherwise, which reads as broken.
    Braces matter: an effect that returns a non-undefined value crashes React 19
@@ -19,6 +31,12 @@ function ScrollToTop() {
     window.scrollTo(0, 0)
   }, [pathname])
   return null
+}
+
+/* Held to the same min-height as a loaded page so the footer doesn't jump up
+   and back down while a route chunk arrives. */
+function RouteFallback() {
+  return <div className="min-h-[70vh]" aria-busy="true" />
 }
 
 function Placeholder({ title }: { title: string }) {
@@ -50,6 +68,7 @@ function Shell() {
       <ScrollToTop />
       <Header />
       <main className="pt-16">
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/app" element={<Feed />} />
@@ -66,6 +85,7 @@ function Shell() {
           <Route path="/risk" element={<Risk />} />
           <Route path="*" element={<Placeholder title="Not found" />} />
         </Routes>
+        </Suspense>
       </main>
       <Footer />
       <OnboardingModal
