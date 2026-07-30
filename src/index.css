@@ -307,3 +307,83 @@ p { text-wrap: pretty; }
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none !important; }
 }
+
+/* ── Stacked panels ──────────────────────────────────────────────────────
+   Each panel sticks at the top and the next rides up over it, casting a
+   shadow as it arrives. The shadow is what makes the overlap visible at all:
+   two dark grounds meeting on a dark page otherwise produce no edge.
+
+   transform-origin at the top keeps the recede anchored where the panel is
+   pinned, so it shrinks away from the viewer rather than drifting upward.
+   will-change is deliberately absent — a dozen promoted layers costs more
+   than the effect. */
+.stack-panel {
+  position: sticky;
+  top: 0;
+  transform-origin: 50% 0%;
+  /* An upward shadow: the incoming panel casts onto the one it covers. */
+  box-shadow: 0 -34px 80px -10px rgba(0, 0, 0, 0.92);
+}
+/* The hairline is the physical edge of the arriving surface. */
+.stack-panel::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: var(--color-edge-strong);
+  pointer-events: none;
+}
+.stack-panel:first-of-type { box-shadow: none; }
+.stack-panel:first-of-type::before { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sticky itself is motion. Declining it returns ordinary flow. */
+  .stack-panel { position: relative; }
+}
+
+/* ── The light panel ─────────────────────────────────────────────────────
+   A ground of near-blacks stops registering as movement after two or three
+   steps, so one panel inverts completely. It is not a colour swap: the signal
+   colour measures 1.06:1 on white, so a light panel that kept lime would
+   silently lose the one colour carrying risk and liveness.
+
+   Instead the whole token set flips inside this class. Every component reads
+   its colours through these variables, so a single class inverts the section
+   without touching a single component — and every value below is measured
+   against the light ground rather than assumed:
+
+     fg        #08090b  18.08:1
+     fg-muted  #4a504b   7.50:1
+     fg-dim    #5d635e   5.59:1
+     signal    #5c7300   4.88:1   (same hue family as acid, dark enough to read)
+     danger    #a3242e   6.69:1
+     warn      #7a4f00   6.47:1
+*/
+.panel-light {
+  --color-ink-950: #f4f4f1;
+  --color-ink-900: #ecece8;
+  --color-ink-850: #e4e4df;
+  --color-ink-800: #dcdcd6;
+  --color-ink-700: #d0d0c9;
+
+  --color-fg: #08090b;
+  --color-fg-muted: #4a504b;
+  --color-fg-dim: #5d635e;
+  --color-unresolved: #dcdcd6;
+
+  --color-acid-500: #5c7300;
+  --color-acid-400: #4a5d00;
+  --color-acid-600: #4a5d00;
+  --color-danger: #a3242e;
+  --color-warn: #7a4f00;
+
+  --color-edge: rgba(0, 0, 0, 0.10);
+  --color-edge-strong: rgba(0, 0, 0, 0.22);
+
+  background: #f4f4f1;
+  color: #08090b;
+}
+/* The reticle inverts by blend mode already, but the progress rail and the
+   aperture scrims are keyed to the dark ground. */
+.panel-light .ap-scrim { background: #f4f4f1; }

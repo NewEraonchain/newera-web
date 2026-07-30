@@ -64,7 +64,7 @@ export default function Feed() {
     const [s, t, f] = await Promise.allSettled([
       getJSON<Stats>("/intel/stats"),
       getJSON<{ items: Theme[] }>(`/intel/themes?limit=14${organicOnly ? "&organicOnly=1" : ""}`),
-      getJSON<{ items: Launch[] }>(`/intel/feed?limit=60${hideRisky ? "&maxRisk=25" : ""}`),
+      getJSON<{ items: Launch[] }>(`/intel/feed?limit=30${hideRisky ? "&maxRisk=25" : ""}`),
     ])
 
     if (s.status === "fulfilled") setStats(s.value)
@@ -200,10 +200,10 @@ export default function Feed() {
 
       <div className="mt-10 grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* themes */}
-        <section>
+        <section className="lg:sticky lg:top-[13vh] lg:self-start">
           <PanelHead title="Clusters forming" count={clusters ? `${clusters.length} active` : "loading…"} />
-          <div ref={clusterList}>
-          <Stagger className="border-t border-edge" each={0.05}>
+          <div ref={clusterList} className="max-h-[74vh] overflow-y-auto border-t border-edge pr-1">
+          <Stagger each={0.05}>
             {clusters === null ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={104} />)
             ) : clusters.length === 0 ? (

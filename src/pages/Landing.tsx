@@ -8,6 +8,7 @@ import CaseFile from "@/components/CaseFile"
 import SpoofScan from "@/components/SpoofScan"
 import Plate from "@/components/Aperture"
 import KineticHeading from "@/components/KineticHeading"
+import StackPanel from "@/components/StackPanel"
 import { Rise, Stagger, RuleDraw } from "@/components/scroll"
 import { ClusterField, RiskHistogram, CadenceStrip } from "@/components/figures"
 import LaunchField from "@/components/LaunchField"
@@ -200,7 +201,7 @@ function Hero() {
 
 function BlockZero() {
   return (
-    <section className="border-b border-edge bg-ink-900">
+    <StackPanel tone={2} exit="tilt">
       {/* The one section that breaks the grid.
        *
           Every other section on this page is flush left in the first third,
@@ -235,7 +236,7 @@ function BlockZero() {
           <ClusterField />
         </div>
       </div>
-    </section>
+    </StackPanel>
   )
 }
 
@@ -347,7 +348,7 @@ function Pipeline() {
 
 function Detection() {
   return (
-    <section className="border-b border-edge bg-ink-900">
+    <StackPanel tone={3} exit="drift">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[13ch] text-[clamp(2.6rem,7.4vw,6.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
@@ -362,7 +363,7 @@ function Detection() {
           ))}
         </Stagger>
       </div>
-    </section>
+    </StackPanel>
   )
 }
 
@@ -372,7 +373,7 @@ function Evidence() {
   const live = useStats()
 
   return (
-    <section className="border-b border-edge bg-ink-950">
+    <StackPanel light exit="recede">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
@@ -463,7 +464,7 @@ function Evidence() {
           </div>
         </div>
       </div>
-    </section>
+    </StackPanel>
   )
 }
 
@@ -498,7 +499,7 @@ function Questions() {
   const [open, setOpen] = useState<string>("")
 
   return (
-    <section className="border-b border-edge bg-ink-900">
+    <StackPanel tone={4} exit="hold">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
@@ -556,7 +557,7 @@ function Questions() {
           })}
         </Accordion>
       </div>
-    </section>
+    </StackPanel>
   )
 }
 
@@ -566,7 +567,7 @@ function Close() {
   const live = useStats()
 
   return (
-    <section className="relative flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[10vh] pt-[18vh]">
+    <StackPanel tone={0} exit="recede" className="relative flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[10vh] pt-[18vh]">
       {/* The field returns for the close, so the page ends where it began. */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
         <LaunchField />
@@ -605,6 +606,6 @@ function Close() {
           </span>
         )}
       </div>
-    </section>
+    </StackPanel>
   )
 }
