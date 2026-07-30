@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
 import { Flip } from "gsap/Flip"
 
@@ -7,6 +7,7 @@ import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { LaunchRow, ThemeCard, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { Rise, Wipe, Stagger } from "@/components/scroll"
+import LaunchField from "@/components/LaunchField"
 import { KineticText, RollingNumber } from "@/components/kinetic"
 
 const REFRESH_MS = 12000
@@ -17,6 +18,7 @@ export default function Feed() {
   const [launches, setLaunches] = useState<Launch[] | null>(null)
   const [organicOnly, setOrganicOnly] = useState(true)
   const [hideRisky, setHideRisky] = useState(false)
+  const [byRisk, setByRisk] = useState(false)
   const [failures, setFailures] = useState(0)
 
   // Tracks which addresses we've already shown so genuinely new rows can flash.
@@ -93,13 +95,45 @@ export default function Feed() {
     seen.current.clear()
   }, [hideRisky])
 
+  /* A reverse-chronological dump gives the eye nowhere to land: sixty rows,
+     no ranking, and the one that matters is wherever it happens to fall. The
+     tape stays chronological by default because that is what a tape is, but
+     it can be ranked by what the index actually judged — risk first, then
+     duplication, then spoof flags. */
+  const tape = useMemo(() => {
+    if (!launches) return null
+    if (!byRisk) return launches
+    return [...launches].sort(
+      (a, b) =>
+        b.riskScore - a.riskScore ||
+        b.dupeCount - a.dupeCount ||
+        (b.spoofFlags?.length || 0) - (a.spoofFlags?.length || 0)
+    )
+  }, [launches, byRisk])
+
+  /* A "cluster" of one launch by one wallet is not a cluster. Showing them
+     pads the list with rows that cannot demonstrate the thing the column
+     exists to show, and they were most of it. */
+  const clusters = useMemo(
+    () => (themes ? themes.filter((t) => t.launchCount >= 2) : null),
+    [themes]
+  )
+
   const lagSeconds = stats?.lastIngestAt
     ? Math.floor((Date.now() - new Date(stats.lastIngestAt).getTime()) / 1000)
     : null
   const live = lagSeconds !== null && lagSeconds < 120
 
   return (
-    <div className="px-[4vw] pb-[14vh] pt-[13vh]">
+    <div className="relative px-[4vw] pb-[14vh] pt-[13vh]">
+      {/* One point per token in the live window, risk driving colour. It has
+          existed since the overdrive pass and rendered nowhere on the one route
+          where "every launch, all at once" is literally what you are looking
+          at. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[52vh] opacity-70">
+        <LaunchField />
+      </div>
+
       <header className="grid gap-x-12 gap-y-6 md:grid-cols-[10rem_1fr]">
         <p className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
           {/* "Live" is a claim — only make it when the data supports it. */}
@@ -159,41 +193,44 @@ export default function Feed() {
         <Toggle on={hideRisky} onClick={() => withFlip(() => setHideRisky((v) => !v))}>
           Hide high-risk launches
         </Toggle>
+        <Toggle on={byRisk} onClick={() => setByRisk((v) => !v)}>
+          {byRisk ? "Ranked by risk" : "Newest first"}
+        </Toggle>
       </Wipe>
 
       <div className="mt-10 grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* themes */}
         <section>
-          <PanelHead title="Clusters forming" count={themes ? `${themes.length} active` : "loading…"} />
+          <PanelHead title="Clusters forming" count={clusters ? `${clusters.length} active` : "loading…"} />
           <div ref={clusterList}>
           <Stagger className="border-t border-edge" each={0.05}>
-            {themes === null ? (
+            {clusters === null ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={104} />)
-            ) : themes.length === 0 ? (
+            ) : clusters.length === 0 ? (
               <EmptyState>
                 {organicOnly
                   ? "No organic themes right now — every active cluster is one wallet repeating itself. Turn off the filter to see them."
                   : "No themes yet. The indexer may still be warming up."}
               </EmptyState>
             ) : (
-              themes.map((t) => <ThemeCard key={t.id} theme={t} />)
+              clusters.map((t) => <ThemeCard key={t.id} theme={t} />)
             )}
           </Stagger>
           </div>
         </section>
 
         {/* tape */}
-        <section>
-          <PanelHead title="Live tape" count={launches ? `${launches.length} shown` : "loading…"} />
-          <div className="max-h-[78vh] overflow-y-auto border-t border-edge pr-1">
-            {launches === null ? (
+        <section className="lg:sticky lg:top-[13vh] lg:self-start">
+          <PanelHead title="Live tape" count={tape ? `${tape.length} shown` : "loading…"} />
+          <div className="max-h-[74vh] overflow-y-auto border-t border-edge pr-1">
+            {tape === null ? (
               Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} />)
             ) : failures >= 3 ? (
               <EmptyState>Could not reach the intelligence API.</EmptyState>
-            ) : launches.length === 0 ? (
+            ) : tape.length === 0 ? (
               <EmptyState>Nothing indexed in this window yet.</EmptyState>
             ) : (
-              launches.map((l) => {
+              tape.map((l) => {
                 const isNew = seen.current.size > 0 && !seen.current.has(l.address)
                 seen.current.add(l.address)
                 return <LaunchRow key={l.address} launch={l} isNew={isNew} />

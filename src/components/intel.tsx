@@ -140,7 +140,29 @@ export function ThemeCard({ theme }: { theme: Theme }) {
         >
           {theme.label}
         </span>
-        <StatusBadge status={theme.status} />
+
+        {/* The discriminating figure, not the status.
+         *
+            Every live cluster currently reports EMERGING — measured, 100 of
+            100 — so the badge was the loudest coloured element on the page
+            and carried no information at the exact moment it was meant to.
+            What actually separates a narrative from one wallet is how many
+            distinct wallets arrived, so that is what gets the visual: a bar
+            per launch, lit for each independent creator. */}
+        <span
+          aria-hidden
+          className="flex flex-none items-center gap-[2px]"
+          title={`${theme.creatorCount} of ${theme.launchCount} launches from distinct wallets`}
+        >
+          {Array.from({ length: Math.min(theme.launchCount, 10) }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-3 w-[3px] ${
+                i < theme.creatorCount ? "bg-acid-500" : "bg-edge-strong"
+              }`}
+            />
+          ))}
+        </span>
       </span>
 
       <span className="mt-1.5 flex flex-wrap gap-x-4 font-mono text-micro text-fg-dim">
@@ -155,6 +177,7 @@ export function ThemeCard({ theme }: { theme: Theme }) {
             : `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"} · one-wallet spam`}
         </span>
         <span>{ago(theme.ageMinutes * 60)} old</span>
+        <StatusBadge status={theme.status} />
       </span>
 
       {theme.samples?.length > 0 && (

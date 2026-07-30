@@ -201,10 +201,19 @@ function Hero() {
 function BlockZero() {
   return (
     <section className="border-b border-edge bg-ink-900">
-      <div className="px-[4vw] py-24 sm:py-32">
+      {/* The one section that breaks the grid.
+       *
+          Every other section on this page is flush left in the first third,
+          and by the third one the eye has learned the pattern and stopped
+          looking. This is the page's central claim, so it is the one that gets
+          a different shape: centred, at argument scale, with the two halves of
+          the reasoning set either side of the axis. Consistency is not the same
+          as sameness — a rule-based system still has to make more than one
+          shape. */}
+      <div className="px-[4vw] py-24 text-center sm:py-32">
         <RuleDraw className="mb-16" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Nobody else can show you this, and it is not because they are worse'}</KineticText></Rise>
-        <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
+        <Rise><KineticText as="h2" className="font-display mx-auto max-w-[15ch] text-[clamp(2.6rem,7.4vw,6.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Nobody else can show you this, and it is not because they are worse'}</KineticText></Rise>
+        <div className="mx-auto mt-12 grid max-w-5xl gap-x-16 gap-y-6 text-left lg:grid-cols-2">
           <p className="measure text-base leading-relaxed text-fg-muted">
             A trading terminal indexes transactions, so a token has to trade before it can show
             you anything. An attention platform needs an audience the token does not have yet.
@@ -286,7 +295,7 @@ function Pipeline() {
     >
       <div className="w-full px-[4vw]">
         <RuleDraw className="mb-16" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Four stages, in the order they run'}</KineticText></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Four stages, in the order they run'}</KineticText></Rise>
         <div className="mt-8 h-px w-full bg-edge">
           <div
             data-pipeline-progress
@@ -341,7 +350,7 @@ function Detection() {
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[13ch] text-[clamp(2.6rem,7.4vw,6.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           These are the real strings, not pictures of them. Your browser is rendering both right
           now, and if you cannot tell them apart, that is the entire attack.
@@ -366,7 +375,7 @@ function Evidence() {
     <section className="border-b border-edge bg-ink-950">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           Every figure here is read from the live index when the page loads. The one exception is
           labelled, because it comes from a backtest rather than a counter.
@@ -492,7 +501,7 @@ function Questions() {
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
 
         {/* The questions are the composition, not a list of disclosure widgets.
             Each one sits at display scale and unresolved; the open one is the
