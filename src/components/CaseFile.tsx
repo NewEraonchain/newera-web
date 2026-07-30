@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { DrawSVGPlugin } from "gsap/DrawSVGPlugin"
 import { getJSON, shortAddr, type Theme } from "@/lib/api"
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin)
 
 /* The landing page's argument, made on a real cluster rather than described.
  *
@@ -146,7 +147,7 @@ export default function CaseFile() {
         )
         .from(
           "[data-bracket]",
-          { scaleY: 0, duration: 0.5, stagger: 0.15, ease: "none" },
+          { drawSVG: "0% 0%", duration: 0.6, stagger: 0.15, ease: "none" },
           ">-0.15"
         )
         .from("[data-copy-mark]", { opacity: 0, scale: 0.7, duration: 0.3, stagger: 0.1 }, "<")
@@ -212,14 +213,28 @@ export default function CaseFile() {
           <div ref={roster} className="relative mt-5 border-t border-edge pl-6">
             {/* The link the detector found, drawn. Each bracket spans exactly
                 the rows that share a ticker. */}
+            {/* Drawn, not scaled. A bordered box growing on scaleY reads as a
+                box appearing; a stroke drawing itself reads as the detector
+                marking the link it just found — which is what this is. */}
             {brackets.map((b) => (
-              <span
+              <svg
                 key={b.symbol}
-                data-bracket
                 aria-hidden
+                width="9"
+                height={b.height}
+                viewBox={`0 0 9 ${b.height}`}
                 style={{ top: b.top, height: b.height }}
-                className="absolute left-0 w-2 origin-top border-y border-l border-warn/60"
-              />
+                className="absolute left-0 overflow-visible"
+              >
+                <path
+                  data-bracket
+                  d={`M9 1 L1 1 L1 ${b.height - 1} L9 ${b.height - 1}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  className="text-warn/70"
+                />
+              </svg>
             ))}
 
             {theme.samples.map((s, i) => {

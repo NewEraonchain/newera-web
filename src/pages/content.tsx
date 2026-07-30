@@ -94,7 +94,7 @@ export function Themes() {
             <span>13:25:40 &nbsp; TRUST⁠ &nbsp; Trust in Trump</span>
             <span>13:25:41 &nbsp; TIT &nbsp;&nbsp;&nbsp; Trust In Trump</span>
             <span>13:25:41 &nbsp; TIT &nbsp;&nbsp;&nbsp; Trust in Trump</span>
-            <span className="mt-1 opacity-60">→ one theme, four tokens, four different tickers</span>
+            <span className="mt-1 text-acid-500">→ one theme, four tokens, four different tickers</span>
           </div>
         </Callout>
       </Section>
@@ -149,7 +149,7 @@ export function Detection() {
           <div className="flex flex-col gap-1 font-mono text-sm text-fg-muted">
             <span>TRUST&nbsp;&nbsp;&nbsp;&nbsp;→ 5 characters</span>
             <span>TRUST⁠&nbsp;&nbsp;&nbsp;→ 6 characters (one is invisible)</span>
-            <span className="mt-1 opacity-60">→ renders identically, different string, different token</span>
+            <span className="mt-1 text-acid-500">→ renders identically, different string, different token</span>
           </div>
         </Callout>
       </Section>

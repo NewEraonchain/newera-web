@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import gsap from "gsap"
+import { Flip } from "gsap/Flip"
+
+gsap.registerPlugin(Flip)
 import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { LaunchRow, ThemeCard, Toggle, Skeleton, EmptyState } from "@/components/intel"
@@ -17,6 +21,40 @@ export default function Feed() {
 
   // Tracks which addresses we've already shown so genuinely new rows can flash.
   const seen = useRef<Set<string>>(new Set())
+
+  /* Filtering is a layout change, so it animates as one.
+   *
+   * Flip records where every row is before the filter runs and animates each
+   * one from there to wherever it lands, so rows that survive the filter
+   * visibly travel instead of the whole list snapping to a new arrangement.
+   * That is the difference between a list that re-rendered and a list that
+   * reorganised — and on a feed whose entire job is showing you what changed,
+   * it is worth the plugin. */
+  const clusterList = useRef<HTMLDivElement>(null)
+  const flipState = useRef<Flip.FlipState | null>(null)
+
+  const withFlip = (fn: () => void) => {
+    const el = clusterList.current
+    if (el && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      flipState.current = Flip.getState(el.querySelectorAll("a"))
+    }
+    fn()
+  }
+
+  useLayoutEffect(() => {
+    const state = flipState.current
+    if (!state) return
+    flipState.current = null
+    Flip.from(state, {
+      duration: 0.62,
+      ease: "expo.out",
+      stagger: 0.015,
+      absolute: true,
+      onEnter: (els) =>
+        gsap.fromTo(els, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }),
+      onLeave: (els) => gsap.to(els, { opacity: 0, y: -10, duration: 0.28, ease: "power2.in" }),
+    })
+  }, [themes])
 
   const load = useCallback(async () => {
     // allSettled, not all: the three panels are independent, and a failing
@@ -115,10 +153,10 @@ export default function Feed() {
 
       {/* controls */}
       <Wipe className="mt-8 flex flex-wrap gap-3">
-        <Toggle on={organicOnly} onClick={() => setOrganicOnly((v) => !v)}>
+        <Toggle on={organicOnly} onClick={() => withFlip(() => setOrganicOnly((v) => !v))}>
           Organic clusters only
         </Toggle>
-        <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
+        <Toggle on={hideRisky} onClick={() => withFlip(() => setHideRisky((v) => !v))}>
           Hide high-risk launches
         </Toggle>
       </Wipe>
@@ -127,6 +165,7 @@ export default function Feed() {
         {/* themes */}
         <section>
           <PanelHead title="Clusters forming" count={themes ? `${themes.length} active` : "loading…"} />
+          <div ref={clusterList}>
           <Stagger className="border-t border-edge" each={0.05}>
             {themes === null ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={104} />)
@@ -140,6 +179,7 @@ export default function Feed() {
               themes.map((t) => <ThemeCard key={t.id} theme={t} />)
             )}
           </Stagger>
+          </div>
         </section>
 
         {/* tape */}
