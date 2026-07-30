@@ -565,6 +565,7 @@ function Close() {
 
       <Plate rules>
         <KineticHeading
+          as="h2"
           /* Looser than the hero. At 12.5vw a 70% width with -0.03em tracking
              closes the counters on "FEED" until the letters merge; heavy
              condensed type needs the tracking back. */

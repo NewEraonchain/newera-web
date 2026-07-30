@@ -7,7 +7,7 @@ import { ProgressRail } from "@/components/scroll"
 import { useApertureEngine } from "@/components/Aperture"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
-import { isOnboarded } from "@/lib/onboarding"
+import { isOnboarded, wasDeclined } from "@/lib/onboarding"
 import Landing from "@/pages/Landing"
 
 /* Landing stays eager — it is the entry point, and deferring it only buys a
@@ -73,7 +73,7 @@ function Shell() {
   useApertureEngine()
 
   useEffect(() => {
-    if (isOnboarded()) return
+    if (isOnboarded() || wasDeclined()) return
     if (GATED.some((p) => loc.pathname.startsWith(p))) setModal(true)
   }, [loc.pathname])
 

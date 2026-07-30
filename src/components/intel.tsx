@@ -145,12 +145,13 @@ export function ThemeCard({ theme }: { theme: Theme }) {
 
       <span className="mt-1.5 flex flex-wrap gap-x-4 font-mono text-micro text-fg-dim">
         <span>
-          <b className="font-semibold text-fg-muted">{theme.launchCount}</b> launches
+          <b className="font-semibold text-fg-muted">{theme.launchCount}</b>{" "}
+          {theme.launchCount === 1 ? "launch" : "launches"}
         </span>
         {/* The comparison that carries the whole judgement. */}
         <span className={theme.isOrganic ? "text-acid-500" : "text-danger"}>
           {theme.isOrganic
-            ? `${theme.creatorCount} creators`
+            ? `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"}`
             : `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"} · one-wallet spam`}
         </span>
         <span>{ago(theme.ageMinutes * 60)} old</span>

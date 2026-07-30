@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { API, authHeaders } from "@/lib/api"
-import { anonId, track, K_DONE, K_INTENT } from "@/lib/onboarding"
+import { anonId, track, K_DONE, K_DECLINED, K_INTENT } from "@/lib/onboarding"
 import type { Intent } from "@/lib/onboarding"
 import { connect, isRejection, currentAddress } from "@/lib/wallet"
 import type { ConnectKind } from "@/lib/wallet"
@@ -71,6 +71,13 @@ export default function OnboardingModal({
   const dismiss = useCallback(
     (reason: string) => {
       track("MODAL_DISMISSED", { at: ["intent", "wallet", "contact", "code"][step], reason })
+      // Remember the decline, or the next cluster page asks again.
+      try {
+        localStorage.setItem(K_DECLINED, String(Date.now()))
+      } catch {
+        // Private mode with storage disabled: the modal reappearing is a far
+        // smaller problem than a thrown error taking the page down.
+      }
       onClose(reason)
     },
     [step, onClose],

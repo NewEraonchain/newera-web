@@ -14,9 +14,12 @@ import gsap from "gsap"
 export default function KineticHeading({
   lines,
   className = "",
+  as: Tag = "h1",
 }: {
   lines: { text: string; width: number; weight: number }[]
   className?: string
+  /* The closing statement uses this too, and a page may only have one h1. */
+  as?: "h1" | "h2"
 }) {
   const ref = useRef<HTMLHeadingElement>(null)
 
@@ -56,7 +59,7 @@ export default function KineticHeading({
   }, [lines])
 
   return (
-    <h1 ref={ref} className={`font-display uppercase ${className}`}>
+    <Tag ref={ref} className={`font-display uppercase ${className}`}>
       {lines.map((l) => (
         <span
           key={l.text}
@@ -68,6 +71,6 @@ export default function KineticHeading({
           {l.text}
         </span>
       ))}
-    </h1>
+    </Tag>
   )
 }

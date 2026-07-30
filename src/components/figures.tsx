@@ -95,8 +95,17 @@ export function ClusterField() {
 
   if (!themes || !grid) return null
 
+  const solo = grid.cells.reduce((t, row) => t + row[0], 0)
+  const shared = themes.length - solo
+
   return (
-    <div ref={root}>
+    <figure ref={root} className="m-0">
+      {/* The cells are presentational. They used to be 28 buttons with no click
+          handler — a fake affordance, and 21 empty focus stops in front of a
+          keyboard user. The figure states its own finding instead. */}
+      <figcaption className="sr-only">
+        {`${themes.length} live clusters plotted by launch count against distinct creators. ${solo} come from a single wallet; ${shared} had independent wallets launch into them.`}
+      </figcaption>
       <div className="flex items-start justify-between gap-8">
         <span className="font-mono text-xs text-fg-dim">
           launches ↑ / distinct creators →
@@ -128,15 +137,12 @@ export function ClusterField() {
                 const solo = ci === 0
                 const weight = n / grid.max
                 return (
-                  <button
+                  <div
                     key={ci}
-                    type="button"
                     data-cell
+                    aria-hidden
                     onMouseEnter={() => setHover({ c: ci + 1, row: ri, n })}
                     onMouseLeave={() => setHover(null)}
-                    onFocus={() => setHover({ c: ci + 1, row: ri, n })}
-                    onBlur={() => setHover(null)}
-                    aria-label={`${n} clusters, ${ROWS[ri].label} launches, ${ci + 1} creators`}
                     className="mb-1.5 flex h-12 flex-1 items-center justify-center border transition-colors"
                     style={{
                       borderColor: n ? "transparent" : "rgba(255,255,255,.07)",
@@ -156,7 +162,7 @@ export function ClusterField() {
                         {n}
                       </span>
                     )}
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -178,7 +184,7 @@ export function ClusterField() {
         of it had independent wallets arrive. Same launch counts, opposite meanings — which is the
         distinction a chart of price cannot draw, because none of these have traded.
       </p>
-    </div>
+    </figure>
   )
 }
 

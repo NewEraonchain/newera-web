@@ -74,7 +74,10 @@ Three rules, which are accessibility constraints rather than styling:
    over a legible page, never a mask over a hidden one. It engages only where a
    fine pointer and motion are both available, and only after the pointer has
    actually moved. Touch, keyboard, reduced motion and no-JS get everything lit.
-2. **It never covers prose.** Display type, the tape and comparison plates only.
+2. **It never covers prose *or controls*.** Display type, the tape and comparison
+   plates only. Anything a visitor has to read to decide, or click to act, stays
+   resolved — a disclosure trigger dimmed to 1.16:1 is an invisible control,
+   not an atmospheric one.
 3. The band widens with scroll — by the end of the page everything is resolved.
 
 ## Chrome

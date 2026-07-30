@@ -8,6 +8,7 @@ import { API } from "./api"
 
 export const K_ANON = "newera_anon_id"
 export const K_DONE = "newera_onboarded"
+export const K_DECLINED = "newera_onboard_declined"
 export const K_INTENT = "newera_intent"
 export const K_ADDR = "newera_address"
 
@@ -43,6 +44,19 @@ export function anonId(): string {
 
 export function isOnboarded(): boolean {
   return localStorage.getItem(K_DONE) === "1" || !!localStorage.getItem(K_ADDR)
+}
+
+/* Declining is not the same as onboarding, so it gets its own key — but it has
+   to be remembered, or Escape / × / "Skip this" all return the visitor to the
+   same survey on the next cluster page, forever. Someone opening a shared
+   cluster link was being handed "What brings you here?" instead of the cluster
+   every single time.
+ *
+ * Thirty days, not never: the ask is legitimate, it just must not be endless. */
+export function wasDeclined(): boolean {
+  const t = localStorage.getItem(K_DECLINED)
+  if (!t) return false
+  return Date.now() - Number(t) < 30 * 24 * 60 * 60 * 1000
 }
 
 function param(name: string): string | null {

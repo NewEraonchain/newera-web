@@ -171,12 +171,15 @@ export function Detection() {
           Comparing launches the score rated low-risk against those it rated high-risk:
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
+          {/* Not both lime. One of these is the good outcome and one is the bad
+              one, and rendering them in the same signal colour destroys the
+              comparison this section exists to make. */}
           {[
-            { v: "56.0%", l: "of low-risk launches still active", n: "n=134" },
-            { v: "13.3%", l: "of high-risk launches still active", n: "n=98" },
+            { v: "56.0%", l: "of low-risk launches still active", n: "n=134", tone: "text-acid-500" },
+            { v: "13.3%", l: "of high-risk launches still active", n: "n=98", tone: "text-danger" },
           ].map((s) => (
             <div key={s.l} className="border-t border-edge pt-5">
-              <div className="font-display text-3xl font-bold leading-none text-acid-500">{s.v}</div>
+              <div className={`font-display text-3xl font-bold leading-none ${s.tone}`}>{s.v}</div>
               <p className="mt-2 text-sm text-fg-muted">{s.l}</p>
               <p className="mt-1 font-mono text-xs text-fg-dim">{s.n}</p>
             </div>
