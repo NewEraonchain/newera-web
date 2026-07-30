@@ -3,6 +3,7 @@ import { useEffect, useState, lazy, Suspense } from "react"
 import { useLenis } from "lenis/react"
 import SmoothScroll from "@/components/SmoothScroll"
 import Reticle from "@/components/Reticle"
+import { ProgressRail } from "@/components/scroll"
 import { useApertureEngine } from "@/components/Aperture"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
@@ -79,6 +80,7 @@ function Shell() {
   return (
     <>
       <ScrollToTop />
+      <ProgressRail />
       <Reticle />
       <Header />
       <main className="pt-16">

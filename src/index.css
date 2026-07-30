@@ -7,25 +7,25 @@
 
    Read in the dark, at speed, with a tape moving. */
 @theme {
-  --color-ink-950: #08090b;   /* the void — the plane everything sits on */
-  --color-ink-900: #0b0d10;
-  --color-ink-850: #101318;
-  --color-ink-800: #171a1f;
-  --color-ink-700: #1f242b;
+  --color-ink-950: #000000;   /* the void. Point black, not near-black. */
+  --color-ink-900: #050607;
+  --color-ink-850: #0a0b0d;
+  --color-ink-800: #101215;
+  --color-ink-700: #171a1e;
 
-  /* Present, but not yet legible. 1.14:1 against the void, which is far below
+  /* Present, but not yet legible. 1.16:1 against the void, which is far below
      any readable threshold — deliberately. Nothing essential may rest in this
      state; see the aperture rules below. */
-  --color-unresolved: #171a1f;
+  --color-unresolved: #141619;
 
   --color-edge: rgba(255, 255, 255, 0.07);
   --color-edge-strong: rgba(255, 255, 255, 0.15);
 
   /* Three text levels, every one measured ≥4.5:1 against every surface above,
      ink-700 included. */
-  --color-fg: #f2f4f2;       /* 14.12:1 — resolved */
-  --color-fg-muted: #9aa39c; /*  6.01:1 */
-  --color-fg-dim: #868f88;   /*  4.68:1 */
+  --color-fg: #f2f4f2;       /* 15.79:1 — resolved */
+  --color-fg-muted: #9aa39c; /*  6.73:1 */
+  --color-fg-dim: #868f88;   /*  5.24:1 */
 
   /* Signal, never decoration: risk, liveness, the aperture rules, the primary
      action. Never a heading, never a gradient, never a glow. */
@@ -97,9 +97,10 @@ p { text-wrap: pretty; }
 ::selection { background: rgba(205, 255, 77, 0.25); color: #fff; }
 
 /* ── The aperture ────────────────────────────────────────────────────────
-   A band of legibility that tracks the pointer. Two identical copies of the
-   same content: the base sits at --color-unresolved, and a bright copy is
-   clipped to the band.
+   A band of legibility that tracks the pointer. One text node with a scrim
+   above and below the band — not two stacked copies. The earlier version
+   duplicated its children, which meant duplicated DOM, an aria-hidden copy and
+   genuinely occluded text; the scrim veils without touching the text at all.
 
    THE RULES, which are not stylistic:
 
@@ -109,9 +110,9 @@ p { text-wrap: pretty; }
       keyboard, reduced motion and no-JS all get the whole page lit.
    2. It never covers prose. Display type, the tape and the comparison plates
       only. Anything a visitor has to *read* is always resolved.
-   3. The unresolved copy is real text at low contrast, not hidden text — it
-      stays selectable, searchable and present to a screen reader. The bright
-      copy is aria-hidden so nothing is announced twice.
+   3. The text itself is never dimmed or duplicated. It stays at full contrast
+      in the DOM, selectable and intact for a screen reader; only the scrims
+      above and below it move.
 */
 .plate { position: relative; }
 

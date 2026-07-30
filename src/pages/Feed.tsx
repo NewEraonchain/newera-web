@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { LaunchRow, ThemeCard, Toggle, Skeleton, EmptyState } from "@/components/intel"
+import { Rise, Wipe, Stagger } from "@/components/scroll"
 
 const REFRESH_MS = 12000
 
@@ -74,7 +75,7 @@ export default function Feed() {
           </span>
         </p>
 
-        <div>
+        <Rise>
           <h1
             className="font-display max-w-[14ch] text-[clamp(2rem,5.2vw,4.2rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
             style={{ fontStretch: "72%" }}
@@ -86,12 +87,12 @@ export default function Feed() {
             traded. A cluster is only a narrative when independent wallets launch into it, so
             creator count sits beside every launch count.
           </p>
-        </div>
+        </Rise>
       </header>
 
       {/* The measurements, as a ruled row. Five bordered boxes was the single
           most dashboard-like thing on the page. */}
-      <dl className="mt-[7vh] flex flex-wrap gap-x-14 gap-y-6 border-y border-edge py-6">
+      <Stagger as="dl" className="mt-[7vh] flex flex-wrap gap-x-14 gap-y-6 border-y border-edge py-6" each={0.08}>
         {stats === null
           ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={48} />)
           : [
@@ -114,23 +115,23 @@ export default function Feed() {
                 </dd>
               </div>
             ))}
-      </dl>
+      </Stagger>
 
       {/* controls */}
-      <div className="mt-8 flex flex-wrap gap-3">
+      <Wipe className="mt-8 flex flex-wrap gap-3">
         <Toggle on={organicOnly} onClick={() => setOrganicOnly((v) => !v)}>
           Organic clusters only
         </Toggle>
         <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
           Hide high-risk launches
         </Toggle>
-      </div>
+      </Wipe>
 
       <div className="mt-10 grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* themes */}
         <section>
           <PanelHead title="Clusters forming" count={themes ? `${themes.length} active` : "loading…"} />
-          <div className="border-t border-edge">
+          <Stagger className="border-t border-edge" each={0.05}>
             {themes === null ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={104} />)
             ) : themes.length === 0 ? (
@@ -142,7 +143,7 @@ export default function Feed() {
             ) : (
               themes.map((t) => <ThemeCard key={t.id} theme={t} />)
             )}
-          </div>
+          </Stagger>
         </section>
 
         {/* tape */}

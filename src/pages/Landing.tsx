@@ -8,6 +8,7 @@ import CaseFile from "@/components/CaseFile"
 import SpoofScan from "@/components/SpoofScan"
 import Plate from "@/components/Aperture"
 import KineticHeading from "@/components/KineticHeading"
+import { Rise, Stagger, RuleDraw } from "@/components/scroll"
 import {
   Accordion,
   AccordionContent,
@@ -193,9 +194,10 @@ function BlockZero() {
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Nobody else can show you this, and it is not because they are worse
-        </h2>
+        </h2></Rise>
         <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
           <p className="measure text-base leading-relaxed text-fg-muted">
             A trading terminal indexes transactions, so a token has to trade before it can show
@@ -270,9 +272,10 @@ function Pipeline() {
       className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-950 pb-16 pt-28"
     >
       <div className="w-full px-[4vw]">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Four stages, in the order they run
-        </h2>
+        </h2></Rise>
         <div className="mt-8 h-px w-full bg-edge">
           <div
             data-pipeline-progress
@@ -326,19 +329,20 @@ function Detection() {
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Two tickers that render identically
-        </h2>
+        </h2></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           These are the real strings, not pictures of them. Your browser is rendering both right
           now, and if you cannot tell them apart, that is the entire attack.
         </p>
 
-        <div className="mt-14 border-t border-edge-strong">
+        <Stagger className="mt-14 border-t border-edge-strong" each={0.15}>
           {SPOOFS.map((s) => (
             <SpoofScan key={s.flag} {...s} />
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   )
@@ -352,15 +356,16 @@ function Evidence() {
   return (
     <section className="border-b border-edge bg-ink-950">
       <div className="px-[4vw] py-24 sm:py-32">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Measured, not projected
-        </h2>
+        </h2></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           Every figure here is read from the live index when the page loads. The one exception is
           labelled, because it comes from a backtest rather than a counter.
         </p>
 
-        <dl className="mt-14 border-t border-edge-strong">
+        <Stagger as="dl" className="mt-14 border-t border-edge-strong" each={0.07}>
           {live && (
             <>
               {/* Counts animate from 92% of the target rather than from zero.
@@ -426,7 +431,7 @@ function Evidence() {
             value={<span>0</span>}
             unit="NewEra reads the chain and holds no keys"
           />
-        </dl>
+        </Stagger>
       </div>
     </section>
   )
@@ -463,9 +468,10 @@ function Questions() {
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           The questions worth asking first
-        </h2>
+        </h2></Rise>
 
         <Accordion type="single" collapsible className="mt-12 border-t border-edge-strong">
           {/* pb-1 so the collapsed content wrapper is not flush against the
@@ -492,9 +498,10 @@ function Close() {
   return (
     <section className="bg-ink-950">
       <div className="px-[4vw] py-28 sm:py-36">
-        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
+        <RuleDraw className="mb-10" />
+        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           The feed is open, and it is free
-        </h2>
+        </h2></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           No account, no wallet, no gate. Connecting a wallet is optional and only saves a
           watchlist.

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { Rise, Wipe, Stagger, RuleDraw } from "@/components/scroll"
 
 /* Shared layout for every long-form page: features, docs, about, legal.
    One place to change type rhythm rather than nine.
@@ -26,11 +27,11 @@ export function Article({
             heading, which is banned outright — the heading carries its own
             weight. The same words work as a reference in the rail beside it,
             where they read as a document slug rather than a label. */}
-        <p className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
+        <Wipe as="p" className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
           {kicker}
-        </p>
+        </Wipe>
 
-        <div>
+        <Rise>
           <h1
             className="font-display max-w-[16ch] text-[clamp(2.2rem,6vw,4.8rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
             style={{ fontStretch: "72%" }}
@@ -40,7 +41,7 @@ export function Article({
           {standfirst && (
             <p className="measure mt-8 text-lg leading-relaxed text-fg-muted">{standfirst}</p>
           )}
-        </div>
+        </Rise>
       </div>
 
       <div className="mt-[10vh] flex flex-col gap-[7vh]">{children}</div>
@@ -50,11 +51,19 @@ export function Article({
 
 export function Section({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-x-12 gap-y-5 border-t border-edge pt-8 md:grid-cols-[10rem_1fr]">
-      <h2 className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">{title}</h2>
-      <div className="measure flex flex-col gap-4 text-base leading-[1.75] text-fg-muted [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
+    <section className="relative grid gap-x-12 gap-y-5 pt-8 md:grid-cols-[10rem_1fr]">
+      <RuleDraw className="absolute inset-x-0 top-0" />
+      {/* The rail slug holds its place while the prose beside it scrolls, so a
+          long section always says what it is. */}
+      <h2 className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:sticky md:top-[16vh] md:self-start">
+        {title}
+      </h2>
+      {/* The measure caps paragraphs, not the container. Putting it on the
+          container squeezed every Step, Terms table and grid nested inside a
+          Section to 54ch and collapsed their columns to ~119px. */}
+      <Rise className="flex flex-col gap-4 text-base leading-[1.75] text-fg-muted [&>p]:max-w-[54ch] [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
         {children}
-      </div>
+      </Rise>
     </section>
   )
 }
@@ -78,18 +87,22 @@ export function Step({
        Three columns on wide screens rather than one narrow one: the plain
        explanation and the detail sit side by side, which uses the page instead
        of leaving half of it empty beside a 54ch column. They stack below lg. */
-    <div className="grid gap-x-12 gap-y-6 border-t border-edge pt-8 md:grid-cols-[10rem_1fr] lg:grid-cols-[10rem_minmax(0,30rem)_minmax(0,26rem)]">
+    <div className="relative grid gap-x-12 gap-y-6 pt-8 md:grid-cols-[10rem_1fr] lg:grid-cols-[10rem_minmax(0,30rem)_minmax(0,26rem)]">
+      <RuleDraw className="absolute inset-x-0 top-0" />
       <div aria-hidden />
-      <div>
+      <Rise>
         <h3 className="text-xl font-semibold text-fg">{title}</h3>
         <p className="mt-3 text-base leading-relaxed text-fg-muted">{plain}</p>
-      </div>
-      <div className="border-l border-edge-strong pl-5 lg:col-start-3 lg:row-start-1">
+      </Rise>
+      <Rise
+        delay={0.1}
+        className="border-l border-edge-strong pl-5 lg:col-start-3 lg:row-start-1"
+      >
         <span className="mb-2 block font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
           Underneath
         </span>
         <p className="text-sm leading-relaxed text-fg-dim">{runs}</p>
-      </div>
+      </Rise>
     </div>
   )
 }
@@ -116,7 +129,7 @@ export function Callout({
     danger: "text-danger",
   }[tone]
   return (
-    <div className={`border-l pl-5 text-sm leading-relaxed text-fg-muted ${rule}`}>
+    <div className={`measure border-l pl-5 text-sm leading-relaxed text-fg-muted ${rule}`}>
       {label && (
         /* Not uppercased. Callers pass whole sentences here ("Observed live,
            four launches two seconds apart"), and forcing caps on a sentence
@@ -132,16 +145,16 @@ export function Callout({
 
 export function Bullets({ items }: { items: React.ReactNode[] }) {
   return (
-    <ul className="flex flex-col gap-3">
+    <Stagger as="ul" className="flex flex-col gap-3" each={0.05}>
       {items.map((it, i) => (
         <li key={i} className="flex gap-4 text-base leading-relaxed text-fg-muted">
           {/* A hairline, matching the pipeline's markers — the same mark used
               everywhere for "an item in a list" rather than a lime dot. */}
           <span aria-hidden className="mt-[13px] h-px w-3 flex-none bg-edge-strong" />
-          <span className="[&_b]:text-fg [&_strong]:text-fg">{it}</span>
+          <span className="max-w-[54ch] [&_b]:text-fg [&_strong]:text-fg">{it}</span>
         </li>
       ))}
-    </ul>
+    </Stagger>
   )
 }
 
@@ -154,7 +167,7 @@ export function Mono({ children }: { children: React.ReactNode }) {
 /** Small definition grid — used for glossaries and score bands. */
 export function Terms({ items }: { items: { term: string; body: string }[] }) {
   return (
-    <dl className="border-t border-edge">
+    <Stagger as="dl" className="border-t border-edge">
       {items.map((t) => (
         <div
           key={t.term}
@@ -164,10 +177,10 @@ export function Terms({ items }: { items: { term: string; body: string }[] }) {
               reader has to read, and forcing caps on running content slows it
               down and strips the shapes the eye recognises. */}
           <dt className="font-mono text-xs tracking-[0.04em] text-fg">{t.term}</dt>
-          <dd className="text-sm leading-relaxed text-fg-dim">{t.body}</dd>
+          <dd className="measure text-sm leading-relaxed text-fg-dim">{t.body}</dd>
         </div>
       ))}
-    </dl>
+    </Stagger>
   )
 }
 
