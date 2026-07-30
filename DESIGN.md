@@ -20,15 +20,15 @@ No cards anywhere. Structure comes from rules, spacing and type.
 
 ## Color
 
-`ink-950 #08090b` (the void) · `ink-900 #0b0d10` · `ink-850 #101318` ·
-`ink-800 #171a1f` · `ink-700 #1f242b`
+`ink-950 #000000` (the void, point black) · `ink-900 #050607` ·
+`ink-850 #0a0b0d` · `ink-800 #101215` · `ink-700 #171a1e`
 `edge rgba(255,255,255,.07)` · `edge-strong rgba(255,255,255,.15)`
 
 | Token | Value | Worst contrast | Job |
 |---|---|---|---|
-| `fg` | `#f2f4f2` | 14.12:1 | resolved |
-| `fg-muted` | `#9aa39c` | 6.01:1 | body copy |
-| `fg-dim` | `#868f88` | 4.68:1 | labels, meta |
+| `fg` | `#f2f4f2` | 15.79:1 | resolved |
+| `fg-muted` | `#9aa39c` | 6.73:1 | body copy |
+| `fg-dim` | `#868f88` | 5.24:1 | labels, meta |
 
 **Lime `#cdff4d` is signal, never decoration**: risk scores, liveness, the
 aperture's hairlines, the primary action. Never a heading, gradient or glow.
@@ -133,9 +133,9 @@ functional text below 11px · any figure not reproducible from a live API call.
 
 ## Verification
 
-`npx impeccable detect <url>`. At the close of this pass: **landing 0, `/app` 0.**
-`/how-it-works`, `/detection` and `/privacy` still carry pre-existing findings on
-the Read-mode surfaces, which have not yet been brought into this world.
+`npx impeccable detect <url>`. **0 findings on all twelve routes** — `/`, `/app`,
+`/how-it-works`, `/detection`, `/themes`, `/privacy`, `/docs`, `/about`,
+`/contact`, `/terms`, `/risk`, `/account`.
 
 ## Signature mechanics
 
