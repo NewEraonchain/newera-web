@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "motion/react"
 import CountUp from "@/components/CountUp"
 import LiveMarquee from "@/components/LiveMarquee"
 import CaseFile from "@/components/CaseFile"
+import ChainTicker from "@/components/ChainTicker"
+import SpoofScan from "@/components/SpoofScan"
 import {
   Accordion,
   AccordionContent,
@@ -23,9 +25,18 @@ const reduced = () =>
 /* The pipeline, in the order it runs. The sequence carries information — each
    stage only has inputs because the one before it ran — so it is numbered.
    None of these have a label above the heading: the heading carries it. */
-const STEPS = [
+const STEPS: {
+  n: string
+  title: string
+  body: string
+  points: string[]
+  stat: (s: Stats) => string
+  statLabel: string
+}[] = [
   {
     n: "01",
+    stat: (s) => s.launchesLast24h.toLocaleString("en-US"),
+    statLabel: "launches indexed in the last 24 hours",
     title: "Watch every launchpad, not one",
     body:
       "Discovery is chain-wide rather than tied to one launchpad — watching a single factory captures about a fifth of the market, and most launchpad contracts publish nothing readable. NewEra watches the one event every token emits when its supply is minted.",
@@ -36,6 +47,8 @@ const STEPS = [
   },
   {
     n: "02",
+    stat: (s) => String(s.activeThemes),
+    statLabel: "clusters active right now",
     title: "Cluster by meaning, not by ticker",
     body:
       "Names are normalised and grouped so variations of one idea land together. “Trust in Trump”, “Trump Trust” and “Trumpp” are one narrative, visible while it is still forming.",
@@ -46,6 +59,8 @@ const STEPS = [
   },
   {
     n: "03",
+    stat: (s) => `${s.duplicatePct}%`,
+    statLabel: "of launches duplicate something minutes old",
     title: "Flag the copies at block zero",
     body:
       "Most launches copy something minutes old. Some go further: a ticker padded with an invisible character, or Latin letters swapped for Cyrillic lookalikes, renders identically to the token it imitates.",
@@ -56,6 +71,8 @@ const STEPS = [
   },
   {
     n: "04",
+    stat: (s) => s.distinctCreators24h.toLocaleString("en-US"),
+    statLabel: "distinct creators in the last 24 hours",
     title: "Tell a narrative from one wallet talking to itself",
     body:
       "Thirty launches from one address is not a trend. Creator count sits beside every launch count, so a cluster only reads as emerging when independent wallets are launching into it.",
@@ -150,17 +167,23 @@ function Hero() {
   return (
     <section className="relative flex min-h-[72vh] items-center border-b border-edge pb-16 pt-28 sm:pb-20">
       <div className="mx-auto w-full max-w-6xl px-5">
-        <h1 className="max-w-[15ch] text-5xl font-semibold sm:text-6xl lg:text-7xl">
+        <h1 className="rise max-w-[15ch] text-5xl font-semibold sm:text-6xl lg:text-7xl">
           See what is launching before it has a price
         </h1>
 
-        <p className="measure mt-8 text-lg leading-relaxed text-fg-muted">
+        <p
+          className="rise measure mt-8 text-lg leading-relaxed text-fg-muted"
+          style={{ animationDelay: "140ms" }}
+        >
           Thousands of tokens are created on Robinhood Chain every day. At the moment one
           launches it has no chart, no holders and no followers, so every analytics tool is
           blind to it. NewEra reads the only thing that exists yet: what the token means.
         </p>
 
-        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <div
+          className="rise mt-10 flex flex-wrap items-center gap-x-6 gap-y-4"
+          style={{ animationDelay: "260ms" }}
+        >
           <Link
             to="/app"
             className="rounded-lg bg-acid-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-acid-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
@@ -196,6 +219,13 @@ function Hero() {
             </p>
           )}
         </div>
+
+        {/* The chain height, polled every eight seconds. Robinhood Chain makes
+            ten blocks a second, so this visibly moves while you read — and the
+            digits that moved are the ones that light up. Never incremented
+            locally: a fake counter would look the same and be a lie on the one
+            page arguing that the data is honest. */}
+        <ChainTicker className="rise mt-8" />
       </div>
     </section>
   )
@@ -241,6 +271,19 @@ function BlockZero() {
 function Pipeline() {
   const root = useRef<HTMLElement>(null)
   const track = useRef<HTMLDivElement>(null)
+  const [live, setLive] = useState<Stats | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    getJSON<Stats>("/intel/stats")
+      .then((s) => {
+        if (alive) setLive(s)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useLayoutEffect(() => {
     if (reduced()) return
@@ -261,13 +304,19 @@ function Pipeline() {
           scrub: 0.6,
           invalidateOnRefresh: true,
           anticipatePin: 1,
+          // The rule under the heading fills as the track advances, so the pin
+          // says how far through the sequence you are. Without it a pinned
+          // section reads as the page having stopped responding.
+          onUpdate: (self) => {
+            gsap.set("[data-pipeline-progress]", { scaleX: self.progress })
+          },
         },
       })
     })
     return () => {
       mm.revert()
     }
-  }, [])
+  }, [live])
 
   return (
     <section
@@ -280,11 +329,20 @@ function Pipeline() {
         <h2 className="max-w-[20ch] text-4xl font-semibold sm:text-5xl">
           Four stages, in the order they run
         </h2>
+        <div className="mt-8 h-px w-full bg-edge">
+          <div
+            data-pipeline-progress
+            className="h-px w-full origin-left scale-x-0 bg-acid-500"
+          />
+        </div>
       </div>
 
-      <div ref={track} className="mt-14 flex gap-14 px-5 lg:pl-[max(1.25rem,calc((100vw-72rem)/2))]">
+      <div ref={track} className="mt-12 flex gap-14 px-5 lg:pl-[max(1.25rem,calc((100vw-72rem)/2))]">
         {STEPS.map((s) => (
-          <div key={s.n} className="w-[min(88vw,30rem)] flex-none border-t border-edge-strong pt-6">
+          <div
+            key={s.n}
+            className="flex w-[min(88vw,30rem)] flex-none flex-col border-t border-edge-strong pt-6"
+          >
             {/* No 01/02/03 label. The heading says the stages run in order and
                 the track moves through them in order — the digits restated what
                 the structure already carried, which is decoration wearing the
@@ -299,6 +357,18 @@ function Pipeline() {
                 </li>
               ))}
             </ul>
+
+            {/* What this stage is doing right now, from the live index. The
+                panels were 55% empty and the section read as unfinished; the
+                fix is substance rather than tighter margins. */}
+            {live && (
+              <div className="mt-auto border-t border-edge pt-5">
+                <span className="block font-mono text-3xl font-medium text-fg">
+                  {s.stat(live)}
+                </span>
+                <span className="mt-1 block text-xs text-fg-dim">{s.statLabel}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -322,20 +392,7 @@ function Detection() {
 
         <div className="mt-14 border-t border-edge-strong">
           {SPOOFS.map((s) => (
-            <div
-              key={s.flag}
-              className="grid gap-x-10 gap-y-4 border-b border-edge py-8 sm:grid-cols-[auto_1fr]"
-            >
-              <div className="flex items-baseline gap-5">
-                <span className="font-mono text-2xl font-semibold text-fg">{s.shown}</span>
-                <span className="text-sm text-fg-dim">vs</span>
-                <span className="font-mono text-2xl font-semibold text-danger">{s.real}</span>
-              </div>
-              <div className="sm:text-right">
-                <span className="font-mono text-micro font-semibold text-danger">{s.flag}</span>
-                <p className="mt-2 text-sm leading-relaxed text-fg-muted">{s.note}</p>
-              </div>
-            </div>
+            <SpoofScan key={s.flag} {...s} />
           ))}
         </div>
       </div>

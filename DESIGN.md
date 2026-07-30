@@ -87,9 +87,32 @@ Three libraries, one job each, and never the same property from two:
 - **Motion** owns state motion — the hero's live count swapping when new data
   arrives, and `CountUp`'s spring.
 
-One authored moment per surface, not an entrance on every section. On the
-landing that moment is the pinned pipeline moving sideways through its four
-stages; the case file's row stagger is deliberately quiet beneath it.
+**The motion thesis is accumulation and detection** — what the index actually
+does — and every effect on the page is one of those two, or it is cut. The first
+pass got this wrong by reading "not one identical entrance on every section" as
+*less motion*; it means *authored* motion. A page with nothing moving reads as a
+static document, which is not what this product is.
+
+Two focal sequences, both product-specific:
+
+- **The case file writes itself.** Rows arrive under a left-to-right clip wipe —
+  a wipe reads as something being written where a fade reads as nothing —
+  then brackets draw down the gutter linking the rows that share a ticker and
+  the COPY marks land. That is the detector finding the duplicates in front of
+  you. Scrubbed, because the scroll relationship carries the meaning.
+- **The homoglyph scan.** A head crosses the spoofed ticker and marks every
+  character that is not what it appears to be, found by code point at render
+  time rather than hardcoded. Zero-width characters get a visible stand-in,
+  because the finding that matters most is otherwise the one you cannot see.
+
+Supporting: the hero's CSS clip entrance, the live tape, the pinned pipeline
+with a progress rule so a pin does not read as the page having frozen, and the
+block-height ticker whose changed digits light and decay.
+
+A scrubbed sequence must finish while its block is still travelling into view,
+not across its whole height. Scrubbing the case file's full 1200px left the
+record visibly half-written for as long as it was the main thing on screen —
+which reads as broken rather than as authored.
 
 **Animate from an already-visible default.** `gsap.from` applies its initial
 state the moment the tween is built, leaving every target at `opacity: 0` from

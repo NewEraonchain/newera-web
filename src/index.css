@@ -144,3 +144,27 @@ p { text-wrap: pretty; }
   0%   { background-color: rgba(205, 255, 77, 0.14); border-color: rgba(205, 255, 77, 0.4); }
   100% { background-color: rgba(255, 255, 255, 0.022); }
 }
+
+/* The hero's authored entrance. A clip wipe rather than a fade: the line is
+   uncovered, which reads as something being written, and matches the case
+   file's material idea further down the page.
+ *
+ * Deliberately CSS rather than GSAP. The hero is above the fold, so a
+ * JavaScript entrance that fails leaves the first thing a visitor sees blank.
+ * animation-fill-mode: both means a browser that skips the animation still
+ * lands on the final state, and the reduced-motion rule above collapses the
+ * duration without hiding anything. */
+@keyframes rise {
+  from { clip-path: inset(0 0 108% 0); transform: translateY(0.16em); }
+  to   { clip-path: inset(0 0 -12% 0); transform: translateY(0); }
+}
+.rise { animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* A block-height digit that just changed: it drops into place and its colour
+   decays from the signal back to normal, so the eye catches which digits moved
+   without the whole number redrawing. */
+@keyframes digit-tick {
+  0%   { transform: translateY(-0.4em); opacity: 0; color: var(--color-acid-500); }
+  35%  { transform: translateY(0); opacity: 1; color: var(--color-acid-500); }
+  100% { transform: translateY(0); opacity: 1; color: var(--color-fg); }
+}

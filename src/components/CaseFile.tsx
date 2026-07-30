@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { getJSON, shortAddr, type Theme } from "@/lib/api"
@@ -33,15 +33,17 @@ function narrativeScore(t: Theme): number {
     duplicatePairs * 50 +
     Math.min(t.creatorCount, 4) * 12 +
     Math.min(spread, 60) * 0.6 +
-    // Recent clusters are more persuasive than old ones: the point is that this
-    // is happening now, not that it happened once.
     Math.max(0, 120 - t.ageMinutes) * 0.15
   )
 }
 
+type Bracket = { symbol: string; top: number; height: number }
+
 export default function CaseFile() {
   const [theme, setTheme] = useState<Theme | null>(null)
+  const [brackets, setBrackets] = useState<Bracket[]>([])
   const root = useRef<HTMLDivElement>(null)
+  const roster = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let alive = true
@@ -62,43 +64,99 @@ export default function CaseFile() {
     }
   }, [])
 
-  /* The page's one authored moment: the record assembling itself, row by row,
-     the way it assembled on-chain.
+  /* Measure where each duplicate group sits so a bracket can be drawn spanning
+     exactly those rows. Done from the DOM rather than from row height maths:
+     names wrap at narrow widths and the rows are not a uniform height. */
+  useLayoutEffect(() => {
+    const el = roster.current
+    if (!el || !theme) return
+
+    const measure = () => {
+      const rows = Array.from(el.querySelectorAll<HTMLElement>("[data-symbol]"))
+      const groups = new Map<string, HTMLElement[]>()
+      for (const r of rows) {
+        const sym = r.dataset.symbol || ""
+        groups.set(sym, [...(groups.get(sym) || []), r])
+      }
+      const next: Bracket[] = []
+      for (const [symbol, list] of groups) {
+        if (list.length < 2) continue
+        const top = Math.min(...list.map((r) => r.offsetTop))
+        const bottom = Math.max(...list.map((r) => r.offsetTop + r.offsetHeight))
+        next.push({ symbol, top, height: bottom - top })
+      }
+      setBrackets(next)
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+    }
+  }, [theme])
+
+  /* The page's focal sequence, and the only place motion carries the voice.
    *
-   * fromTo with immediateRender:false rather than gsap.from. from() applies its
-   * initial state the instant the tween is built, which leaves every target at
-   * opacity 0 from page load until a scroll event arrives — so anything that
-   * renders without scrolling shows blank sections. Here the hidden state is
-   * set only when the trigger fires, and the trigger fires while the block is
-   * still below the fold, so the record is visible by default and the snap
-   * never happens on screen. */
+   * The material idea is a record being written and then annotated — which is
+   * what the index does. Rows arrive under a left-to-right clip wipe rather
+   * than a fade, because a wipe reads as something being written; then the
+   * brackets draw down the gutter and the COPY marks land, which is the
+   * detector finding the duplicates in front of you. A generic fade-and-rise
+   * would say none of that.
+   *
+   * Scrubbed, so the reader drives the writing. The scroll relationship carries
+   * meaning here — the record accumulates as you move through it — which is the
+   * condition under which scroll-driven motion earns its place.
+   *
+   * The trade-off, stated: a scrubbed timeline sets its start state when the
+   * trigger initialises, so these rows are hidden before the block is reached.
+   * That is acceptable only because it is below the fold — a reader who never
+   * scrolls here never sees this section either way. Every other section on the
+   * page stays visible by default. */
   useEffect(() => {
     const el = root.current
     if (!el || !theme) return
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
     const ctx = gsap.context(() => {
-      const rows = gsap.utils.toArray<HTMLElement>("[data-record-row]")
-      if (!rows.length) return
-      gsap.fromTo(
-        rows,
-        { opacity: 0, y: 14 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "expo.out",
-          stagger: 0.06,
-          immediateRender: false,
-          scrollTrigger: { trigger: el, start: "top bottom", once: true },
-        }
-      )
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el,
+          // Finish writing while the block is still travelling up into view,
+          // not across its whole height. Scrubbing the full 1200px left the
+          // record visibly half-written for as long as it was the main thing
+          // on screen, which reads as broken rather than as authored.
+          start: "top 82%",
+          end: "top 22%",
+          scrub: 0.7,
+        },
+      })
+
+      tl.from("[data-record-row]", {
+        clipPath: "inset(0 100% 0 0)",
+        duration: 0.6,
+        stagger: 0.25,
+        ease: "none",
+      })
+        .from(
+          "[data-symbol]",
+          { clipPath: "inset(0 100% 0 0)", duration: 0.5, stagger: 0.2, ease: "none" },
+          ">-0.2"
+        )
+        .from(
+          "[data-bracket]",
+          { scaleY: 0, duration: 0.5, stagger: 0.15, ease: "none" },
+          ">-0.15"
+        )
+        .from("[data-copy-mark]", { opacity: 0, scale: 0.7, duration: 0.3, stagger: 0.1 }, "<")
+        .from("[data-verdict]", { clipPath: "inset(0 100% 0 0)", duration: 0.5, ease: "none" }, ">")
     }, el)
 
     return () => {
       ctx.revert()
     }
-  }, [theme])
+  }, [theme, brackets.length])
 
   if (!theme) return null
 
@@ -124,9 +182,6 @@ export default function CaseFile() {
         </p>
 
         <div ref={root} className="mt-14">
-          {/* A ruled record rather than a card. The rules do the grouping that a
-              border-and-background container would otherwise do, which keeps the
-              tape, the roster and the annotations on one flat plane. */}
           <div className="border-t border-edge-strong">
             <Row label="Cluster" data-record-row>
               <span className="text-fg">{theme.label}</span>
@@ -153,20 +208,36 @@ export default function CaseFile() {
           </div>
 
           <h3 className="mt-14 text-xl font-semibold">What was created</h3>
-          <div className="mt-5 border-t border-edge">
+
+          <div ref={roster} className="relative mt-5 border-t border-edge pl-6">
+            {/* The link the detector found, drawn. Each bracket spans exactly
+                the rows that share a ticker. */}
+            {brackets.map((b) => (
+              <span
+                key={b.symbol}
+                data-bracket
+                aria-hidden
+                style={{ top: b.top, height: b.height }}
+                className="absolute left-0 w-2 origin-top border-y border-l border-warn/60"
+              />
+            ))}
+
             {theme.samples.map((s, i) => {
               const isDupe = (bySymbol.get(s.symbol)?.length || 0) > 1
               return (
                 <div
                   key={s.address}
-                  data-record-row
+                  data-symbol={s.symbol}
                   className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-edge py-3.5"
                 >
                   <span className="w-6 shrink-0 font-mono text-micro text-fg-dim">{i + 1}</span>
                   <span className="font-mono text-sm font-semibold text-fg">{s.symbol}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-fg-muted">{s.name}</span>
                   {isDupe && (
-                    <span className="rounded bg-warn/15 px-1.5 py-0.5 font-mono text-micro font-semibold text-warn">
+                    <span
+                      data-copy-mark
+                      className="rounded bg-warn/15 px-1.5 py-0.5 font-mono text-micro font-semibold text-warn"
+                    >
                       COPY
                     </span>
                   )}
@@ -184,7 +255,7 @@ export default function CaseFile() {
           </div>
 
           {dupeGroups.length > 0 && (
-            <p className="measure mt-8 text-base leading-relaxed text-fg-muted" data-record-row>
+            <p className="measure mt-8 text-base leading-relaxed text-fg-muted" data-verdict>
               {dupeCount} of these {theme.samples.length} share a ticker with another token in the
               same cluster
               {dupeGroups.length === 1
