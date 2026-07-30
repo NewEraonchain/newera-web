@@ -1,5 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ElementType } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react"
 import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { SplitText } from "gsap/SplitText"
+import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin"
+
+gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin)
 
 /* The kinetic type system.
  *
@@ -130,72 +135,107 @@ export function RollingNumber({
   )
 }
 
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\<>#*"
-
-/* Text that resolves character by character.
- *
- * The page's premise is that things are unresolved until the index reads them,
- * so a label arriving should look like it is being read rather than fading in.
- * Each character settles from a scramble, left to right.
- *
- * The DOM always holds the real string — the scramble is written to a separate
- * span that is aria-hidden, so assistive tech and search never see the noise. */
 export function ResolveText({
   children,
   className = "",
-  duration = 900,
+  duration = 1.1,
 }: {
   children: string
   className?: string
   duration?: number
 }) {
   const ref = useRef<HTMLSpanElement>(null)
-  const done = useRef(false)
 
   useEffect(() => {
     const el = ref.current
     if (!el || still()) return
-
-    const target = children
-    let raf = 0
-    let start = 0
-
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || done.current) return
-        done.current = true
-        io.disconnect()
-
-        const step = (t: number) => {
-          if (!start) start = t
-          const p = Math.min(1, (t - start) / duration)
-          const settled = Math.floor(p * target.length)
-          let out = target.slice(0, settled)
-          for (let i = settled; i < target.length; i++) {
-            out += target[i] === " " ? " " : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]
-          }
-          el.textContent = out
-          if (p < 1) raf = requestAnimationFrame(step)
-          else el.textContent = target
-        }
-        raf = requestAnimationFrame(step)
-      },
-      { threshold: 0.4 }
-    )
-    io.observe(el)
-
-    return () => {
-      io.disconnect()
-      cancelAnimationFrame(raf)
-    }
+    const ctx = gsap.context(() => {
+      gsap.to(el, {
+        duration,
+        scrambleText: { text: children, chars: "upperAndNumbers", speed: 0.7, revealDelay: 0.15 },
+        ease: "none",
+        scrollTrigger: { trigger: el, start: "top 92%", once: true },
+      })
+    }, el)
+    return () => ctx.revert()
   }, [children, duration])
 
   return (
     <span className={className}>
+      {/* The real string is always in the DOM for assistive tech and search;
+          the scramble only ever runs in the aria-hidden copy. */}
       <span className="sr-only">{children}</span>
       <span ref={ref} aria-hidden>
         {children}
       </span>
     </span>
+  )
+}
+
+/* Lines that rise from behind a mask.
+ *
+ * SplitText ships free with GSAP 3.13 onward, and `mask: "lines"` wraps each
+ * line in its own overflow-hidden box — so the lines are genuinely uncovered
+ * rather than sliding under a gradient. This is the mechanic that reads as
+ * typeset rather than animated.
+ *
+ * Split after fonts settle: splitting against a fallback face measures the
+ * wrong line breaks and the mask ends up cutting mid-glyph. autoSplit re-runs
+ * the split on resize for the same reason. */
+export function SplitLines({
+  children,
+  className = "",
+  as: Tag = "div",
+  stagger = 0.09,
+  delay = 0,
+  start = "top 86%",
+}: {
+  children: ReactNode
+  className?: string
+  as?: ElementType
+  stagger?: number
+  delay?: number
+  start?: string
+}) {
+  const ref = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || still()) return
+
+    let split: SplitText | null = null
+    const ctx = gsap.context(() => {
+      const run = () => {
+        split = SplitText.create(el, {
+          type: "lines",
+          mask: "lines",
+          autoSplit: true,
+          linesClass: "split-line",
+          onSplit(self) {
+            return gsap.from(self.lines, {
+              yPercent: 108,
+              duration: 0.95,
+              ease: "expo.out",
+              stagger,
+              delay,
+              scrollTrigger: { trigger: el, start, once: true },
+            })
+          },
+        })
+      }
+      if (document.fonts?.status === "loaded") run()
+      else document.fonts?.ready.then(run)
+    }, el)
+
+    return () => {
+      split?.revert()
+      ctx.revert()
+    }
+  }, [children, stagger, delay, start])
+
+  return (
+    <Tag ref={ref} className={className}>
+      {children}
+    </Tag>
   )
 }

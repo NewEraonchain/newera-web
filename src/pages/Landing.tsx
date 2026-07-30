@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import CountUp from "@/components/CountUp"
@@ -11,7 +11,7 @@ import KineticHeading from "@/components/KineticHeading"
 import { Rise, Stagger, RuleDraw } from "@/components/scroll"
 import { ClusterField, RiskHistogram, CadenceStrip } from "@/components/figures"
 import LaunchField from "@/components/LaunchField"
-import { KineticText, RollingNumber } from "@/components/kinetic"
+import { KineticText, RollingNumber, SplitLines } from "@/components/kinetic"
 import {
   Accordion,
   AccordionContent,
@@ -202,7 +202,7 @@ function BlockZero() {
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <RuleDraw className="mb-10" />
+        <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Nobody else can show you this, and it is not because they are worse'}</KineticText></Rise>
         <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
           <p className="measure text-base leading-relaxed text-fg-muted">
@@ -285,7 +285,7 @@ function Pipeline() {
       className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-950 pb-16 pt-28"
     >
       <div className="w-full px-[4vw]">
-        <RuleDraw className="mb-10" />
+        <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Four stages, in the order they run'}</KineticText></Rise>
         <div className="mt-8 h-px w-full bg-edge">
           <div
@@ -340,7 +340,7 @@ function Detection() {
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <RuleDraw className="mb-10" />
+        <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           These are the real strings, not pictures of them. Your browser is rendering both right
@@ -365,7 +365,7 @@ function Evidence() {
   return (
     <section className="border-b border-edge bg-ink-950">
       <div className="px-[4vw] py-24 sm:py-32">
-        <RuleDraw className="mb-10" />
+        <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           Every figure here is read from the live index when the page loads. The one exception is
@@ -486,25 +486,65 @@ function Fact({
    keyboard handling, the aria-expanded wiring and the focus management that a
    div with an onClick does not. It is here for behaviour; the styling is ours. */
 function Questions() {
+  const [open, setOpen] = useState<string>("")
+
   return (
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
-        <RuleDraw className="mb-10" />
+        <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
 
-        <Accordion type="single" collapsible className="mt-12 border-t border-edge-strong">
-          {/* pb-1 so the collapsed content wrapper is not flush against the
-              rule below it. */}
-          {FAQ.map((f) => (
-            <AccordionItem key={f.q} value={f.q} className="border-b border-edge pb-1">
-              <AccordionTrigger className="py-6 text-left text-lg font-medium hover:no-underline">
-                {f.q}
-              </AccordionTrigger>
-              <AccordionContent>
-                <p className="measure pb-2 text-base leading-relaxed text-fg-muted">{f.a}</p>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+        {/* The questions are the composition, not a list of disclosure widgets.
+            Each one sits at display scale and unresolved; the open one is the
+            only thing the index is looking at, so it alone resolves. That is
+            the page's own mechanic applied to a control rather than a generic
+            accordion with our colours painted on.
+
+            shadcn still carries the behaviour underneath — keyboard, focus and
+            aria-expanded — because rebuilding that by hand is how disclosure
+            widgets end up inaccessible. */}
+        <Accordion
+          type="single"
+          collapsible
+          value={open}
+          onValueChange={setOpen}
+          className="mt-14 border-t border-edge-strong"
+        >
+          {FAQ.map((f, i) => {
+            const isOpen = open === f.q
+            return (
+              <AccordionItem key={f.q} value={f.q} className="border-b border-edge">
+                <AccordionTrigger className="group items-start gap-6 py-8 text-left hover:no-underline [&>svg]:mt-3 [&>svg]:size-5 [&>svg]:text-fg-dim">
+                  <span className="flex flex-1 items-baseline gap-6">
+                    <span className="w-8 shrink-0 font-mono text-micro text-fg-dim">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      /* fg-dim at rest, not unresolved. The aperture never
+                         covers something a visitor has to read to choose, and
+                         five unreadable questions is a worse FAQ however good
+                         it looks. The resolve still happens; it just starts
+                         from legible. */
+                      className={`font-display text-[clamp(1.3rem,2.9vw,2.3rem)] font-extrabold leading-[1.02] tracking-[-0.02em] transition-colors duration-500 ${
+                        isOpen ? "text-fg" : "text-fg-dim group-hover:text-fg"
+                      }`}
+                      style={{ fontStretch: "74%" }}
+                    >
+                      {f.q}
+                    </span>
+                  </span>
+                </AccordionTrigger>
+
+                <AccordionContent>
+                  <div className="grid gap-6 pb-10 pl-14 sm:grid-cols-[minmax(0,34rem)_1fr]">
+                    <SplitLines start="top 98%" stagger={0.06}>
+                      <p className="text-base leading-relaxed text-fg-muted">{f.a}</p>
+                    </SplitLines>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )
+          })}
         </Accordion>
       </div>
     </section>
@@ -514,21 +554,46 @@ function Questions() {
 /* ── Close ────────────────────────────────────────────────────────────── */
 
 function Close() {
+  const live = useStats()
+
   return (
-    <section className="bg-ink-950">
-      <div className="px-[4vw] py-28 sm:py-36">
-        <RuleDraw className="mb-10" />
-        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The feed is open, and it is free'}</KineticText></Rise>
-        <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
-          No account, no wallet, no gate. Connecting a wallet is optional and only saves a
-          watchlist.
-        </p>
+    <section className="relative flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[10vh] pt-[18vh]">
+      {/* The field returns for the close, so the page ends where it began. */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+        <LaunchField />
+      </div>
+
+      <Plate rules>
+        <KineticHeading
+          /* Looser than the hero. At 12.5vw a 70% width with -0.03em tracking
+             closes the counters on "FEED" until the letters merge; heavy
+             condensed type needs the tracking back. */
+          className="text-[clamp(2.6rem,11.5vw,12rem)] leading-[0.86] tracking-[-0.015em]"
+          lines={[
+            { text: "The feed", width: 84, weight: 800 },
+            { text: "is open", width: 108, weight: 600 },
+            { text: "and free", width: 72, weight: 900 },
+          ]}
+        />
+      </Plate>
+
+      <div className="mt-[4vh] flex flex-wrap items-baseline gap-x-10 gap-y-5 font-mono text-xs text-fg-dim">
         <Link
           to="/app"
-          className="mt-10 inline-block rounded-lg bg-acid-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-acid-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
+          className="block-btn bg-acid-500 text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
         >
-          Open the live feed
+          Open the live feed →
         </Link>
+        <span className="measure-tight leading-relaxed">
+          No account, no wallet, no gate. Connecting a wallet is optional and only saves a
+          watchlist.
+        </span>
+        {live && (
+          <span>
+            <RollingNumber value={live.launchesLast24h} className="font-medium text-fg" /> indexed
+            in the last 24 hours
+          </span>
+        )}
       </div>
     </section>
   )
