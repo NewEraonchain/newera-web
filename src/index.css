@@ -1,78 +1,66 @@
 @import "tailwindcss";
 
-/* ── NewEra design tokens ────────────────────────────────────────────────
-   Dark by default. The product is read in the dark, at speed, by people
-   watching a tape scroll — so contrast and legibility beat decoration. */
+/* ── NewEra design tokens · direction: APERTURE ──────────────────────────
+   The plane is dark and the content is unresolved until the index looks at
+   it. That is the product's thesis expressed as a visual system rather than
+   described: you cannot see what is launching, and this can.
+
+   Read in the dark, at speed, with a tape moving. */
 @theme {
-  --color-ink-950: #07080b;
-  --color-ink-900: #0a0c12;
-  --color-ink-850: #0e1016;
-  --color-ink-800: #14171f;
-  --color-ink-700: #1c202a;
+  --color-ink-950: #08090b;   /* the void — the plane everything sits on */
+  --color-ink-900: #0b0d10;
+  --color-ink-850: #101318;
+  --color-ink-800: #171a1f;
+  --color-ink-700: #1f242b;
 
-  --color-edge: rgba(255, 255, 255, 0.08);
-  --color-edge-strong: rgba(255, 255, 255, 0.16);
+  /* Present, but not yet legible. 1.14:1 against the void, which is far below
+     any readable threshold — deliberately. Nothing essential may rest in this
+     state; see the aperture rules below. */
+  --color-unresolved: #171a1f;
 
-  /* Three text levels, not four. Every value clears 4.5:1 against every
-     surface above, ink-700 included — measured, not estimated. The previous
-     ramp had a fourth level at #4b5563 (2.16:1) and a third at #6b7280
-     (3.37:1); both were illegible, which makes them a bug rather than a
-     hierarchy. Anything quieter than fg-dim has to be expressed with size,
-     weight or space, because there is no darker grey left that can be read. */
-  --color-fg: #f5f7fa;       /* 15.18:1 — primary */
-  --color-fg-muted: #9aa1ad; /*  6.26:1 — secondary, body copy */
-  --color-fg-dim: #838993;   /*  4.63:1 — labels, meta, timestamps */
+  --color-edge: rgba(255, 255, 255, 0.07);
+  --color-edge-strong: rgba(255, 255, 255, 0.15);
 
-  /* Lime is a data signal, never decoration. It marks risk, liveness and the
-     tape — never a heading, a border, a gradient or a glow. A single accent
-     reads as deliberate only because of what it is withheld from. */
+  /* Three text levels, every one measured ≥4.5:1 against every surface above,
+     ink-700 included. */
+  --color-fg: #f2f4f2;       /* 14.12:1 — resolved */
+  --color-fg-muted: #9aa39c; /*  6.01:1 */
+  --color-fg-dim: #868f88;   /*  4.68:1 */
+
+  /* Signal, never decoration: risk, liveness, the aperture rules, the primary
+     action. Never a heading, never a gradient, never a glow. */
   --color-acid-400: #d9ff6e;
   --color-acid-500: #cdff4d;
   --color-acid-600: #b4e83a;
 
   --color-warn: #ffb454;
-  --color-danger: #ff8a97;
+  --color-danger: #ff6b7a;
 
-  /* One grotesque, mono only where data lives. Both are variable and
-     self-hosted; see main.tsx for why the mono carries Cyrillic.
-   *
-   * Archivo rather than Instrument Sans: the latter is on impeccable's list of
-   * faces a model reaches for by habit, and picking one needs a reason no other
-   * face could satisfy. Archivo also carries 100–900 against Instrument's
-   * 400–700 and a 62–125 width axis, which the dense app tables will use. */
+  /* Anybody carries wdth 50–150 alongside wght 100–900, which is the reason
+     for it rather than taste: the headline's width axis is driven by scroll
+     velocity, and no static face can do that. Archivo stays for long-form
+     prose, where a display family would be tiring. Mono for data only. */
+  --font-display: "Anybody Variable", system-ui, sans-serif;
   --font-sans: "Archivo Variable", system-ui, -apple-system, sans-serif;
-  --font-display: "Archivo Variable", system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  /* Display sizes keep Tailwind's px values so nothing reflows, but take the
-     tight leading and negative tracking the Swiss direction asks for. Large
-     type needs less weight and less space than the defaults assume. */
   --text-3xl--line-height: 1.12;
   --text-3xl--letter-spacing: -0.028em;
   --text-4xl--line-height: 1.06;
   --text-4xl--letter-spacing: -0.031em;
   --text-5xl--line-height: 1.0;
   --text-5xl--letter-spacing: -0.034em;
-  --text-6xl--line-height: 0.98;
+  --text-6xl--line-height: 0.94;
   --text-6xl--letter-spacing: -0.036em;
-  --text-7xl--line-height: 0.96;
+  --text-7xl--line-height: 0.88;
   --text-7xl--letter-spacing: -0.038em;
 
-  /* The floor for functional text. Badges, risk scores and micro-labels sit
-     here and nowhere smaller — below 11px, text fails on small viewports and
-     degrades as a tap target, whatever the ramp says. */
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1.35;
 
-  /* shadcn primitives are pulled in for behaviour — focus traps, dismissal,
-     ARIA wiring — not for looks. These are the semantic names its components
-     reference, aliased onto the palette above so they inherit our surfaces
-     rather than installing a second, parallel one. Nothing new is defined
-     here; every value is a token that already exists.
-   *
-   * ring is the one place lime appears outside a data signal. A focus ring is
-   * an interaction state and has to be the most visible thing on screen, which
-   * is a different job from decoration. */
+  /* shadcn primitives are here for behaviour, not looks. Aliases onto the
+     palette above so they inherit these surfaces rather than installing a
+     parallel system. */
   --color-background: var(--color-ink-900);
   --color-foreground: var(--color-fg);
   --color-accent: var(--color-ink-800);
@@ -82,17 +70,8 @@
   --color-input: var(--color-ink-700);
   --color-secondary: var(--color-ink-800);
   --color-secondary-foreground: var(--color-fg);
-
-  /* A primary action is an affordance, not decoration, so lime holds here.
-     17.17:1 against ink-950 — the highest contrast pair on the site, which is
-     what a primary action should be. */
   --color-primary: var(--color-acid-500);
   --color-primary-foreground: var(--color-ink-950);
-
-  /* danger (#ff8a97) is a text colour on dark surfaces and fails badly as a
-     background — white on it measures 2.25:1. A destructive button needs a
-     surface red, so this is a genuinely new value rather than an alias:
-     8.85:1 with white text. */
   --color-destructive: #8f1d27;
   --color-destructive-foreground: #ffffff;
 }
@@ -107,29 +86,85 @@ body {
   overflow-x: hidden;
 }
 
-/* Figures line up in columns on the tape and in every stat block. Without
-   this, a changing number visibly jitters as its digits change width. */
 .font-mono, code, kbd, samp { font-variant-numeric: tabular-nums; }
 
-/* Headings set tight and balanced. text-wrap: balance stops a display line
-   from leaving one orphaned word, which is the difference between typography
-   and text. */
 h1, h2, h3 { text-wrap: balance; }
 p { text-wrap: pretty; }
 
-/* Prose held under ~75 characters. Past roughly 80 the eye loses the line
-   return and reading speed drops; the old landing page ran to 134.
- *
- * 54ch, not 68ch. The ch unit is the advance width of "0", and in a
- * proportional face the average prose character is about a third narrower —
- * measured here, 68ch held 91 characters, not 68. The ratio is a property of
- * the typeface, so it holds at every size. */
 .measure { max-width: 54ch; }
 .measure-tight { max-width: 42ch; }
 
 ::selection { background: rgba(205, 255, 77, 0.25); color: #fff; }
 
-/* Respect the setting rather than animating regardless. */
+/* ── The aperture ────────────────────────────────────────────────────────
+   A band of legibility that tracks the pointer. Two identical copies of the
+   same content: the base sits at --color-unresolved, and a bright copy is
+   clipped to the band.
+
+   THE RULES, which are not stylistic:
+
+   1. The accessible default is fully resolved. The aperture is an enhancement
+      layered over a legible page, never a mask over a hidden one — so it
+      engages only where a fine pointer and motion are both available. Touch,
+      keyboard, reduced motion and no-JS all get the whole page lit.
+   2. It never covers prose. Display type, the tape and the comparison plates
+      only. Anything a visitor has to *read* is always resolved.
+   3. The unresolved copy is real text at low contrast, not hidden text — it
+      stays selectable, searchable and present to a screen reader. The bright
+      copy is aria-hidden so nothing is announced twice.
+*/
+.plate { position: relative; }
+
+/* The scrims. The text underneath is never touched — it sits at full contrast
+   in the DOM and stays selectable; these simply veil what the band is not
+   looking at. Both collapse to zero height until the engine sets the vars, so
+   the resting state of every plate is completely legible. */
+.ap-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  background: var(--color-ink-950);
+  opacity: 0.93;
+  display: none;
+}
+.aperture-on .ap-scrim { display: block; }
+.ap-scrim-top { top: 0; height: var(--ap-top, 0%); }
+.ap-scrim-bot { top: calc(100% - var(--ap-bot, 0%)); bottom: 0; }
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  /* No pointer to track, or motion declined: nothing is ever veiled. */
+  .plate .ap-scrim, .plate .aperture-rule { display: none !important; }
+}
+
+/* The band's edges. A hairline rather than a glow: this is an instrument
+   looking at something, not a light shining on it. */
+.aperture-rule {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--color-acid-500);
+  opacity: 0.5;
+  pointer-events: none;
+  display: none;
+}
+/* Only once the engine has seen a pointer move. */
+.aperture-on .aperture-rule { display: block; }
+
+/* The reticle replaces the system cursor, but only once it has actually
+   installed itself — the class is added by the component after it confirms a
+   fine pointer and that motion is allowed. If the script never runs, the
+   native cursor stays, which is the correct failure. */
+.reticle-on, .reticle-on * { cursor: none; }
+/* Text still has to be selectable and controls still have to feel like
+   controls, so the two places where the system cursor carries real meaning
+   keep it. */
+.reticle-on input, .reticle-on textarea, .reticle-on [contenteditable] { cursor: text; }
+
+/* Focus must resolve its own row regardless of where the pointer is, or the
+   keyboard path reads an unresolved page. */
+.plate :focus-visible { color: var(--color-fg); outline: 1px solid var(--color-acid-500); outline-offset: 3px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -138,33 +173,24 @@ p { text-wrap: pretty; }
   }
 }
 
-/* New rows on the live tape flash once so a change is noticed without
-   the whole list redrawing. */
-@keyframes flash {
-  0%   { background-color: rgba(205, 255, 77, 0.14); border-color: rgba(205, 255, 77, 0.4); }
-  100% { background-color: rgba(255, 255, 255, 0.022); }
-}
-
-/* The hero's authored entrance. A clip wipe rather than a fade: the line is
-   uncovered, which reads as something being written, and matches the case
-   file's material idea further down the page.
- *
- * Deliberately CSS rather than GSAP. The hero is above the fold, so a
- * JavaScript entrance that fails leaves the first thing a visitor sees blank.
- * animation-fill-mode: both means a browser that skips the animation still
- * lands on the final state, and the reduced-motion rule above collapses the
- * duration without hiding anything. */
+/* The hero's entrance. A clip wipe rather than a fade — the line is uncovered,
+   which is the same gesture the aperture makes. CSS rather than JS because the
+   hero is above the fold and a failed script must not leave it blank. */
 @keyframes rise {
   from { clip-path: inset(0 0 108% 0); transform: translateY(0.16em); }
   to   { clip-path: inset(0 0 -12% 0); transform: translateY(0); }
 }
 .rise { animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* A block-height digit that just changed: it drops into place and its colour
-   decays from the signal back to normal, so the eye catches which digits moved
-   without the whole number redrawing. */
+/* A block-height digit that just changed drops into place and its colour
+   decays from the signal back to normal. */
 @keyframes digit-tick {
   0%   { transform: translateY(-0.4em); opacity: 0; color: var(--color-acid-500); }
   35%  { transform: translateY(0); opacity: 1; color: var(--color-acid-500); }
   100% { transform: translateY(0); opacity: 1; color: var(--color-fg); }
+}
+
+@keyframes flash {
+  0%   { background-color: rgba(205, 255, 77, 0.14); border-color: rgba(205, 255, 77, 0.4); }
+  100% { background-color: rgba(255, 255, 255, 0.022); }
 }

@@ -1,161 +1,138 @@
 # DESIGN.md
 
-Recorded from the built world after Phase 3, not written ahead of it. Product
-truth lives in `PRODUCT.md`.
+Recorded from the built world. Product truth lives in `PRODUCT.md`.
+
+**Direction: Aperture.** Chosen from `concept-seed --scope direction`, seed key
+`34f3db55`, candidate 7 of 7.
 
 ## The world
 
-Near-black ink surfaces, **ruled records rather than cards**, one grotesque with
-mono reserved for data. The governing rule is that structure comes from rules,
-spacing and typography — never from a bordered, filled box. There are no cards
-on the landing page, and nested cards are banned outright.
+The plane is dark and content is **unresolved** until the index looks at it. A
+band of legibility tracks the pointer; everything outside it is present but not
+yet readable. That is the product's thesis as a visual system rather than a
+metaphor: you cannot see what is launching, and this can.
 
-Dark is chosen from the use scene, not from category habit: this is read in the
-dark, at speed, with a tape moving.
+What this world explicitly refuses is the near-black-ground-plus-one-neon-accent
+dashboard, which is the arrangement this category always ships — and which the
+first two attempts at this site were.
+
+No cards anywhere. Structure comes from rules, spacing and type.
 
 ## Color
 
-`ink-950 #07080b` · `ink-900 #0a0c12` · `ink-850 #0e1016` · `ink-800 #14171f` ·
-`ink-700 #1c202a`
-`edge rgba(255,255,255,.08)` · `edge-strong rgba(255,255,255,.16)`
-
-Three text levels, every one measured at ≥4.5:1 against every surface above,
-`ink-700` included:
+`ink-950 #08090b` (the void) · `ink-900 #0b0d10` · `ink-850 #101318` ·
+`ink-800 #171a1f` · `ink-700 #1f242b`
+`edge rgba(255,255,255,.07)` · `edge-strong rgba(255,255,255,.15)`
 
 | Token | Value | Worst contrast | Job |
 |---|---|---|---|
-| `fg` | `#f5f7fa` | 15.18:1 | primary |
-| `fg-muted` | `#9aa1ad` | 6.26:1 | body copy, secondary |
-| `fg-dim` | `#838993` | 4.63:1 | labels, meta, timestamps |
+| `fg` | `#f2f4f2` | 14.12:1 | resolved |
+| `fg-muted` | `#9aa39c` | 6.01:1 | body copy |
+| `fg-dim` | `#868f88` | 4.68:1 | labels, meta |
 
-There is no fourth level. Anything quieter than `fg-dim` is expressed with size,
-weight or space, because no darker grey can be read on these surfaces.
-
-**Lime `#cdff4d` is a data signal.** It marks risk scores, liveness, cluster
-status and the primary action — and nothing else. Never a heading, never a
-border, never a gradient, never a glow. The restriction is what makes a single
-accent read as deliberate; the moment it decorates, it stops signalling.
-
-`warn #ffb454` marks duplicates. `danger #ff8a97` marks high risk and spoofs —
-it is a *text* colour and fails at 2.25:1 as a background, so a destructive
-surface uses `#8f1d27` instead.
+**Lime `#cdff4d` is signal, never decoration**: risk scores, liveness, the
+aperture's hairlines, the primary action. Never a heading, gradient or glow.
+`warn #ffb454` marks duplicates, `danger #ff6b7a` marks high risk and spoofs.
+`#8f1d27` is the destructive surface, because `danger` is a text colour and
+fails at 2.25:1 as a background.
 
 ## Type
 
-**Archivo Variable** (wght 100–900, wdth 62–125) for everything.
-**Geist Mono Variable** for data, addresses, tickers and labels.
+**Anybody Variable** for display — wdth 50–150 and wght 100–900. The width axis
+is driven by scroll velocity, which is the reason for the face rather than
+taste: no static family can do it, and shipping a variable font without touching
+its axes pays the download cost for nothing. Each headline line carries its own
+base width so the block reads as a set composition, not three lines at one size.
 
-Both self-hosted via `@fontsource-variable` — no CDN in the critical path and no
-font request that leaks a visitor to a third party.
+**Archivo Variable** for long-form prose, where a display family would tire.
+**Geist Mono Variable** for data, addresses, tickers, labels and all chrome.
 
-Archivo, specifically, because Instrument Sans, Space Grotesk, Inter and DM Sans
-are faces a model reaches for by habit; picking one needs a reason no other face
-could satisfy. Archivo also carries the weight and width range the dense app
-tables need.
+Geist Mono ships a Cyrillic subset and neither of the others does, and that is
+load-bearing: the impersonation examples set Cyrillic homoglyphs beside their
+Latin twins, and in a face without coverage those characters fall back and the
+mismatch gives the spoof away. **Homoglyphs are always set in the mono.**
 
-**Geist Mono ships a Cyrillic subset and Archivo does not, and that is
-load-bearing.** The impersonation examples set Cyrillic homoglyphs beside their
-Latin twins; in a face without Cyrillic coverage those characters fall back to
-another font and the visible mismatch gives the spoof away — the opposite of the
-point. Homoglyph examples are always set in the mono.
+Zero arbitrary `text-[Npx]` values in the codebase. `text-micro` (11px) is the
+floor for functional text.
 
-Sizes come from the ramp only. There are **zero** arbitrary `text-[Npx]` values
-in the codebase; there were 134 across 17 distinct values before Phase 2.
-`text-micro` (11px) is the floor for functional text — badges, risk scores,
-labels — and nothing goes below it.
+`.measure` is 54ch, not 68ch — the `ch` unit is the advance width of "0" and
+prose glyphs average about a third narrower, so 68ch measured 91 characters.
 
-Display sizes take tight leading and negative tracking (`-0.028em` at 3xl down
-to `-0.038em` at 7xl). Headings use `text-wrap: balance`, body uses `pretty`.
+## The aperture
 
-Mono carries `font-variant-numeric: tabular-nums` so changing figures do not
-jitter.
+One engine at the app root: a single pointermove listener and one rAF loop
+drives every plate. Implemented as **one text node with a scrim above and below
+the band**, not two stacked copies. The first version duplicated its children,
+which meant duplicated DOM, an `aria-hidden` copy, a render prop so headings
+could avoid emitting two `<h1>` tags, and genuinely occluded text that the
+detector caught. The scrim gets the identical result with the real text left
+alone at full contrast.
 
-## Measure
+Three rules, which are accessibility constraints rather than styling:
 
-`.measure` is **54ch**, not 68ch. The `ch` unit is the advance width of "0" and
-average prose glyphs run about a third narrower — measured here, 68ch held 91
-characters. 54ch measures ~72. `.measure-tight` is 42ch.
+1. **The accessible default is fully resolved.** The aperture is an enhancement
+   over a legible page, never a mask over a hidden one. It engages only where a
+   fine pointer and motion are both available, and only after the pointer has
+   actually moved. Touch, keyboard, reduced motion and no-JS get everything lit.
+2. **It never covers prose.** Display type, the tape and comparison plates only.
+3. The band widens with scroll — by the end of the page everything is resolved.
+
+## Chrome
+
+**No centred pill navbar and no four-column footer link grid.** Those two
+components are most of what makes a page read as every other page. Navigation is
+a numbered mono index in difference blend that retires on scroll-down and
+returns on scroll-up, because a background-less header collides with display
+type passing under it. The mobile index is a full-bleed screen of display type.
+The footer is anchored by the wordmark at plate scale.
 
 ## Motion
 
-Three libraries, one job each, and never the same property from two:
+Three libraries, one job each, never the same property from two:
 
-- **Lenis** owns scroll position. Nothing else writes `scrollTop`; route changes
-  go through `lenis.scrollTo`.
+- **Lenis** owns scroll position.
 - **GSAP + ScrollTrigger** own scroll-linked motion — the pinned pipeline, the
-  marquee, the case-file assembly.
-- **Motion** owns state motion — the hero's live count swapping when new data
-  arrives, and `CountUp`'s spring.
+  marquee, the case-file assembly, the homoglyph scan.
+- **Motion** owns state motion and `CountUp`'s spring.
 
-**The motion thesis is accumulation and detection** — what the index actually
-does — and every effect on the page is one of those two, or it is cut. The first
-pass got this wrong by reading "not one identical entrance on every section" as
-*less motion*; it means *authored* motion. A page with nothing moving reads as a
-static document, which is not what this product is.
-
-Two focal sequences, both product-specific:
-
-- **The case file writes itself.** Rows arrive under a left-to-right clip wipe —
-  a wipe reads as something being written where a fade reads as nothing —
-  then brackets draw down the gutter linking the rows that share a ticker and
-  the COPY marks land. That is the detector finding the duplicates in front of
-  you. Scrubbed, because the scroll relationship carries the meaning.
-- **The homoglyph scan.** A head crosses the spoofed ticker and marks every
-  character that is not what it appears to be, found by code point at render
-  time rather than hardcoded. Zero-width characters get a visible stand-in,
-  because the finding that matters most is otherwise the one you cannot see.
-
-Supporting: the hero's CSS clip entrance, the live tape, the pinned pipeline
-with a progress rule so a pin does not read as the page having frozen, and the
-block-height ticker whose changed digits light and decay.
-
-A scrubbed sequence must finish while its block is still travelling into view,
-not across its whole height. Scrubbing the case file's full 1200px left the
-record visibly half-written for as long as it was the main thing on screen —
-which reads as broken rather than as authored.
+The thesis is **accumulation and detection** — what the index does. Two focal
+sequences: the case file writing itself under a clip wipe and then bracketing
+the duplicates it finds; and the homoglyph scan marking every character that is
+not what it appears to be, found by code point at render time.
 
 **Animate from an already-visible default.** `gsap.from` applies its initial
-state the moment the tween is built, leaving every target at `opacity: 0` from
-page load until a scroll event arrives — 21 elements were sitting hidden on
-first paint before this rule. Use `fromTo` with `immediateRender: false` and a
-trigger that fires while the block is still below the fold.
+state when the tween is built, leaving targets at `opacity: 0` from page load.
+Use `fromTo` with `immediateRender: false` and a trigger that fires below the
+fold.
 
-**Never animate a figure from zero to its true value.** A count-up displays a
-wrong number for as long as it runs; captured mid-flight, this page showed 2.9x
-where the measurement is 4.2x. Claims render at their true value immediately.
-Counts may animate, but from 92% of target so the displayed figure is never
-materially false.
+**Never animate a figure from zero to its true value.** A count-up shows a wrong
+number while it runs — captured mid-flight this page read "2.9x" where the
+measurement is 4.2x. Claims render true immediately; counts animate from 92% of
+target.
 
-`prefers-reduced-motion` skips Lenis entirely and every GSAP effect.
+A scrubbed sequence must finish while its block is still travelling into view.
 
 ## Components
 
-**shadcn/ui is here for behaviour, not looks** — focus traps, dismissal, ARIA
-wiring, keyboard handling. Installed: `dialog`, `accordion`, `tooltip`,
-`button`. Its semantic tokens are aliased onto the palette above rather than
-installing a parallel system; nothing new is defined except the destructive
-surface red.
+**shadcn/ui for behaviour, not looks** — `dialog`, `accordion`, `tooltip`,
+`button`, with semantic tokens aliased onto the palette above.
 
-**React Bits contributed the effects that had to be removed.** `SpotlightCard`
-produced four `radial-spotlight-glow` findings and `ShinyText` produced both
-`gradient-text` findings. Only `CountUp` survives. `Aurora`, `SpotlightCard`,
-`ShinyText`, `DecryptedText`, `ScrollReveal` and `Reveal` are deleted, and `ogl`
-left the dependency tree with them.
+**React Bits contributed the effects that had to be removed** — `SpotlightCard`
+produced four `radial-spotlight-glow` findings and `ShinyText` both
+`gradient-text` findings. Only `CountUp` survives.
+
+One poller for `/intel/stats` shared across the whole page. Five components each
+ran their own interval before, which meant five requests and five different
+values of the same number on screen at once.
 
 ## Banned outright
 
-- A kicker or eyebrow label above a heading. No exception; the heading carries it.
-- Cards inside cards. Cards as page structure at all, on Persuade surfaces.
-- Gradient text. Emphasis comes from weight or size.
-- Section numbers (01/02/03) restating a sequence the structure already carries.
-- Functional text below 11px.
-- Any figure that cannot be reproduced from a live API call.
+Kickers above headings · cards inside cards · cards as page structure ·
+gradient text · section numbers restating a sequence the structure carries ·
+functional text below 11px · any figure not reproducible from a live API call.
 
 ## Verification
 
-Design has no test suite, so the exit criterion is the detector:
-`npx impeccable detect <url>`.
-
-At the close of Phase 3: **landing 0, `/app` 0.** `/how-it-works` 12,
-`/detection` 6, `/privacy` 16 — all pre-existing on Read-mode surfaces, all
-Phase 4 scope.
+`npx impeccable detect <url>`. At the close of this pass: **landing 0, `/app` 0.**
+`/how-it-works`, `/detection` and `/privacy` still carry pre-existing findings on
+the Read-mode surfaces, which have not yet been brought into this world.

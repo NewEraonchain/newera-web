@@ -1,20 +1,21 @@
 import { Link } from "react-router-dom"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useLayoutEffect, useRef } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { AnimatePresence, motion } from "motion/react"
 import CountUp from "@/components/CountUp"
 import LiveMarquee from "@/components/LiveMarquee"
 import CaseFile from "@/components/CaseFile"
-import ChainTicker from "@/components/ChainTicker"
 import SpoofScan from "@/components/SpoofScan"
+import Plate from "@/components/Aperture"
+import KineticHeading from "@/components/KineticHeading"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { getJSON, type Stats } from "@/lib/api"
+import { type Stats } from "@/lib/api"
+import { useStats } from "@/lib/useStats"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -144,88 +145,43 @@ export default function Landing() {
 /* ── Hero ─────────────────────────────────────────────────────────────── */
 
 function Hero() {
-  const [live, setLive] = useState<Stats | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    const load = () =>
-      getJSON<Stats>("/intel/stats")
-        .then((s) => {
-          if (alive) setLive(s)
-        })
-        .catch((err) => {
-          console.error("[Hero] stats unavailable:", err)
-        })
-    load()
-    const t = setInterval(load, 60000)
-    return () => {
-      alive = false
-      clearInterval(t)
-    }
-  }, [])
+  const live = useStats()
 
   return (
-    <section className="relative flex min-h-[72vh] items-center border-b border-edge pb-16 pt-28 sm:pb-20">
-      <div className="mx-auto w-full max-w-6xl px-5">
-        <h1 className="rise max-w-[15ch] text-5xl font-semibold sm:text-6xl lg:text-7xl">
-          See what is launching before it has a price
-        </h1>
+    /* Full bleed: -mt-16 cancels main's top padding, which the other surfaces
+       still need. Type anchored to the lower left at plate scale and allowed to
+       run past the right edge — the composition is a crop of something larger,
+       not a centred block with room around it. */
+    <section className="relative -mt-16 flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[7vh] pt-[20vh]">
+      <Plate rules>
+        <KineticHeading
+          className="text-[clamp(3.2rem,15.2vw,16rem)] leading-[0.79] tracking-[-0.028em]"
+          lines={[
+            { text: "See it", width: 78, weight: 800 },
+            { text: "before it", width: 112, weight: 600 },
+            { text: "has a price", width: 64, weight: 900 },
+          ]}
+        />
+      </Plate>
 
-        <p
-          className="rise measure mt-8 text-lg leading-relaxed text-fg-muted"
-          style={{ animationDelay: "140ms" }}
+      <div className="mt-[3.4vh] flex flex-wrap items-baseline gap-x-9 gap-y-4 font-mono text-xs text-fg-dim">
+        <Link
+          to="/app"
+          className="bg-acid-500 px-5 py-3 text-[11px] uppercase tracking-[0.1em] text-ink-950 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
         >
-          Thousands of tokens are created on Robinhood Chain every day. At the moment one
-          launches it has no chart, no holders and no followers, so every analytics tool is
-          blind to it. NewEra reads the only thing that exists yet: what the token means.
-        </p>
-
-        <div
-          className="rise mt-10 flex flex-wrap items-center gap-x-6 gap-y-4"
-          style={{ animationDelay: "260ms" }}
-        >
-          <Link
-            to="/app"
-            className="rounded-lg bg-acid-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-acid-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
-          >
-            Open the live feed
-          </Link>
-          <Link
-            to="/how-it-works"
-            className="rounded-lg border border-edge-strong px-6 py-3 text-sm font-semibold text-fg transition-colors hover:bg-ink-850 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-500"
-          >
-            How it works
-          </Link>
-
-          {/* Motion's job on this page: the figure changes on its own every
-              minute, and a number that swaps in place with no transition reads
-              as a glitch. This is state motion — a function of fetched data,
-              not of scroll position — which is why it is Motion and not GSAP. */}
-          {live && (
-            <p className="flex items-baseline gap-2 font-mono text-xs text-fg-dim">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={live.launchesLastHour}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className="font-semibold text-acid-500"
-                >
-                  {live.launchesLastHour}
-                </motion.span>
-              </AnimatePresence>
-              launches indexed in the last hour
-            </p>
-          )}
-        </div>
-
-        {/* The chain height, polled every eight seconds. Robinhood Chain makes
-            ten blocks a second, so this visibly moves while you read — and the
-            digits that moved are the ones that light up. Never incremented
-            locally: a fake counter would look the same and be a lie on the one
-            page arguing that the data is honest. */}
-        <ChainTicker className="rise mt-8" />
+          Open the feed →
+        </Link>
+        {live && (
+          <>
+            <span>
+              <b className="font-medium text-fg">{live.launchesLastHour}</b> launches indexed in the
+              last hour
+            </span>
+            <span>
+              <b className="font-medium text-fg">{live.duplicatePct}%</b> of them are copies
+            </span>
+          </>
+        )}
       </div>
     </section>
   )
@@ -236,8 +192,8 @@ function Hero() {
 function BlockZero() {
   return (
     <section className="border-b border-edge bg-ink-900">
-      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
-        <h2 className="max-w-[18ch] text-4xl font-semibold sm:text-5xl">
+      <div className="px-[4vw] py-24 sm:py-32">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Nobody else can show you this, and it is not because they are worse
         </h2>
         <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
@@ -271,19 +227,7 @@ function BlockZero() {
 function Pipeline() {
   const root = useRef<HTMLElement>(null)
   const track = useRef<HTMLDivElement>(null)
-  const [live, setLive] = useState<Stats | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    getJSON<Stats>("/intel/stats")
-      .then((s) => {
-        if (alive) setLive(s)
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [])
+  const live = useStats()
 
   useLayoutEffect(() => {
     if (reduced()) return
@@ -325,8 +269,8 @@ function Pipeline() {
          top padding stops applying and the heading slides under the header. */
       className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-950 pb-16 pt-28"
     >
-      <div className="mx-auto w-full max-w-6xl px-5">
-        <h2 className="max-w-[20ch] text-4xl font-semibold sm:text-5xl">
+      <div className="w-full px-[4vw]">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Four stages, in the order they run
         </h2>
         <div className="mt-8 h-px w-full bg-edge">
@@ -381,8 +325,8 @@ function Pipeline() {
 function Detection() {
   return (
     <section className="border-b border-edge bg-ink-900">
-      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
-        <h2 className="max-w-[18ch] text-4xl font-semibold sm:text-5xl">
+      <div className="px-[4vw] py-24 sm:py-32">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Two tickers that render identically
         </h2>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
@@ -403,26 +347,12 @@ function Detection() {
 /* ── Evidence ─────────────────────────────────────────────────────────── */
 
 function Evidence() {
-  const [live, setLive] = useState<Stats | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    getJSON<Stats>("/intel/stats")
-      .then((s) => {
-        if (alive) setLive(s)
-      })
-      .catch((err) => {
-        console.error("[Evidence] stats unavailable:", err)
-      })
-    return () => {
-      alive = false
-    }
-  }, [])
+  const live = useStats()
 
   return (
     <section className="border-b border-edge bg-ink-950">
-      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
-        <h2 className="max-w-[16ch] text-4xl font-semibold sm:text-5xl">
+      <div className="px-[4vw] py-24 sm:py-32">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           Measured, not projected
         </h2>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
@@ -532,8 +462,8 @@ function Fact({
 function Questions() {
   return (
     <section className="border-b border-edge bg-ink-900">
-      <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
-        <h2 className="max-w-[16ch] text-4xl font-semibold sm:text-5xl">
+      <div className="px-[4vw] py-24 sm:py-32">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           The questions worth asking first
         </h2>
 
@@ -561,8 +491,8 @@ function Questions() {
 function Close() {
   return (
     <section className="bg-ink-950">
-      <div className="mx-auto max-w-6xl px-5 py-28 sm:py-36">
-        <h2 className="max-w-[14ch] text-4xl font-semibold sm:text-5xl">
+      <div className="px-[4vw] py-28 sm:py-36">
+        <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           The feed is open, and it is free
         </h2>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">

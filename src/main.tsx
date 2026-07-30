@@ -10,6 +10,10 @@ import { createRoot } from 'react-dom/client'
  * beside their Latin twins, and if those characters fell back to a different
  * face the mismatch would give the spoof away — which is the opposite of the
  * point. Homoglyphs are always set in the mono. */
+/* Anybody carries both a width and a weight axis, so the standard (all-axes)
+   build is imported rather than the wght-only one — the headline drives wdth
+   from scroll velocity and the wght-only file cannot do it. */
+import '@fontsource-variable/anybody/standard.css'
 import '@fontsource-variable/archivo'
 import '@fontsource-variable/geist-mono'
 

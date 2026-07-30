@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-ro
 import { useEffect, useState, lazy, Suspense } from "react"
 import { useLenis } from "lenis/react"
 import SmoothScroll from "@/components/SmoothScroll"
+import Reticle from "@/components/Reticle"
+import { useApertureEngine } from "@/components/Aperture"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
 import { isOnboarded } from "@/lib/onboarding"
@@ -66,6 +68,9 @@ function Shell() {
   const navigate = useNavigate()
   const [modal, setModal] = useState(false)
 
+  // One pointer listener and one rAF loop drive every aperture on the page.
+  useApertureEngine()
+
   useEffect(() => {
     if (isOnboarded()) return
     if (GATED.some((p) => loc.pathname.startsWith(p))) setModal(true)
@@ -74,6 +79,7 @@ function Shell() {
   return (
     <>
       <ScrollToTop />
+      <Reticle />
       <Header />
       <main className="pt-16">
         <Suspense fallback={<RouteFallback />}>
