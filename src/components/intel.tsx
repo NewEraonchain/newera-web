@@ -31,7 +31,7 @@ const STATUS_STYLE: Record<ThemeStatus, string> = {
 export function StatusBadge({ status }: { status: ThemeStatus }) {
   return (
     <span
-      className={`flex-none rounded-md px-2 py-[3px] text-[10.5px] font-bold uppercase tracking-[0.06em] ${STATUS_STYLE[status]}`}
+      className={`flex-none rounded-md px-2 py-[3px] text-micro font-bold uppercase tracking-[0.06em] ${STATUS_STYLE[status]}`}
     >
       {status}
     </span>
@@ -47,7 +47,7 @@ export function RiskPill({ score }: { score: number }) {
         : "text-acid-500 bg-acid-500/10"
   return (
     <span
-      className={`min-w-[34px] rounded-md px-[7px] py-[3px] text-center font-mono text-[11px] font-semibold ${tone}`}
+      className={`min-w-[34px] rounded-md px-[7px] py-[3px] text-center font-mono text-micro font-semibold ${tone}`}
       title={`Spam risk ${score}/100 — how much this looks like machine-generated noise, not a price prediction`}
     >
       {score}
@@ -58,7 +58,7 @@ export function RiskPill({ score }: { score: number }) {
 export function FlagPill({ flag }: { flag: string }) {
   return (
     <span
-      className="rounded-[5px] border border-danger/25 bg-danger/12 px-[6px] py-[2px] text-[10px] font-bold tracking-[0.04em] text-danger"
+      className="rounded-[5px] border border-danger/25 bg-danger/12 px-[6px] py-[2px] text-micro font-bold tracking-[0.04em] text-danger"
       title={FLAG_TEXT[flag] || flag}
     >
       {FLAG_SHORT[flag] || flag}
@@ -77,17 +77,17 @@ export function LaunchRow({ launch, isNew }: { launch: Launch; isNew?: boolean }
         launch.riskScore >= 40 ? "border-l-2 border-l-danger/55 border-edge" : "border-edge"
       } ${isNew ? "animate-[flash_1.4s_ease-out]" : ""}`}
     >
-      <div className="text-right font-mono text-[11.5px] text-fg-dim">{ago(launch.ageSeconds)}</div>
+      <div className="text-right font-mono text-xs text-fg-dim">{ago(launch.ageSeconds)}</div>
       <div className="min-w-0">
-        <div className="truncate font-mono text-[13.5px] font-semibold text-fg">
+        <div className="truncate font-mono text-sm font-semibold text-fg">
           {launch.symbol || "—"}
         </div>
-        <div className="truncate text-[12px] text-fg-dim">{launch.name}</div>
+        <div className="truncate text-xs text-fg-dim">{launch.name}</div>
       </div>
       <div className="flex flex-none items-center gap-2">
         {launch.devBuyEth > 0 && (
           <span
-            className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-[11px] text-acid-500"
+            className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-micro text-acid-500"
             title={`Creator committed ${launch.devBuyEth} ETH at launch`}
           >
             {launch.devBuyEth.toFixed(2)}Ξ
@@ -114,13 +114,13 @@ export function ThemeCard({ theme }: { theme: Theme }) {
       } ${theme.isOrganic ? "" : "opacity-60"}`}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2.5">
-        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-fg">
+        <span className="min-w-0 flex-1 truncate text-base font-semibold text-fg">
           {theme.label}
         </span>
         <StatusBadge status={theme.status} />
       </div>
 
-      <div className="flex flex-wrap gap-3.5 text-[12.5px] text-fg-dim">
+      <div className="flex flex-wrap gap-3.5 text-xs text-fg-dim">
         <span>
           <b className="font-semibold text-[#c8cdd6]">{theme.launchCount}</b> launches
         </span>
@@ -144,7 +144,7 @@ export function ThemeCard({ theme }: { theme: Theme }) {
           {theme.samples.map((s) => (
             <span
               key={s.address}
-              className="max-w-[130px] truncate rounded-md border border-edge bg-white/[.04] px-2 py-[3px] font-mono text-[11px] text-fg-muted"
+              className="max-w-[130px] truncate rounded-md border border-edge bg-white/[.04] px-2 py-[3px] font-mono text-micro text-fg-muted"
             >
               {s.symbol || s.name}
             </span>
@@ -169,7 +169,7 @@ export function Toggle({
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[13px] font-medium transition-colors ${
+      className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors ${
         on
           ? "border-acid-500/45 bg-acid-500/[.09] text-acid-500"
           : "border-edge bg-white/[.03] text-fg-muted hover:border-edge-strong hover:text-fg"
@@ -192,7 +192,7 @@ export function Skeleton({ h = 58 }: { h?: number }) {
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-edge bg-white/[.02] px-5 py-11 text-center text-[13.5px] leading-relaxed text-fg-dim">
+    <div className="rounded-2xl border border-dashed border-edge bg-white/[.02] px-5 py-11 text-center text-sm leading-relaxed text-fg-dim">
       {children}
     </div>
   )

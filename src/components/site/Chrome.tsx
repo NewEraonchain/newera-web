@@ -43,7 +43,7 @@ export function Header() {
       }`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <Link to="/" className="flex items-center gap-2.5 font-display text-[17px] font-bold tracking-tight">
+        <Link to="/" className="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">
           <Mark />
           NewEra
         </Link>
@@ -53,7 +53,7 @@ export function Header() {
             <Link
               key={n.to}
               to={n.to}
-              className={`rounded-lg px-3.5 py-2 text-[13.5px] transition-colors ${
+              className={`rounded-lg px-3.5 py-2 text-sm transition-colors ${
                 loc.pathname === n.to
                   ? "text-fg"
                   : "text-fg-muted hover:text-fg"
@@ -67,7 +67,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             to="/app"
-            className="rounded-xl bg-acid-500 px-4 py-2 text-[13.5px] font-bold text-[#0a0d05] transition-[filter] hover:brightness-105"
+            className="rounded-xl bg-acid-500 px-4 py-2 text-sm font-bold text-[#0a0d05] transition-[filter] hover:brightness-105"
           >
             Open feed
           </Link>
@@ -90,7 +90,7 @@ export function Header() {
             <Link
               key={n.to}
               to={n.to}
-              className="block rounded-lg px-2 py-3 text-[15px] text-fg-muted hover:text-fg"
+              className="block rounded-lg px-2 py-3 text-base text-fg-muted hover:text-fg"
             >
               {n.label}
             </Link>
@@ -107,11 +107,11 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-5 py-14">
         <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
-            <div className="mb-3 flex items-center gap-2.5 font-display text-[17px] font-bold">
+            <div className="mb-3 flex items-center gap-2.5 font-display text-lg font-bold">
               <Mark />
               NewEra
             </div>
-            <p className="max-w-xs text-[13.5px] leading-relaxed text-fg-dim">
+            <p className="max-w-xs text-sm leading-relaxed text-fg-dim">
               Launch intelligence for Robinhood Chain. Read meaning at the moment of creation.
             </p>
             <div className="mt-4 flex gap-2">
@@ -156,11 +156,15 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-edge pt-6">
-          <div className="flex flex-wrap justify-between gap-3 text-[12px] text-fg-faint">
+          <div className="flex flex-wrap justify-between gap-3 text-xs text-fg-dim">
             <span>© 2026 NewEra. All rights reserved.</span>
             <span>Not investment advice. Nothing here is a price forecast.</span>
           </div>
-          <p className="mt-3 max-w-3xl text-[11.5px] leading-relaxed text-fg-faint">
+          {/* measure, not max-w-3xl: 768px of 12px text runs to ~128 characters
+              a line, which is where the eye stops finding the line return. The
+              wording is required by Robinhood Chain's terms and does not
+              change — only how wide it sets. */}
+          <p className="measure mt-3 text-xs leading-relaxed text-fg-dim">
             NewEra is an independent project and is not affiliated with, endorsed by, or sponsored
             by Robinhood Markets, Inc. "Robinhood Chain" is used solely to identify the public
             blockchain network this product indexes.
@@ -174,7 +178,7 @@ export function Footer() {
 function FootCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-fg-dim">
+      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-dim">
         {title}
       </h4>
       <div className="flex flex-col gap-2">
@@ -182,7 +186,7 @@ function FootCol({ title, links }: { title: string; links: [string, string][] })
           <Link
             key={to}
             to={to}
-            className="text-[13.5px] text-fg-muted transition-colors hover:text-acid-500"
+            className="text-sm text-fg-muted transition-colors hover:text-acid-500"
           >
             {label}
           </Link>

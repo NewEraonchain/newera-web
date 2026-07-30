@@ -214,10 +214,10 @@ export default function OnboardingModal({
               <path d="M12 2l2.4 6.2L21 10l-5 4.3L17.5 21 12 17.6 6.5 21 8 14.3 3 10l6.6-1.8z" />
             </svg>
           </div>
-          <h3 id="nwo-title" className="font-display text-[21px] font-bold tracking-[-0.01em]">
+          <h3 id="nwo-title" className="font-display text-xl font-bold tracking-[-0.01em]">
             {h.title}
           </h3>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-fg-muted">{h.sub}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">{h.sub}</p>
         </div>
 
         <div className="mb-6 flex justify-center gap-1.5">
@@ -250,8 +250,8 @@ export default function OnboardingModal({
                   }`}
                 >
                   <span className="text-xl leading-none">{o.emoji}</span>
-                  <span className="text-[14.5px] font-semibold leading-tight">{o.name}</span>
-                  <span className="text-[12px] leading-tight text-fg-dim">{o.desc}</span>
+                  <span className="text-sm font-semibold leading-tight">{o.name}</span>
+                  <span className="text-xs leading-tight text-fg-dim">{o.desc}</span>
                 </button>
               ))}
             </div>
@@ -268,7 +268,7 @@ export default function OnboardingModal({
         {step === 1 && (
           <>
             <Label>Connect your wallet</Label>
-            <p className="mb-4 text-[12px] leading-relaxed text-fg-dim">
+            <p className="mb-4 text-xs leading-relaxed text-fg-dim">
               Your wallet is your account — no password, no email required. Signing proves the
               address is yours; it authorises no transaction.
             </p>
@@ -290,12 +290,12 @@ export default function OnboardingModal({
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               </div>
-              <div className="mb-4 break-all rounded-xl border border-acid-500/20 bg-acid-500/[.07] px-3 py-2.5 font-mono text-[13px] text-acid-500">
+              <div className="mb-4 break-all rounded-xl border border-acid-500/20 bg-acid-500/[.07] px-3 py-2.5 font-mono text-sm text-acid-500">
                 {addr}
               </div>
             </div>
             <Label>Want alerts? (optional)</Label>
-            <p className="mb-3 text-[12px] leading-relaxed text-fg-dim">
+            <p className="mb-3 text-xs leading-relaxed text-fg-dim">
               We&apos;ll only message you about things you asked to follow. Skip and everything still works.
             </p>
             <Input value={email} onChange={setEmail} placeholder="Email address" type="email" onEnter={saveContact} />
@@ -312,7 +312,7 @@ export default function OnboardingModal({
         {step === 3 && (
           <>
             <Label>Check your inbox</Label>
-            <p className="mb-3 text-[12px] leading-relaxed text-fg-dim">
+            <p className="mb-3 text-xs leading-relaxed text-fg-dim">
               We sent a 6-digit code to <b className="text-fg">{email}</b>. It expires in 15 minutes.
             </p>
             <input
@@ -333,7 +333,7 @@ export default function OnboardingModal({
           </>
         )}
 
-        <p className="mt-5 border-t border-edge pt-4 text-center text-[11.5px] leading-relaxed text-fg-faint">
+        <p className="mt-5 border-t border-edge pt-4 text-center text-xs leading-relaxed text-fg-dim">
           By continuing you agree to our{" "}
           <a href="/terms" className="underline hover:text-fg-dim">Terms</a> and{" "}
           <a href="/privacy" className="underline hover:text-fg-dim">Privacy Policy</a>.
@@ -346,7 +346,7 @@ export default function OnboardingModal({
 /* ---- small pieces ---- */
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <span className="mb-3 block text-[14px] font-semibold text-fg">{children}</span>
+  return <span className="mb-3 block text-sm font-semibold text-fg">{children}</span>
 }
 
 function Primary({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
@@ -355,7 +355,7 @@ function Primary({ children, onClick, disabled }: { children: React.ReactNode; o
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-xl bg-acid-500 py-3.5 text-[15px] font-bold text-[#0a0d05] transition-[filter,opacity] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+      className="w-full rounded-xl bg-acid-500 py-3.5 text-base font-bold text-[#0a0d05] transition-[filter,opacity] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {children}
     </button>
@@ -367,7 +367,7 @@ function Skip({ children, onClick }: { children: React.ReactNode; onClick: () =>
     <button
       type="button"
       onClick={onClick}
-      className="mt-3 block w-full pb-0.5 text-[13px] text-fg-dim transition-colors hover:text-fg-muted"
+      className="mt-3 block w-full pb-0.5 text-sm text-fg-dim transition-colors hover:text-fg-muted"
     >
       {children}
     </button>
@@ -378,7 +378,7 @@ function Msg({ msg }: { msg: { text: string; kind?: "err" | "ok" } | null }) {
   if (!msg) return <div className="min-h-[18px]" />
   return (
     <div
-      className={`mt-3 min-h-[18px] text-center text-[13px] leading-relaxed ${
+      className={`mt-3 min-h-[18px] text-center text-sm leading-relaxed ${
         msg.kind === "err" ? "text-danger" : msg.kind === "ok" ? "text-acid-500" : "text-fg-muted"
       }`}
     >
@@ -404,7 +404,7 @@ function Input({
       placeholder={placeholder}
       type={type}
       spellCheck={false}
-      className="mb-3 w-full rounded-xl border border-edge-strong bg-white/[.04] px-4 py-3.5 text-[14px] text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500/55"
+      className="mb-3 w-full rounded-xl border border-edge-strong bg-white/[.04] px-4 py-3.5 text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500/55"
     />
   )
 }
@@ -445,8 +445,8 @@ function WalletButton({
         </svg>
       </span>
       <span className="flex flex-col gap-0.5">
-        <span className="text-[15px] font-semibold leading-tight">{title}</span>
-        <span className="text-[12.5px] leading-tight text-fg-dim">{sub}</span>
+        <span className="text-base font-semibold leading-tight">{title}</span>
+        <span className="text-xs leading-tight text-fg-dim">{sub}</span>
       </span>
     </button>
   )

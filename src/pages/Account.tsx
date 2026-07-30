@@ -122,12 +122,12 @@ export default function Account() {
     return (
       <Wrap>
         <EmptyState>
-          <p className="mb-2 text-[15px] font-semibold text-fg">Your data has been deleted.</p>
+          <p className="mb-2 text-base font-semibold text-fg">Your data has been deleted.</p>
           <p className="mb-5">
             Nothing is left on our side. Anything recorded on the public blockchain is not ours and
             remains there.
           </p>
-          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-[14px] font-bold text-[#0a0d05]">
+          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-sm font-bold text-[#0a0d05]">
             Back to the feed
           </Link>
         </EmptyState>
@@ -141,12 +141,12 @@ export default function Account() {
     return (
       <Wrap>
         <EmptyState>
-          <p className="mb-2 text-[15px] font-semibold text-fg">No wallet connected</p>
+          <p className="mb-2 text-base font-semibold text-fg">No wallet connected</p>
           <p className="mb-5">
             The live feed works without one. Connect only if you want preferences saved against your
             address.
           </p>
-          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-[14px] font-bold text-[#0a0d05]">
+          <Link to="/app" className="inline-block rounded-xl bg-acid-500 px-5 py-3 text-sm font-bold text-[#0a0d05]">
             Back to the feed
           </Link>
         </EmptyState>
@@ -172,14 +172,14 @@ export default function Account() {
   return (
     <Wrap>
       <h1 className="font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">Account</h1>
-      <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-fg-muted">
+      <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
         NewEra is free and needs no account to use. A wallet only matters once you want something
         remembered.
       </p>
 
       <Section title="Wallet">
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white/[.022] px-4 py-3">
-          <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-[#c8cdd6]">{addr}</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#c8cdd6]">{addr}</span>
           <Btn onClick={() => navigator.clipboard.writeText(addr)}>Copy</Btn>
           <Btn onClick={() => { disconnect(); location.reload() }}>Disconnect</Btn>
         </div>
@@ -192,17 +192,17 @@ export default function Account() {
             return (
               <div key={label} className="flex items-center gap-3 rounded-xl border border-edge bg-white/[.022] px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold text-[#c8cdd6]">{label}</div>
-                  {hint && <div className="mt-0.5 text-[11.5px] text-fg-dim">{hint}</div>}
+                  <div className="text-sm font-semibold text-[#c8cdd6]">{label}</div>
+                  {hint && <div className="mt-0.5 text-xs text-fg-dim">{hint}</div>}
                 </div>
-                <span className={`flex-none truncate text-[12.5px] ${empty ? "text-fg-dim" : "font-mono text-fg"}`}>
+                <span className={`flex-none truncate text-xs ${empty ? "text-fg-dim" : "font-mono text-fg"}`}>
                   {empty ? "not set" : String(value)}
                 </span>
               </div>
             )
           })}
         </div>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-fg-dim">
+        <p className="mt-3 text-xs leading-relaxed text-fg-dim">
           On-chain activity shown throughout the feed comes from the public blockchain and exists
           whether or not you use NewEra. The rows above are only what this site stores.
         </p>
@@ -210,14 +210,14 @@ export default function Account() {
 
       <Section title="Your data">
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white/[.022] px-4 py-3">
-          <span className="min-w-[220px] flex-1 text-[13px] text-[#c8cdd6]">
+          <span className="min-w-[220px] flex-1 text-sm text-[#c8cdd6]">
             Download everything we hold, or remove the optional contact details while keeping the account.
           </span>
           <Btn onClick={exportData} disabled={busy}>Download my data</Btn>
           <Btn onClick={clearContact} disabled={busy}>Remove contact details</Btn>
         </div>
         {msg && (
-          <p className={`mt-3 text-[13px] ${msg.kind === "err" ? "text-danger" : msg.kind === "ok" ? "text-acid-500" : "text-fg-muted"}`}>
+          <p className={`mt-3 text-sm ${msg.kind === "err" ? "text-danger" : msg.kind === "ok" ? "text-acid-500" : "text-fg-muted"}`}>
             {msg.text}
           </p>
         )}
@@ -225,11 +225,11 @@ export default function Account() {
 
       <Section title="Delete everything">
         <div className="rounded-2xl border border-danger/25 bg-danger/[.04] p-5">
-          <p className="mb-2 text-[14px] leading-relaxed text-fg-muted">
+          <p className="mb-2 text-sm leading-relaxed text-fg-muted">
             This erases your NewEra record permanently: onboarding answers, contact details, session
             history and the cached summary of your wallet. It cannot be undone.
           </p>
-          <p className="mb-4 text-[12.5px] leading-relaxed text-fg-dim">
+          <p className="mb-4 text-xs leading-relaxed text-fg-dim">
             Activity recorded on the public blockchain is not ours and cannot be deleted by anyone,
             including us.
           </p>
@@ -237,7 +237,7 @@ export default function Account() {
             <Btn danger onClick={() => setConfirming(true)}>Delete my account</Btn>
           ) : (
             <div>
-              <p className="mb-2.5 text-[13px] text-danger">
+              <p className="mb-2.5 text-sm text-danger">
                 Type <b>DELETE</b> to confirm. There is no undo.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -246,7 +246,7 @@ export default function Account() {
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder="DELETE"
                   spellCheck={false}
-                  className="w-[200px] rounded-xl border border-edge-strong bg-white/[.04] px-3.5 py-2.5 text-[13px] outline-none focus:border-danger/55"
+                  className="w-[200px] rounded-xl border border-edge-strong bg-white/[.04] px-3.5 py-2.5 text-sm outline-none focus:border-danger/55"
                 />
                 <Btn danger onClick={erase} disabled={busy}>Erase permanently</Btn>
                 <Btn onClick={() => { setConfirming(false); setConfirmText(""); setMsg(null) }}>Cancel</Btn>
@@ -274,8 +274,8 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   return (
     <section className="mt-9">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-[15px] font-bold">{title}</h2>
-        {note && <span className="text-[12px] text-fg-dim">{note}</span>}
+        <h2 className="font-display text-base font-bold">{title}</h2>
+        {note && <span className="text-xs text-fg-dim">{note}</span>}
       </div>
       {children}
     </section>
@@ -293,7 +293,7 @@ function Btn({ children, onClick, disabled, danger }: {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-xl border px-3.5 py-2 text-[13px] font-medium transition-colors disabled:opacity-50 ${
+      className={`rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
         danger
           ? "border-danger/40 text-danger hover:border-danger/70 hover:bg-danger/10"
           : "border-edge bg-white/[.03] text-fg-muted hover:border-edge-strong hover:text-fg"

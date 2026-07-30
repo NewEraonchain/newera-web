@@ -163,7 +163,7 @@ function Hero() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-ink-950 to-transparent" />
 
       <div data-hero-copy className="relative mx-auto w-full max-w-6xl px-5 pt-24">
-        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-[rgba(205,255,77,.28)] bg-[rgba(205,255,77,.08)] px-3.5 py-1.5 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-acid-500">
+        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-[rgba(205,255,77,.28)] bg-[rgba(205,255,77,.08)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-acid-500">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-acid-500 opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-acid-500" />
@@ -198,7 +198,7 @@ function Hero() {
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <Link
             to="/app"
-            className="group inline-flex items-center gap-2 rounded-xl bg-acid-500 px-6 py-3.5 text-[15px] font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
+            className="group inline-flex items-center gap-2 rounded-xl bg-acid-500 px-6 py-3.5 text-base font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
           >
             Open live feed
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
@@ -207,7 +207,7 @@ function Hero() {
           </Link>
           <Link
             to="/how-it-works"
-            className="inline-flex items-center rounded-xl border border-edge-strong px-6 py-3.5 text-[15px] font-semibold text-fg transition-colors hover:border-[rgba(255,255,255,.3)] hover:bg-white/[.03]"
+            className="inline-flex items-center rounded-xl border border-edge-strong px-6 py-3.5 text-base font-semibold text-fg transition-colors hover:border-[rgba(255,255,255,.3)] hover:bg-white/[.03]"
           >
             How it works
           </Link>
@@ -215,7 +215,7 @@ function Hero() {
           {/* Real counter, or nothing. An invented number on this page would
               undercut the one thing being sold. */}
           {live && (
-            <span className="ml-1 font-mono text-[12.5px] text-fg-dim">
+            <span className="ml-1 font-mono text-xs text-fg-dim">
               <span className="text-acid-500">{live.launchesLastHour}</span> launches indexed in the
               last hour
             </span>
@@ -262,7 +262,7 @@ function BlindSpot() {
   return (
     <section ref={root} className="border-b border-edge bg-ink-950">
       <div className="mx-auto max-w-5xl px-5 py-32 sm:py-44">
-        <p className="mb-12 font-mono text-[12px] uppercase tracking-[0.1em] text-acid-500">
+        <p className="mb-12 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
           The blind spot
         </p>
         <div className="flex flex-col gap-7">
@@ -276,7 +276,7 @@ function BlindSpot() {
             </p>
           ))}
         </div>
-        <p className="mt-12 max-w-xl text-[15px] leading-relaxed text-fg-muted">
+        <p className="mt-12 max-w-xl text-base leading-relaxed text-fg-muted">
           That window is the entire opportunity, and it is the one window nothing else indexes.
           What does exist at block zero is a name, a ticker, a creator and a stake — so that is
           what NewEra reads.
@@ -335,7 +335,7 @@ function HowItWorks() {
       className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-900 pb-16 pt-28"
     >
       <div className="mx-auto w-full max-w-6xl px-5 lg:px-[max(1.25rem,calc((100vw-72rem)/2))]">
-        <p className="mb-3 font-mono text-[12px] uppercase tracking-[0.1em] text-acid-500">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
           How it works
         </p>
         <h2 className="max-w-2xl font-display text-[clamp(1.8rem,3.6vw,2.8rem)] font-bold leading-tight tracking-[-0.025em]">
@@ -353,18 +353,18 @@ function HowItWorks() {
             className="flex w-[min(88vw,30rem)] flex-none flex-col rounded-2xl border border-edge bg-ink-850 p-8"
           >
             <div className="flex items-baseline gap-3">
-              <span className="font-mono text-[13px] text-acid-500">{s.n}</span>
-              <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-fg-dim">
+              <span className="font-mono text-sm text-acid-500">{s.n}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-dim">
                 {s.kicker}
               </span>
             </div>
-            <h3 className="mt-5 font-display text-[22px] font-bold leading-snug tracking-[-0.015em]">
+            <h3 className="mt-5 font-display text-2xl font-bold leading-snug tracking-[-0.015em]">
               {s.title}
             </h3>
-            <p className="mt-4 text-[14.5px] leading-relaxed text-fg-muted">{s.body}</p>
+            <p className="mt-4 text-sm leading-relaxed text-fg-muted">{s.body}</p>
             <ul className="mt-6 flex flex-col gap-2.5 border-t border-edge pt-5">
               {s.points.map((p) => (
-                <li key={p} className="flex gap-2.5 text-[13.5px] leading-relaxed text-fg-dim">
+                <li key={p} className="flex gap-2.5 text-sm leading-relaxed text-fg-dim">
                   <span className="mt-[7px] h-1 w-1 flex-none rounded-full bg-acid-500" />
                   {p}
                 </li>
@@ -402,13 +402,13 @@ function Detection() {
     <section className="border-b border-edge bg-ink-950">
       <div className="mx-auto grid max-w-6xl gap-14 px-5 py-24 lg:grid-cols-[1fr_1.1fr] lg:items-center">
         <Reveal>
-          <p className="mb-3 font-mono text-[12px] uppercase tracking-[0.1em] text-acid-500">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
             Impersonation
           </p>
           <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
             Two tickers that render identically
           </h2>
-          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-fg-muted">
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-fg-muted">
             A ticker padded with a zero-width character, or with Latin letters swapped for Cyrillic
             lookalikes, is a different string to the chain and the same string to your eye. NewEra
             folds both before clustering, so a spoof lands next to the token it imitates instead of
@@ -416,7 +416,7 @@ function Detection() {
           </p>
           <Link
             to="/detection"
-            className="mt-7 inline-flex items-center gap-1.5 text-[14px] font-semibold text-acid-500 hover:underline"
+            className="mt-7 inline-flex items-center gap-1.5 text-sm font-semibold text-acid-500 hover:underline"
           >
             See the method
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -429,17 +429,17 @@ function Detection() {
           {SPOOFS.map((s) => (
             <div key={s.flag} className="rounded-2xl border border-edge bg-ink-850 p-6">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="font-mono text-[18px] font-semibold text-fg">{s.shown}</span>
-                <span className="text-fg-faint">vs</span>
-                <span className="font-mono text-[18px] font-semibold text-danger">{s.real}</span>
-                <span className="ml-auto rounded bg-danger/15 px-2 py-1 font-mono text-[10.5px] font-semibold text-danger">
+                <span className="font-mono text-lg font-semibold text-fg">{s.shown}</span>
+                <span className="text-fg-dim">vs</span>
+                <span className="font-mono text-lg font-semibold text-danger">{s.real}</span>
+                <span className="ml-auto rounded bg-danger/15 px-2 py-1 font-mono text-micro font-semibold text-danger">
                   {s.flag}
                 </span>
               </div>
-              <p className="mt-4 text-[13.5px] leading-relaxed text-fg-dim">{s.note}</p>
+              <p className="mt-4 text-sm leading-relaxed text-fg-dim">{s.note}</p>
             </div>
           ))}
-          <p className="px-1 font-mono text-[11.5px] leading-relaxed text-fg-faint">
+          <p className="px-1 font-mono text-xs leading-relaxed text-fg-dim">
             Both examples are live techniques, not mock-ups.
           </p>
         </Reveal>
@@ -455,7 +455,7 @@ function Evidence() {
     <section className="border-b border-edge bg-ink-900">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <Reveal>
-          <p className="mb-3 font-mono text-[12px] uppercase tracking-[0.1em] text-acid-500">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
             Measured, not projected
           </p>
           <h2 className="max-w-2xl font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
@@ -476,7 +476,7 @@ function Evidence() {
                   </>
                 )}
               </div>
-              <p className="mt-3.5 max-w-[16rem] text-[13.5px] leading-relaxed text-fg-muted">
+              <p className="mt-3.5 max-w-[16rem] text-sm leading-relaxed text-fg-muted">
                 {s.label}
               </p>
             </div>
@@ -487,7 +487,7 @@ function Evidence() {
             the difference between this and everything else in the category. */}
         <Reveal>
           <div className="mt-16 max-w-2xl rounded-2xl border border-edge bg-ink-850 p-7">
-            <p className="text-[14.5px] leading-relaxed text-fg-muted">
+            <p className="text-sm leading-relaxed text-fg-muted">
               <span className="font-semibold text-fg">What this is not.</span> Survival means
               somebody traded a token at all — not that it made money. NewEra does not forecast
               price, and no number here should be read as a return. It is a filter on noise, and
@@ -534,13 +534,13 @@ function Capabilities() {
     <section className="border-b border-edge bg-ink-950">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <Reveal>
-          <p className="mb-3 font-mono text-[12px] uppercase tracking-[0.1em] text-acid-500">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-acid-500">
             What you get
           </p>
           <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-tight tracking-[-0.025em]">
             Everything is free, and public
           </h2>
-          <p className="mt-4 max-w-xl text-[15px] text-fg-muted">
+          <p className="mt-4 max-w-xl text-base text-fg-muted">
             No tiers, no paywall. Connect a wallet only when you want something saved.
           </p>
         </Reveal>
@@ -552,9 +552,9 @@ function Capabilities() {
                 className="h-full border-edge bg-ink-850 p-7 transition-colors group-hover:border-edge-strong"
                 spotlightColor="rgba(205, 255, 77, 0.14)"
               >
-                <h3 className="font-display text-[19px] font-bold tracking-[-0.01em]">{c.title}</h3>
-                <p className="mt-3 text-[14px] leading-relaxed text-fg-muted">{c.body}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-acid-500">
+                <h3 className="font-display text-xl font-bold tracking-[-0.01em]">{c.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-fg-muted">{c.body}</p>
+                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-acid-500">
                   {c.cta}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
                     <path d="M5 12h14M13 6l6 6-6 6" />
@@ -591,7 +591,7 @@ function Faq() {
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
                 >
-                  <span className="text-[15px] font-semibold">{f.q}</span>
+                  <span className="text-base font-semibold">{f.q}</span>
                   <span className={`flex-none text-acid-500 transition-transform ${isOpen ? "rotate-45" : ""}`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                       <path d="M12 5v14M5 12h14" />
@@ -600,7 +600,7 @@ function Faq() {
                 </button>
                 <div className={`grid transition-[grid-template-rows] duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                   <div className="overflow-hidden">
-                    <p className="px-6 pb-6 text-[14.5px] leading-relaxed text-fg-muted">{f.a}</p>
+                    <p className="px-6 pb-6 text-sm leading-relaxed text-fg-muted">{f.a}</p>
                   </div>
                 </div>
               </div>
@@ -624,12 +624,12 @@ function Finale() {
         <h2 className="font-display text-[clamp(1.9rem,4.4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.03em]">
           <ShinyText text="Stop reading charts that don't exist yet." speed={4} />
         </h2>
-        <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-fg-muted">
+        <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-fg-muted">
           Open the live feed and see what is being created right now.
         </p>
         <Link
           to="/app"
-          className="mt-9 inline-flex items-center gap-2 rounded-xl bg-acid-500 px-7 py-4 text-[15px] font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
+          className="mt-9 inline-flex items-center gap-2 rounded-xl bg-acid-500 px-7 py-4 text-base font-bold text-[#0a0d05] transition-[filter,transform] hover:brightness-105 active:scale-[.98]"
         >
           Open live feed
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

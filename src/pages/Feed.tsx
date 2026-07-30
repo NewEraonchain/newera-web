@@ -64,7 +64,7 @@ export default function Feed() {
         <h1 className="flex flex-wrap items-center gap-3 font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">
           Live launch intelligence
           <span
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11.5px] font-semibold uppercase tracking-[0.05em] ${
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.05em] ${
               live
                 ? "border-acid-500/30 bg-acid-500/10 text-acid-500"
                 : "border-warn/30 bg-warn/10 text-warn"
@@ -81,7 +81,7 @@ export default function Feed() {
                   : `Delayed ${ago(lagSeconds)}`}
           </span>
         </h1>
-        <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-fg-muted">
+        <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
           Every token created on Robinhood Chain, grouped by what it means — not by what it has
           traded. A cluster is only a narrative when independent wallets launch into it, so creator
           count sits beside every launch count.
@@ -101,13 +101,13 @@ export default function Feed() {
             ].map((m) => (
               <div key={m.l} className="rounded-2xl border border-edge bg-white/[.03] px-4 py-4">
                 <div
-                  className={`font-display text-[25px] font-bold leading-none tracking-[-0.02em] ${
+                  className={`font-display text-2xl font-bold leading-none tracking-[-0.02em] ${
                     m.accent ? "text-acid-500" : m.warn ? "text-warn" : "text-fg"
                   }`}
                 >
                   {m.v}
                 </div>
-                <div className="mt-1.5 text-[11.5px] text-fg-dim">{m.l}</div>
+                <div className="mt-1.5 text-xs text-fg-dim">{m.l}</div>
               </div>
             ))}
       </div>
@@ -168,8 +168,8 @@ export default function Feed() {
 function PanelHead({ title, count }: { title: string; count: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-[15px] font-bold text-fg">{title}</h2>
-      <span className="text-[12px] text-fg-dim">{count}</span>
+      <h2 className="font-display text-base font-bold text-fg">{title}</h2>
+      <span className="text-xs text-fg-dim">{count}</span>
     </div>
   )
 }

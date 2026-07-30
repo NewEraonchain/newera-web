@@ -7,7 +7,7 @@ import { Article, Section, Callout, Bullets, Mono, FootNote } from "@/components
 const UPDATED = "Last updated: July 2026"
 
 function Meta() {
-  return <p className="font-mono text-[12px] text-fg-dim">{UPDATED}</p>
+  return <p className="font-mono text-xs text-fg-dim">{UPDATED}</p>
 }
 
 export function Docs() {

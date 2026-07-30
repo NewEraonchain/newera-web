@@ -93,7 +93,7 @@ export function Themes() {
     >
       <Section>
         <Callout label="Observed live — four launches, two seconds apart">
-          <div className="flex flex-col gap-1 font-mono text-[13px] text-fg-muted">
+          <div className="flex flex-col gap-1 font-mono text-sm text-fg-muted">
             <span>13:25:39 &nbsp; TRUST⁠ &nbsp; Trust in Trump</span>
             <span>13:25:40 &nbsp; TRUST⁠ &nbsp; Trust in Trump</span>
             <span>13:25:41 &nbsp; TIT &nbsp;&nbsp;&nbsp; Trust In Trump</span>
@@ -150,7 +150,7 @@ export function Detection() {
     >
       <Section>
         <Callout label="The same four characters, twice">
-          <div className="flex flex-col gap-1 font-mono text-[13px] text-fg-muted">
+          <div className="flex flex-col gap-1 font-mono text-sm text-fg-muted">
             <span>TRUST&nbsp;&nbsp;&nbsp;&nbsp;→ 5 characters</span>
             <span>TRUST⁠&nbsp;&nbsp;&nbsp;→ 6 characters (one is invisible)</span>
             <span className="mt-1 opacity-60">→ renders identically, different string, different token</span>
@@ -180,9 +180,9 @@ export function Detection() {
             { v: "13.3%", l: "of high-risk launches still active", n: "n=98" },
           ].map((s) => (
             <div key={s.l} className="rounded-2xl border border-edge bg-ink-850 p-5">
-              <div className="font-display text-[30px] font-bold leading-none text-acid-500">{s.v}</div>
-              <p className="mt-2 text-[13.5px] text-fg-muted">{s.l}</p>
-              <p className="mt-1 font-mono text-[11.5px] text-fg-dim">{s.n}</p>
+              <div className="font-display text-3xl font-bold leading-none text-acid-500">{s.v}</div>
+              <p className="mt-2 text-sm text-fg-muted">{s.l}</p>
+              <p className="mt-1 font-mono text-xs text-fg-dim">{s.n}</p>
             </div>
           ))}
         </div>

@@ -16,7 +16,7 @@ export function Article({
 }) {
   return (
     <div className="mx-auto max-w-3xl px-5 pb-28 pt-16">
-      <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.09em] text-acid-500">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.09em] text-acid-500">
         {kicker}
       </p>
       <h1 className="font-display text-[clamp(1.9rem,4.5vw,3rem)] font-bold leading-[1.05] tracking-[-0.025em]">
@@ -40,7 +40,7 @@ export function Section({ title, children }: { title?: string; children: React.R
           {title}
         </h2>
       )}
-      <div className="flex flex-col gap-4 text-[15px] leading-[1.75] text-fg-muted [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
+      <div className="flex flex-col gap-4 text-base leading-[1.75] text-fg-muted [&_b]:text-fg [&_strong]:text-fg [&_em]:text-fg">
         {children}
       </div>
     </section>
@@ -61,15 +61,15 @@ export function Step({
 }) {
   return (
     <div className="grid gap-4 rounded-2xl border border-edge bg-ink-850 p-6 md:grid-cols-[52px_1fr]">
-      <div className="font-mono text-[13px] text-acid-500">{n}</div>
+      <div className="font-mono text-sm text-acid-500">{n}</div>
       <div>
-        <h3 className="font-display text-[17px] font-bold tracking-[-0.01em] text-fg">{title}</h3>
-        <p className="mt-2 text-[14.5px] leading-relaxed text-fg-muted">{plain}</p>
+        <h3 className="font-display text-lg font-bold tracking-[-0.01em] text-fg">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-fg-muted">{plain}</p>
         <div className="mt-4 rounded-xl border border-edge bg-white/[.02] p-4">
-          <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.08em] text-fg-dim">
+          <span className="mb-1.5 block text-micro font-bold uppercase tracking-[0.08em] text-fg-dim">
             Underneath
           </span>
-          <p className="text-[13.5px] leading-relaxed text-fg-dim">{runs}</p>
+          <p className="text-sm leading-relaxed text-fg-dim">{runs}</p>
         </div>
       </div>
     </div>
@@ -91,9 +91,9 @@ export function Callout({
     danger: "border-danger/25 bg-danger/[.06]",
   }[tone]
   return (
-    <div className={`rounded-2xl border p-5 text-[14px] leading-relaxed text-fg-muted ${style}`}>
+    <div className={`rounded-2xl border p-5 text-sm leading-relaxed text-fg-muted ${style}`}>
       {label && (
-        <span className="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.08em] text-fg">
+        <span className="mb-1.5 block text-micro font-bold uppercase tracking-[0.08em] text-fg">
           {label}
         </span>
       )}
@@ -106,7 +106,7 @@ export function Bullets({ items }: { items: React.ReactNode[] }) {
   return (
     <ul className="flex flex-col gap-2.5">
       {items.map((it, i) => (
-        <li key={i} className="flex gap-3 text-[14.5px] leading-relaxed text-fg-muted">
+        <li key={i} className="flex gap-3 text-sm leading-relaxed text-fg-muted">
           <span className="mt-[9px] h-1 w-1 flex-none rounded-full bg-acid-500" />
           <span className="[&_b]:text-fg [&_strong]:text-fg">{it}</span>
         </li>
@@ -117,7 +117,7 @@ export function Bullets({ items }: { items: React.ReactNode[] }) {
 
 export function Mono({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded-md border border-edge bg-white/[.04] px-1.5 py-0.5 font-mono text-[13px] text-fg">
+    <code className="rounded-md border border-edge bg-white/[.04] px-1.5 py-0.5 font-mono text-sm text-fg">
       {children}
     </code>
   )
@@ -129,8 +129,8 @@ export function Terms({ items }: { items: { term: string; body: string }[] }) {
     <div className="grid gap-3 sm:grid-cols-2">
       {items.map((t) => (
         <div key={t.term} className="rounded-2xl border border-edge bg-ink-850 p-5">
-          <h4 className="font-display text-[14.5px] font-bold text-fg">{t.term}</h4>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-fg-dim">{t.body}</p>
+          <h4 className="font-display text-sm font-bold text-fg">{t.term}</h4>
+          <p className="mt-2 text-sm leading-relaxed text-fg-dim">{t.body}</p>
         </div>
       ))}
     </div>
@@ -139,7 +139,7 @@ export function Terms({ items }: { items: { term: string; body: string }[] }) {
 
 export function FootNote() {
   return (
-    <p className="border-t border-edge pt-6 text-[12px] leading-relaxed text-fg-faint">
+    <p className="border-t border-edge pt-6 text-xs leading-relaxed text-fg-dim">
       NewEra is an independent project and is not affiliated with, endorsed by, or sponsored by
       Robinhood Markets, Inc. Nothing here is investment advice.{" "}
       <Link to="/app" className="text-acid-500 hover:underline">

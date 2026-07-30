@@ -78,17 +78,17 @@ export default function LiveMarquee() {
               aria-hidden={i >= items.length}
               className="flex flex-none items-center gap-2.5 rounded-lg border border-edge bg-ink-850 px-3.5 py-2"
             >
-              <span className="font-mono text-[12.5px] font-semibold tracking-tight text-fg">
+              <span className="font-mono text-xs font-semibold tracking-tight text-fg">
                 {l.symbol || "—"}
               </span>
-              <span className="max-w-[13rem] truncate text-[12.5px] text-fg-dim">{l.name}</span>
+              <span className="max-w-[13rem] truncate text-xs text-fg-dim">{l.name}</span>
               {dupe && (
-                <span className="rounded bg-warn/15 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-warn">
+                <span className="rounded bg-warn/15 px-1.5 py-0.5 font-mono text-micro font-semibold text-warn">
                   COPY
                 </span>
               )}
               <span
-                className={`rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold ${
+                className={`rounded px-1.5 py-0.5 font-mono text-micro font-semibold ${
                   flagged ? "bg-danger/15 text-danger" : "bg-acid-500/12 text-acid-500"
                 }`}
               >

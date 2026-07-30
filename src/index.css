@@ -13,11 +13,19 @@
   --color-edge: rgba(255, 255, 255, 0.08);
   --color-edge-strong: rgba(255, 255, 255, 0.16);
 
-  --color-fg: #f5f7fa;
-  --color-fg-muted: #9aa1ad;
-  --color-fg-dim: #6b7280;
-  --color-fg-faint: #4b5563;
+  /* Three text levels, not four. Every value clears 4.5:1 against every
+     surface above, ink-700 included — measured, not estimated. The previous
+     ramp had a fourth level at #4b5563 (2.16:1) and a third at #6b7280
+     (3.37:1); both were illegible, which makes them a bug rather than a
+     hierarchy. Anything quieter than fg-dim has to be expressed with size,
+     weight or space, because there is no darker grey left that can be read. */
+  --color-fg: #f5f7fa;       /* 15.18:1 — primary */
+  --color-fg-muted: #9aa1ad; /*  6.26:1 — secondary, body copy */
+  --color-fg-dim: #838993;   /*  4.63:1 — labels, meta, timestamps */
 
+  /* Lime is a data signal, never decoration. It marks risk, liveness and the
+     tape — never a heading, a border, a gradient or a glow. A single accent
+     reads as deliberate only because of what it is withheld from. */
   --color-acid-400: #d9ff6e;
   --color-acid-500: #cdff4d;
   --color-acid-600: #b4e83a;
@@ -25,9 +33,63 @@
   --color-warn: #ffb454;
   --color-danger: #ff8a97;
 
-  --font-display: "Space Grotesk", Inter, system-ui, sans-serif;
-  --font-sans: Inter, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* One grotesque, mono only where data lives. Both are variable and
+     self-hosted; see main.tsx for why the mono carries Cyrillic. */
+  --font-sans: "Instrument Sans Variable", system-ui, -apple-system, sans-serif;
+  --font-display: "Instrument Sans Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  /* Display sizes keep Tailwind's px values so nothing reflows, but take the
+     tight leading and negative tracking the Swiss direction asks for. Large
+     type needs less weight and less space than the defaults assume. */
+  --text-3xl--line-height: 1.12;
+  --text-3xl--letter-spacing: -0.028em;
+  --text-4xl--line-height: 1.06;
+  --text-4xl--letter-spacing: -0.031em;
+  --text-5xl--line-height: 1.0;
+  --text-5xl--letter-spacing: -0.034em;
+  --text-6xl--line-height: 0.98;
+  --text-6xl--letter-spacing: -0.036em;
+  --text-7xl--line-height: 0.96;
+  --text-7xl--letter-spacing: -0.038em;
+
+  /* The floor for functional text. Badges, risk scores and micro-labels sit
+     here and nowhere smaller — below 11px, text fails on small viewports and
+     degrades as a tap target, whatever the ramp says. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.35;
+
+  /* shadcn primitives are pulled in for behaviour — focus traps, dismissal,
+     ARIA wiring — not for looks. These are the semantic names its components
+     reference, aliased onto the palette above so they inherit our surfaces
+     rather than installing a second, parallel one. Nothing new is defined
+     here; every value is a token that already exists.
+   *
+   * ring is the one place lime appears outside a data signal. A focus ring is
+   * an interaction state and has to be the most visible thing on screen, which
+   * is a different job from decoration. */
+  --color-background: var(--color-ink-900);
+  --color-foreground: var(--color-fg);
+  --color-accent: var(--color-ink-800);
+  --color-accent-foreground: var(--color-fg);
+  --color-muted-foreground: var(--color-fg-dim);
+  --color-ring: var(--color-acid-500);
+  --color-input: var(--color-ink-700);
+  --color-secondary: var(--color-ink-800);
+  --color-secondary-foreground: var(--color-fg);
+
+  /* A primary action is an affordance, not decoration, so lime holds here.
+     17.17:1 against ink-950 — the highest contrast pair on the site, which is
+     what a primary action should be. */
+  --color-primary: var(--color-acid-500);
+  --color-primary-foreground: var(--color-ink-950);
+
+  /* danger (#ff8a97) is a text colour on dark surfaces and fails badly as a
+     background — white on it measures 2.25:1. A destructive button needs a
+     surface red, so this is a genuinely new value rather than an alias:
+     8.85:1 with white text. */
+  --color-destructive: #8f1d27;
+  --color-destructive-foreground: #ffffff;
 }
 
 html { color-scheme: dark; }
@@ -39,6 +101,26 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+
+/* Figures line up in columns on the tape and in every stat block. Without
+   this, a changing number visibly jitters as its digits change width. */
+.font-mono, code, kbd, samp { font-variant-numeric: tabular-nums; }
+
+/* Headings set tight and balanced. text-wrap: balance stops a display line
+   from leaving one orphaned word, which is the difference between typography
+   and text. */
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* Prose held under ~75 characters. Past roughly 80 the eye loses the line
+   return and reading speed drops; the old landing page ran to 134.
+ *
+ * 54ch, not 68ch. The ch unit is the advance width of "0", and in a
+ * proportional face the average prose character is about a third narrower —
+ * measured here, 68ch held 91 characters, not 68. The ratio is a property of
+ * the typeface, so it holds at every size. */
+.measure { max-width: 54ch; }
+.measure-tight { max-width: 42ch; }
 
 ::selection { background: rgba(205, 255, 77, 0.25); color: #fff; }
 

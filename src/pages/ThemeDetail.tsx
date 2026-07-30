@@ -73,7 +73,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto max-w-4xl px-5 pb-24 pt-10">
       <Link
         to="/app"
-        className="mb-5 inline-flex items-center gap-2 text-[13px] text-fg-dim transition-colors hover:text-acid-500"
+        className="mb-5 inline-flex items-center gap-2 text-sm text-fg-dim transition-colors hover:text-acid-500"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 18l-6-6 6-6" />
@@ -147,7 +147,7 @@ function Verdict({ theme, launches }: { theme: Theme; launches: Launch[] }) {
   }[tone]
 
   return (
-    <div className={`mb-6 rounded-2xl border p-4 text-[13.5px] leading-relaxed ${style}`}>
+    <div className={`mb-6 rounded-2xl border p-4 text-sm leading-relaxed ${style}`}>
       <span className="[&_b]:text-fg">{body}</span>
     </div>
   )
@@ -173,13 +173,13 @@ function Metrics({ theme, launches }: { theme: Theme; launches: Launch[] }) {
       {items.map((m) => (
         <div key={m.l} className="rounded-2xl border border-edge bg-white/[.03] px-4 py-4">
           <div
-            className={`font-display text-[23px] font-bold leading-none ${
+            className={`font-display text-2xl font-bold leading-none ${
               m.tone === "acid" ? "text-acid-500" : m.tone === "bad" ? "text-danger" : m.tone === "warn" ? "text-warn" : "text-fg"
             }`}
           >
             {m.v}
           </div>
-          <div className="mt-1.5 text-[11.5px] text-fg-dim">{m.l}</div>
+          <div className="mt-1.5 text-xs text-fg-dim">{m.l}</div>
         </div>
       ))}
     </div>
@@ -206,13 +206,13 @@ function Velocity({ series }: { series: Detail["series"] }) {
   return (
     <div className="mb-7 rounded-2xl border border-edge bg-white/[.025] px-5 pb-3 pt-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <span className="text-[13.5px] font-semibold text-fg">Launch velocity</span>
-        <span className="text-[11.5px] text-fg-dim">
+        <span className="text-sm font-semibold text-fg">Launch velocity</span>
+        <span className="text-xs text-fg-dim">
           {path ? `peak ${Math.round(path.peak)}/hr · ${path.n} samples` : ""}
         </span>
       </div>
       {!path ? (
-        <p className="py-5 text-center text-[12.5px] text-fg-dim">
+        <p className="py-5 text-center text-xs text-fg-dim">
           Not enough history yet — velocity is sampled as the watcher runs, so this fills in over
           the theme&apos;s first minutes.
         </p>
@@ -258,7 +258,7 @@ function Creators({ launches }: { launches: Launch[] }) {
               title={`View ${r.wallet} on Blockscout`}
               className="flex items-center gap-3 rounded-xl border border-edge bg-white/[.022] px-3.5 py-2.5 transition-colors hover:border-edge-strong"
             >
-              <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-[#c8cdd6]">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#c8cdd6]">
                 {shortAddr(r.wallet)}
               </span>
               <span className="h-[5px] w-[90px] flex-none overflow-hidden rounded-full bg-white/[.07]">
@@ -267,7 +267,7 @@ function Creators({ launches }: { launches: Launch[] }) {
                   style={{ width: `${Math.round((r.n / max) * 100)}%` }}
                 />
               </span>
-              <span className="flex-none text-[12px] text-fg-dim">
+              <span className="flex-none text-xs text-fg-dim">
                 {r.n} launch{r.n === 1 ? "" : "es"}
               </span>
             </a>
@@ -296,14 +296,14 @@ function Launches({ launches }: { launches: Launch[] }) {
                 l.riskScore >= 40 ? "border-l-2 border-l-danger/55 border-edge" : "border-edge"
               }`}
             >
-              <div className="text-right font-mono text-[11.5px] text-fg-dim">{ago(l.ageSeconds)}</div>
+              <div className="text-right font-mono text-xs text-fg-dim">{ago(l.ageSeconds)}</div>
               <div className="min-w-0">
-                <div className="truncate font-mono text-[13.5px] font-semibold">{l.symbol || "—"}</div>
-                <div className="truncate text-[12px] text-fg-dim">{l.name}</div>
+                <div className="truncate font-mono text-sm font-semibold">{l.symbol || "—"}</div>
+                <div className="truncate text-xs text-fg-dim">{l.name}</div>
               </div>
               <div className="flex flex-none items-center gap-2">
                 {l.devBuyEth > 0 && (
-                  <span className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-[11px] text-acid-500">
+                  <span className="rounded-md bg-acid-500/10 px-[7px] py-[3px] font-mono text-micro text-acid-500">
                     {l.devBuyEth.toFixed(2)}Ξ
                   </span>
                 )}
@@ -323,8 +323,8 @@ function Launches({ launches }: { launches: Launch[] }) {
 function SectionHead({ title, note }: { title: string; note?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-[15px] font-bold">{title}</h2>
-      {note && <span className="text-[12px] text-fg-dim">{note}</span>}
+      <h2 className="font-display text-base font-bold">{title}</h2>
+      {note && <span className="text-xs text-fg-dim">{note}</span>}
     </div>
   )
 }
