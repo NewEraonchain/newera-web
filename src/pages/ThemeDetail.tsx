@@ -53,7 +53,12 @@ export default function ThemeDetail() {
   return (
     <Shell>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-[clamp(1.4rem,3vw,2rem)] font-bold tracking-[-0.02em] [overflow-wrap:anywhere]">
+        {/* Same transition name as the row that opened this page, so the two
+            are one object morphing rather than two views cutting. */}
+        <h1
+          style={{ viewTransitionName: `cluster-${slug}` }}
+          className="font-display text-[clamp(2rem,5vw,4rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] [overflow-wrap:anywhere]"
+        >
           {theme.label}
         </h1>
         <StatusBadge status={theme.status} />

@@ -136,3 +136,50 @@ functional text below 11px · any figure not reproducible from a live API call.
 `npx impeccable detect <url>`. At the close of this pass: **landing 0, `/app` 0.**
 `/how-it-works`, `/detection` and `/privacy` still carry pre-existing findings on
 the Read-mode surfaces, which have not yet been brought into this world.
+
+## Signature mechanics
+
+Clean is not the same as designed. A page can be typographically correct, well
+spaced and completely inert — and the difference between that and a tier-1
+surface is whether it owns mechanics nobody else could ship. These are ours.
+
+**The aperture.** A band of legibility tracking the pointer; content is
+unresolved outside it. `Aperture.tsx`, one engine, one rAF loop. Accessible
+default is fully resolved.
+
+**Kinetic type.** Anybody carries wdth 50–150, and scroll velocity drives it, so
+every display heading on the site compresses as the page moves and releases as
+it settles. One shared velocity signal in `kinetic.tsx` — every element reads the
+same number, so they compress in sympathy rather than each running its own
+decay. `KineticText` renders the heading element itself; wrapping heading text
+in an inner span makes it read as body text to a detector and cost five
+`all-caps-body` findings before it was collapsed.
+
+**Rolling numerals.** Only digits that actually changed animate, compared from
+the right so a figure keeps its identity as it lengthens. A live block height
+reads as a counter rather than a repaint.
+
+**Resolving text.** Page slugs settle from a scramble, character by character.
+The DOM always holds the real string; the scramble is written to an aria-hidden
+span, so assistive tech and search never see noise.
+
+**The tape wall.** Four rows of live tickers at display scale, alternating
+directions, different speeds, with the aperture cutting across all of them. The
+product's claim made physical: you cannot read all of it, which is the problem
+NewEra exists to solve.
+
+**The launch field.** One WebGL2 draw call, one point per token, positions
+seeded from the address so the field is stable between renders. Risk drives
+colour and size; the pointer pushes it aside. Raw WebGL, no library — the effect
+is two shaders and a buffer. Positions need real bit mixing: a plain
+`h * 31 + char` accumulator leaves x and y correlated and the field comes out as
+diagonal streaks.
+
+**Cinematic transitions.** Navigation is the aperture opening on the next page,
+and a cluster row morphs into the page it opens via a shared
+`view-transition-name` keyed by slug. Without the View Transitions API routes
+swap instantly, which is the correct fallback.
+
+Every one of these renders nothing, or renders plainly, when its capability is
+missing — no WebGL2, no View Transitions, no JavaScript, or reduced motion. The
+argument survives without the atmosphere.

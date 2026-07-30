@@ -3,6 +3,7 @@ import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { LaunchRow, ThemeCard, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { Rise, Wipe, Stagger } from "@/components/scroll"
+import { KineticText, RollingNumber } from "@/components/kinetic"
 
 const REFRESH_MS = 12000
 
@@ -76,12 +77,7 @@ export default function Feed() {
         </p>
 
         <Rise>
-          <h1
-            className="font-display max-w-[14ch] text-[clamp(2rem,5.2vw,4.2rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
-            style={{ fontStretch: "72%" }}
-          >
-            Live launch intelligence
-          </h1>
+          <KineticText as="h1" className="font-display max-w-[14ch] text-[clamp(2rem,5.2vw,4.2rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.3}>Live launch intelligence</KineticText>
           <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
             Every token created on Robinhood Chain, grouped by what it means — not by what it has
             traded. A cluster is only a narrative when independent wallets launch into it, so
@@ -108,7 +104,7 @@ export default function Feed() {
                     m.accent ? "text-acid-500" : m.warn ? "text-warn" : "text-fg"
                   }`}
                 >
-                  {m.v}
+                  {typeof m.v === "number" ? <RollingNumber value={m.v} /> : m.v}
                 </dt>
                 <dd className="mt-2 font-mono text-micro uppercase tracking-[0.1em] text-fg-dim">
                   {m.l}

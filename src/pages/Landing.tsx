@@ -3,13 +3,15 @@ import { useLayoutEffect, useRef } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import CountUp from "@/components/CountUp"
-import LiveMarquee from "@/components/LiveMarquee"
+import TapeWall from "@/components/TapeWall"
 import CaseFile from "@/components/CaseFile"
 import SpoofScan from "@/components/SpoofScan"
 import Plate from "@/components/Aperture"
 import KineticHeading from "@/components/KineticHeading"
 import { Rise, Stagger, RuleDraw } from "@/components/scroll"
 import { ClusterField, RiskHistogram, CadenceStrip } from "@/components/figures"
+import LaunchField from "@/components/LaunchField"
+import { KineticText, RollingNumber } from "@/components/kinetic"
 import {
   Accordion,
   AccordionContent,
@@ -132,7 +134,7 @@ export default function Landing() {
   return (
     <>
       <Hero />
-      <LiveMarquee />
+      <TapeWall />
       <CaseFile />
       <BlockZero />
       <Pipeline />
@@ -155,6 +157,11 @@ function Hero() {
        run past the right edge — the composition is a crop of something larger,
        not a centred block with room around it. */
     <section className="relative -mt-16 flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[7vh] pt-[20vh]">
+      {/* Atmosphere over the argument, never the argument: every point is a
+          real launch from the live window, and the section reads without it. */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-90">
+        <LaunchField />
+      </div>
       <Plate rules>
         <KineticHeading
           className="text-[clamp(3.2rem,15.2vw,16rem)] leading-[0.79] tracking-[-0.028em]"
@@ -176,7 +183,7 @@ function Hero() {
         {live && (
           <>
             <span>
-              <b className="font-medium text-fg">{live.launchesLastHour}</b> launches indexed in the
+              <RollingNumber value={live.launchesLastHour} className="font-medium text-fg" /> launches indexed in the
               last hour
             </span>
             <span>
@@ -196,9 +203,7 @@ function BlockZero() {
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          Nobody else can show you this, and it is not because they are worse
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Nobody else can show you this, and it is not because they are worse'}</KineticText></Rise>
         <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-2">
           <p className="measure text-base leading-relaxed text-fg-muted">
             A trading terminal indexes transactions, so a token has to trade before it can show
@@ -281,9 +286,7 @@ function Pipeline() {
     >
       <div className="w-full px-[4vw]">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          Four stages, in the order they run
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Four stages, in the order they run'}</KineticText></Rise>
         <div className="mt-8 h-px w-full bg-edge">
           <div
             data-pipeline-progress
@@ -338,9 +341,7 @@ function Detection() {
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          Two tickers that render identically
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           These are the real strings, not pictures of them. Your browser is rendering both right
           now, and if you cannot tell them apart, that is the entire attack.
@@ -365,9 +366,7 @@ function Evidence() {
     <section className="border-b border-edge bg-ink-950">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          Measured, not projected
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           Every figure here is read from the live index when the page loads. The one exception is
           labelled, because it comes from a backtest rather than a counter.
@@ -491,9 +490,7 @@ function Questions() {
     <section className="border-b border-edge bg-ink-900">
       <div className="px-[4vw] py-24 sm:py-32">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          The questions worth asking first
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
 
         <Accordion type="single" collapsible className="mt-12 border-t border-edge-strong">
           {/* pb-1 so the collapsed content wrapper is not flush against the
@@ -521,9 +518,7 @@ function Close() {
     <section className="bg-ink-950">
       <div className="px-[4vw] py-28 sm:py-36">
         <RuleDraw className="mb-10" />
-        <Rise><h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
-          The feed is open, and it is free
-        </h2></Rise>
+        <Rise><KineticText as="h2" className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The feed is open, and it is free'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
           No account, no wallet, no gate. Connecting a wallet is optional and only saves a
           watchlist.

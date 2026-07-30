@@ -124,12 +124,20 @@ export function ThemeCard({ theme }: { theme: Theme }) {
   return (
     <Link
       to={`/app/theme/${theme.slug}`}
+      viewTransition
       className={`scan-row block border-b border-edge py-4 pl-3 ${
         theme.isOrganic ? "" : "opacity-70"
       }`}
     >
       <span className="flex flex-wrap items-baseline gap-x-3">
-        <span className="min-w-0 flex-1 truncate text-base font-semibold text-fg">
+        {/* The row and the page it opens are the same object, so the browser
+            morphs one into the other instead of cutting. Only one element may
+            carry a given name at a time, which holds because the row unmounts
+            as the detail page mounts. */}
+        <span
+          style={{ viewTransitionName: `cluster-${theme.slug}` }}
+          className="min-w-0 flex-1 truncate text-base font-semibold text-fg"
+        >
           {theme.label}
         </span>
         <StatusBadge status={theme.status} />

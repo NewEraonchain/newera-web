@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useStats } from "@/lib/useStats"
+import { RollingNumber } from "@/components/kinetic"
 
 /* Chrome, in the Aperture vocabulary.
  *
@@ -73,7 +74,7 @@ export function Header() {
             {stats && (
               <>
                 <span className="mx-2 opacity-40">/</span>
-                <span>{Number(stats.indexedThroughBlock).toLocaleString("en-US")}</span>
+                <RollingNumber value={Number(stats.indexedThroughBlock)} />
               </>
             )}
           </Link>
@@ -83,6 +84,7 @@ export function Header() {
               <Link
                 key={n.to}
                 to={n.to}
+                viewTransition
                 className="group font-mono text-[11px] uppercase tracking-[0.12em] text-white"
               >
                 <span className="mr-1.5 opacity-40">{String(i + 1).padStart(2, "0")}</span>
@@ -114,6 +116,7 @@ export function Header() {
               <Link
                 key={n.to}
                 to={n.to}
+                viewTransition
                 className="flex items-baseline gap-4 font-display text-[13vw] font-extrabold uppercase leading-[0.92] tracking-[-0.03em]"
                 style={{ fontStretch: "72%" }}
               >

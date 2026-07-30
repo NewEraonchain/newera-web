@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { Rise, Wipe, Stagger, RuleDraw } from "@/components/scroll"
+import { KineticText, ResolveText } from "@/components/kinetic"
 
 /* Shared layout for every long-form page: features, docs, about, legal.
    One place to change type rhythm rather than nine.
@@ -28,16 +29,11 @@ export function Article({
             weight. The same words work as a reference in the rail beside it,
             where they read as a document slug rather than a label. */}
         <Wipe as="p" className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim md:pt-3">
-          {kicker}
+          <ResolveText>{kicker}</ResolveText>
         </Wipe>
 
         <Rise>
-          <h1
-            className="font-display max-w-[16ch] text-[clamp(2.2rem,6vw,4.8rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
-            style={{ fontStretch: "72%" }}
-          >
-            {title}
-          </h1>
+          <KineticText as="h1" className="font-display max-w-[16ch] text-[clamp(2.2rem,6vw,4.8rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.3}>{title}</KineticText>
           {standfirst && (
             <p className="measure mt-8 text-lg leading-relaxed text-fg-muted">{standfirst}</p>
           )}
