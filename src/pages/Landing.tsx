@@ -9,6 +9,7 @@ import SpoofScan from "@/components/SpoofScan"
 import Plate from "@/components/Aperture"
 import KineticHeading from "@/components/KineticHeading"
 import { Rise, Stagger, RuleDraw } from "@/components/scroll"
+import { ClusterField, RiskHistogram, CadenceStrip } from "@/components/figures"
 import {
   Accordion,
   AccordionContent,
@@ -211,6 +212,13 @@ function BlockZero() {
             this name appeared in the last four minutes, and that this ticker is one invisible
             character away from something you already trust.
           </p>
+        </div>
+
+        {/* The claim above, drawn. Every mark is a cluster live in the index
+            right now: high up the vertical with nothing along the horizontal is
+            one wallet talking to itself. */}
+        <div className="mt-[9vh]">
+          <ClusterField />
         </div>
       </div>
     </section>
@@ -432,6 +440,20 @@ function Evidence() {
             unit="NewEra reads the chain and holds no keys"
           />
         </Stagger>
+
+        <div className="mt-[9vh] grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+          <RiskHistogram />
+          <div>
+            <h3 className="text-xl font-semibold">Launches per minute</h3>
+            <p className="mt-3 text-sm leading-relaxed text-fg-muted">
+              The window the tape above covers, one bar a minute. Volume is the reason none of
+              this can be read by hand.
+            </p>
+            <div className="mt-6">
+              <CadenceStrip />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
