@@ -120,6 +120,32 @@ A scrubbed sequence must finish while its block is still travelling into view.
 **shadcn/ui for behaviour, not looks** — `dialog`, `accordion`, `tooltip`,
 `button`, with semantic tokens aliased onto the palette above.
 
+The onboarding dialog goes one step further and uses the **Radix primitive
+directly** rather than `ui/dialog.tsx`: the wrapper hard-codes a rounded,
+zooming, `bg-background` card, and those are exactly the parts we do not want.
+Taken from it: focus trap, focus restore, escape, scroll lock, aria wiring.
+Everything visible is ours — a square panel on point black, mono step index,
+hairline progress, `.scan-row` choices, underline fields, `.block-btn` action.
+Two details it does not give: the panel takes focus on open via
+`onOpenAutoFocus` so a reader starts at the question, and Close is last in the
+DOM and absolutely placed, so the first Tab of the flow offers the choices
+rather than the way out.
+
+**Interaction states live in `index.css`, not in utilities.** Every rule in that
+file is *unlayered*, and unlayered CSS beats anything in Tailwind's `@layer
+utilities` no matter how specific the utility is. So `absolute` loses to
+`.scan-link`'s `position: relative`, `scale-y-100` cannot reopen a hairline the
+base rule closed with `transform: scaleY(0)`, and `outline-none` cannot switch
+off the document-wide focus ring. A new state of an existing component is a rule
+next to that component — `.scan-row.is-on` is the selected row — and a genuine
+exception is an explicit selector, as `[role="dialog"]:focus-visible` is.
+
+**Entrance animations fill `backwards`, never `both`.** `.rise` ends on
+`clip-path: inset(0 0 -12% 0)`, which looks identical to no clip but still crops
+everything drawn outside the border box. With `both` that clip is permanent, and
+focus rings are the first casualty: three sides vanish and the fourth is left
+behind as a stray lime hairline.
+
 **React Bits contributed the effects that had to be removed** — `SpotlightCard`
 produced four `radial-spotlight-glow` findings and `ShinyText` both
 `gradient-text` findings. Only `CountUp` survives.
@@ -136,9 +162,20 @@ functional text below 11px · any figure not reproducible from a live API call.
 
 ## Verification
 
-`npx impeccable detect <url>`. **0 findings on all twelve routes** — `/`, `/app`,
-`/how-it-works`, `/detection`, `/themes`, `/privacy`, `/docs`, `/about`,
-`/contact`, `/terms`, `/risk`, `/account`.
+`npx impeccable detect --json <url>`. **0 findings on all thirteen routes** —
+`/`, `/app`, `/app/theme/:slug`, `/how-it-works`, `/detection`, `/themes`,
+`/privacy`, `/docs`, `/about`, `/contact`, `/terms`, `/risk`, `/account`.
+
+Always `--json`. In plain mode a clean run prints nothing, so a crashed run and
+a clean one are indistinguishable and every count taken that way is
+unfalsifiable. The same trap has a second form: the detector bundled with the
+globally installed skill needs its own `puppeteer` and exits with an error when
+scanning a URL without it — with stderr suppressed that error still leaves `[]`
+on stdout, which reads exactly like a clean sweep. Use the npx package, and read
+what the process actually wrote.
+
+`/app/theme/:slug` is scanned with the onboarding dialog open, which is its
+first-visit state.
 
 ## Signature mechanics
 

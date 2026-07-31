@@ -1,28 +1,56 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Link } from "react-router-dom"
+import { Dialog as D } from "radix-ui"
+import gsap from "gsap"
+import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin"
 import { API, authHeaders } from "@/lib/api"
 import { anonId, track, K_DONE, K_DECLINED, K_INTENT } from "@/lib/onboarding"
 import type { Intent } from "@/lib/onboarding"
 import { connect, isRejection, currentAddress } from "@/lib/wallet"
 import type { ConnectKind } from "@/lib/wallet"
 
+gsap.registerPlugin(ScrambleTextPlugin)
+
 /* Flow: intent → wallet → optional contact → optional email code.
  *
  * Intent is asked BEFORE the wallet prompt on purpose. It costs one tap and no
  * popup, so we still learn why someone came even if they abandon at the
- * signature — which is where crypto onboarding actually loses people. */
+ * signature — which is where crypto onboarding actually loses people.
+ *
+ * Radix supplies the behaviour only — focus trap, focus restore, escape, scroll
+ * lock, aria wiring. None of its looks: this is the last surface on the site
+ * that was still a rounded gradient card with emoji, and a modal wearing another
+ * design's clothes undoes the world every other page builds. Structure here
+ * comes from rules, mono labels and rows, like everywhere else. */
 
-const INTENTS: { id: Intent; emoji: string; name: string; desc: string }[] = [
-  { id: "TRADE", emoji: "📈", name: "Trade", desc: "Find and trade tokens" },
-  { id: "LAUNCH", emoji: "🚀", name: "Launch", desc: "Deploy my own token" },
-  { id: "CREATE", emoji: "🎨", name: "Create", desc: "Build on the data" },
-  { id: "EXPLORE", emoji: "👀", name: "Just looking", desc: "Show me around" },
+const INTENTS: { id: Intent; name: string; desc: string }[] = [
+  { id: "TRADE", name: "Trade", desc: "Find and trade tokens" },
+  { id: "LAUNCH", name: "Launch", desc: "Deploy my own token" },
+  { id: "CREATE", name: "Create", desc: "Build on the data" },
+  { id: "EXPLORE", name: "Just looking", desc: "Show me around" },
 ]
 
-const HEADINGS = [
-  { title: "Welcome to NewEra", sub: "Two quick steps and you're in." },
-  { title: "Almost there", sub: "Your wallet is your account — nothing else to remember." },
-  { title: "You're in", sub: "One optional extra, then straight to the feed." },
-  { title: "Confirm your email", sub: "Last step — this one's quick." },
+const STEPS = [
+  {
+    label: "Intent",
+    title: "What are you here for?",
+    sub: "One tap. It decides what the feed puts in front of you first.",
+  },
+  {
+    label: "Wallet",
+    title: "Your wallet is your account.",
+    sub: "No password and no email. Signing proves the address is yours — it authorises no transaction and moves nothing.",
+  },
+  {
+    label: "Alerts",
+    title: "You're in.",
+    sub: "One optional step, then straight to the feed.",
+  },
+  {
+    label: "Verify",
+    title: "Check your inbox.",
+    sub: "A six-digit code, good for fifteen minutes.",
+  },
 ]
 
 export default function OnboardingModal({
@@ -42,13 +70,12 @@ export default function OnboardingModal({
   const [email, setEmail] = useState("")
   const [tg, setTg] = useState("")
   const [code, setCode] = useState("")
-  const cardRef = useRef<HTMLDivElement>(null)
-  const lastFocus = useRef<Element | null>(null)
+  // Radix reports "it closed", not how. The handlers below name it first.
+  const reason = useRef("dismiss")
 
   // Open: restore any earlier answer, pick the right starting step, and record it.
   useEffect(() => {
     if (!open) return
-    lastFocus.current = document.activeElement
     const saved = localStorage.getItem(K_INTENT) as Intent | null
     if (saved) setIntent(saved)
     const existing = currentAddress()
@@ -61,16 +88,11 @@ export default function OnboardingModal({
       setStep(0)
     }
     track("MODAL_SHOWN")
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = ""
-      if (lastFocus.current instanceof HTMLElement) lastFocus.current.focus()
-    }
   }, [open])
 
   const dismiss = useCallback(
-    (reason: string) => {
-      track("MODAL_DISMISSED", { at: ["intent", "wallet", "contact", "code"][step], reason })
+    (why: string) => {
+      track("MODAL_DISMISSED", { at: ["intent", "wallet", "contact", "code"][step], reason: why })
       // Remember the decline, or the next cluster page asks again.
       try {
         localStorage.setItem(K_DECLINED, String(Date.now()))
@@ -78,35 +100,10 @@ export default function OnboardingModal({
         // Private mode with storage disabled: the modal reappearing is a far
         // smaller problem than a thrown error taking the page down.
       }
-      onClose(reason)
+      onClose(why)
     },
     [step, onClose],
   )
-
-  // Escape to close, and keep focus inside while it's open.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return dismiss("escape")
-      if (e.key !== "Tab" || !cardRef.current) return
-      const f = cardRef.current.querySelectorAll<HTMLElement>(
-        "button:not([disabled]), input, a[href]",
-      )
-      const vis = [...f].filter((n) => n.offsetParent !== null)
-      if (!vis.length) return
-      const first = vis[0]
-      const last = vis[vis.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [open, dismiss])
 
   function finish() {
     track("COMPLETED", { intent })
@@ -192,192 +189,369 @@ export default function OnboardingModal({
     }
   }
 
-  if (!open) return null
-  const h = HEADINGS[step] ?? HEADINGS[0]
+  const s = STEPS[step] ?? STEPS[0]
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="nwo-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/72 p-5 backdrop-blur-md"
-      onClick={(e) => e.target === e.currentTarget && dismiss("backdrop")}
+    <D.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) return
+        dismiss(reason.current)
+        reason.current = "dismiss"
+      }}
     >
-      <div
-        ref={cardRef}
-        className="relative max-h-[calc(100vh-40px)] w-[min(440px,100%)] overflow-y-auto rounded-3xl border border-edge bg-gradient-to-b from-ink-850 to-ink-900 p-7 shadow-[0_40px_100px_-30px_rgba(0,0,0,.9)]"
-      >
-        <button
-          onClick={() => dismiss("close-button")}
-          aria-label="Close"
-          className="absolute right-5 top-5 rounded-lg px-2 py-1 text-2xl leading-none text-fg-dim transition-colors hover:bg-white/[.06] hover:text-fg"
+      <D.Portal>
+        <D.Overlay className="fixed inset-0 z-[100] bg-ink-950/85 backdrop-blur-md" />
+        {/* Centred by auto margins rather than a transform, so the entrance
+            clip-wipe can carry its own transform without fighting it. */}
+        <D.Content
+          onEscapeKeyDown={() => (reason.current = "escape")}
+          onPointerDownOutside={() => (reason.current = "backdrop")}
+          /* Radix focuses the first control on open, which here is Close — the
+             one thing we are not inviting. Focus the panel instead, so both a
+             screen reader and a Tab start at the question. */
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            e.currentTarget instanceof HTMLElement && e.currentTarget.focus()
+          }}
+          className="rise fixed inset-0 z-[101] m-auto h-fit max-h-[100dvh] w-full max-w-[560px] overflow-y-auto border border-edge bg-ink-950 px-6 py-7 sm:px-10 sm:py-9"
         >
-          ×
-        </button>
-
-        <div className="mb-5 text-center">
-          <div className="mx-auto mb-4 grid h-[54px] w-[54px] place-items-center rounded-2xl border border-acid-500/28 bg-acid-500/10">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cdff4d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l2.4 6.2L21 10l-5 4.3L17.5 21 12 17.6 6.5 21 8 14.3 3 10l6.6-1.8z" />
-            </svg>
+          <div className="border-b border-edge pb-4">
+            <span className="font-mono text-micro uppercase tracking-[0.22em] text-fg">NewEra</span>
           </div>
-          <h3 id="nwo-title" className="font-display text-xl font-bold tracking-[-0.01em]">
-            {h.title}
-          </h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">{h.sub}</p>
-        </div>
 
-        <div className="mb-6 flex justify-center gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={`h-[3px] w-[22px] rounded-full transition-colors ${i <= step ? "bg-acid-500" : "bg-white/12"}`}
-            />
-          ))}
-        </div>
+          <div className="mt-5 flex items-baseline justify-between font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
+            <span>{s.label}</span>
+            <span>
+              {String(Math.min(step, 2) + 1).padStart(2, "0")} <span className="text-fg-dim/50">/</span> 03
+            </span>
+          </div>
+          {/* Three hairlines rather than three dots — the same rule the aperture
+              draws, filling as the flow advances. */}
+          <div aria-hidden className="mt-2.5 flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className={`h-px flex-1 transition-colors duration-300 ${
+                  i <= Math.min(step, 2) ? "bg-acid-500" : "bg-edge-strong"
+                }`}
+              />
+            ))}
+          </div>
 
-        {/* 1 — intent */}
-        {step === 0 && (
-          <>
-            <Label>What brings you here?</Label>
-            <div className="mb-5 grid grid-cols-2 gap-2.5">
-              {INTENTS.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  aria-pressed={intent === o.id}
-                  onClick={() => {
-                    setIntent(o.id)
-                    localStorage.setItem(K_INTENT, o.id)
+          <D.Title
+            className="mt-7 font-display text-3xl font-bold text-fg"
+            style={{ fontStretch: "84%" }}
+          >
+            {s.title}
+          </D.Title>
+          {/* No .measure here or below: the panel is 560px, which is already
+              inside the comfortable range, and a 42ch clamp on top of it leaves
+              short ragged columns floating in a wide box. */}
+          <D.Description className="mt-3 text-sm leading-relaxed text-fg-muted">
+            {s.sub}
+          </D.Description>
+
+          {/* Each step is uncovered rather than swapped in. */}
+          <div key={step} className="rise mt-8">
+            {step === 0 && (
+              <>
+                <div className="border-t border-edge">
+                  {INTENTS.map((o, i) => (
+                    <ScanRow
+                      key={o.id}
+                      index={String(i + 1).padStart(2, "0")}
+                      title={o.name}
+                      note={o.desc}
+                      selected={intent === o.id}
+                      onClick={() => {
+                        setIntent(o.id)
+                        localStorage.setItem(K_INTENT, o.id)
+                      }}
+                    />
+                  ))}
+                </div>
+                <Actions
+                  primary="Continue"
+                  disabled={!intent}
+                  onPrimary={() => {
+                    track("INTENT_SELECTED", { intent })
+                    setStep(1)
                   }}
-                  className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-colors ${
-                    intent === o.id
-                      ? "border-acid-500/60 bg-acid-500/[.09]"
-                      : "border-edge bg-white/[.03] hover:border-edge-strong hover:bg-white/[.06]"
-                  }`}
-                >
-                  <span className="text-xl leading-none">{o.emoji}</span>
-                  <span className="text-sm font-semibold leading-tight">{o.name}</span>
-                  <span className="text-xs leading-tight text-fg-dim">{o.desc}</span>
-                </button>
-              ))}
-            </div>
-            <Primary disabled={!intent} onClick={() => { track("INTENT_SELECTED", { intent }); setStep(1) }}>
-              Continue
-            </Primary>
-            <Skip onClick={() => { track("INTENT_SELECTED", { intent: null, skipped: true }); setStep(1) }}>
-              Skip this
-            </Skip>
-          </>
-        )}
+                  skip="Skip this"
+                  onSkip={() => {
+                    track("INTENT_SELECTED", { intent: null, skipped: true })
+                    setStep(1)
+                  }}
+                />
+              </>
+            )}
 
-        {/* 2 — wallet */}
-        {step === 1 && (
-          <>
-            <Label>Connect your wallet</Label>
-            <p className="mb-4 text-xs leading-relaxed text-fg-dim">
-              Your wallet is your account — no password, no email required. Signing proves the
-              address is yours; it authorises no transaction.
-            </p>
-            <WalletButton onClick={() => doConnect("metamask")} disabled={busy} accent={false}
-              title="MetaMask" sub="Browser extension" />
-            <WalletButton onClick={() => doConnect("walletconnect")} disabled={busy} accent
-              title="WalletConnect" sub="Trust, OKX, Binance & mobile" />
-            <Msg msg={msg} />
-            <Skip onClick={() => dismiss("later")}>I&apos;ll do this later</Skip>
-          </>
-        )}
+            {step === 1 && (
+              <>
+                <div className="border-t border-edge">
+                  <ScanRow
+                    index="01"
+                    title="MetaMask"
+                    note="Browser extension"
+                    disabled={busy}
+                    onClick={() => doConnect("metamask")}
+                    arrow
+                  />
+                  <ScanRow
+                    index="02"
+                    title="WalletConnect"
+                    note="Trust, OKX, Binance & mobile"
+                    disabled={busy}
+                    onClick={() => doConnect("walletconnect")}
+                    arrow
+                  />
+                </div>
+                <Msg msg={msg} />
+                <Actions skip="I'll do this later" onSkip={() => dismiss("later")} />
+              </>
+            )}
 
-        {/* 3 — optional contact */}
-        {step === 2 && (
-          <>
-            <div className="text-center">
-              <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full border border-acid-500/40 bg-acid-500/12">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cdff4d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
-              <div className="mb-4 break-all rounded-xl border border-acid-500/20 bg-acid-500/[.07] px-3 py-2.5 font-mono text-sm text-acid-500">
-                {addr}
-              </div>
-            </div>
-            <Label>Want alerts? (optional)</Label>
-            <p className="mb-3 text-xs leading-relaxed text-fg-dim">
-              We&apos;ll only message you about things you asked to follow. Skip and everything still works.
-            </p>
-            <Input value={email} onChange={setEmail} placeholder="Email address" type="email" onEnter={saveContact} />
-            <Input value={tg} onChange={setTg} placeholder="Telegram @handle (optional)" onEnter={saveContact} />
-            <Primary disabled={busy} onClick={saveContact}>
-              {busy ? "Saving…" : "Save & continue"}
-            </Primary>
-            <Msg msg={msg} />
-            <Skip onClick={() => { track("CONTACT_SKIPPED"); finish() }}>Skip — take me in</Skip>
-          </>
-        )}
+            {step === 2 && (
+              <>
+                {/* The address resolves out of noise — the one gesture this
+                    product is about, applied to the visitor's own key. */}
+                <div className="border-l border-acid-500 pl-4">
+                  <span className="font-mono text-micro uppercase tracking-[0.14em] text-acid-500">
+                    Connected
+                  </span>
+                  <Resolve
+                    text={addr ?? ""}
+                    className="mt-1.5 block break-all font-mono text-sm text-fg"
+                  />
+                </div>
+                <p className="mt-7 text-sm leading-relaxed text-fg-muted">
+                  Want alerts? We only message you about things you asked to follow. Skip and
+                  everything still works.
+                </p>
+                <Field
+                  label="Email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="you@domain.com"
+                  type="email"
+                  onEnter={saveContact}
+                />
+                <Field
+                  label="Telegram — optional"
+                  value={tg}
+                  onChange={setTg}
+                  placeholder="@handle"
+                  onEnter={saveContact}
+                />
+                <Msg msg={msg} />
+                <Actions
+                  primary={busy ? "Saving…" : "Save & continue"}
+                  disabled={busy}
+                  onPrimary={saveContact}
+                  skip="Skip — take me in"
+                  onSkip={() => {
+                    track("CONTACT_SKIPPED")
+                    finish()
+                  }}
+                />
+              </>
+            )}
 
-        {/* 4 — email code */}
-        {step === 3 && (
-          <>
-            <Label>Check your inbox</Label>
-            <p className="mb-3 text-xs leading-relaxed text-fg-dim">
-              We sent a 6-digit code to <b className="text-fg">{email}</b>. It expires in 15 minutes.
-            </p>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              onKeyDown={(e) => e.key === "Enter" && verifyCode()}
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="000000"
-              autoComplete="one-time-code"
-              className="mb-3 w-full rounded-xl border border-edge-strong bg-white/[.04] px-4 py-3.5 text-center font-mono text-xl tracking-[0.35em] text-fg outline-none transition-colors focus:border-acid-500/55"
-            />
-            <Primary disabled={busy} onClick={verifyCode}>
-              {busy ? "Verifying…" : "Verify"}
-            </Primary>
-            <Msg msg={msg} />
-            <Skip onClick={() => { track("CONTACT_SKIPPED", { at: "code" }); finish() }}>Skip for now</Skip>
-          </>
-        )}
+            {step === 3 && (
+              <>
+                <p className="text-sm leading-relaxed text-fg-muted">
+                  We sent it to <b className="font-semibold text-fg">{email}</b>.
+                </p>
+                <label className="mt-6 block">
+                  <span className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
+                    Code
+                  </span>
+                  <input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onKeyDown={(e) => e.key === "Enter" && verifyCode()}
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                    className="mt-2 w-full border-b border-edge-strong bg-transparent pb-2.5 font-mono text-2xl tracking-[0.4em] text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500"
+                  />
+                </label>
+                <Msg msg={msg} />
+                <Actions
+                  primary={busy ? "Verifying…" : "Verify"}
+                  disabled={busy}
+                  onPrimary={verifyCode}
+                  skip="Skip for now"
+                  onSkip={() => {
+                    track("CONTACT_SKIPPED", { at: "code" })
+                    finish()
+                  }}
+                />
+              </>
+            )}
+          </div>
 
-        <p className="mt-5 border-t border-edge pt-4 text-center text-xs leading-relaxed text-fg-dim">
-          By continuing you agree to our{" "}
-          <a href="/terms" className="underline hover:text-fg-dim">Terms</a> and{" "}
-          <a href="/privacy" className="underline hover:text-fg-dim">Privacy Policy</a>.
-        </p>
-      </div>
-    </div>
+          {/* text-xs, not text-micro: 11px is the floor for a *label*, and this
+              is a sentence someone is being asked to agree to. */}
+          <p className="mt-9 border-t border-edge pt-5 font-mono text-xs leading-relaxed text-fg-dim">
+            By continuing you agree to our{" "}
+            <Link to="/terms" viewTransition className="scan-link">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" viewTransition className="scan-link">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
+          {/* Last in the DOM, first in the corner. Radix and most dialogs put
+              close first, which means the opening Tab of the flow offers the way
+              out before the question — so it sits where it looks like it sits,
+              and the keyboard reaches the choices first. */}
+          {/* Positioned by a wrapper: .scan-link sets position:relative and is
+              declared after Tailwind's utilities, so `absolute` on the link
+              itself loses the cascade and it lands back in the flow. */}
+          <span className="absolute right-6 top-7 sm:right-10 sm:top-9">
+            <D.Close
+              onClick={() => (reason.current = "close-button")}
+              className="scan-link font-mono text-micro uppercase tracking-[0.14em]"
+            >
+              Close
+            </D.Close>
+          </span>
+        </D.Content>
+      </D.Portal>
+    </D.Root>
   )
 }
 
-/* ---- small pieces ---- */
+/* ---- the pieces, all in the site's own vocabulary ---- */
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <span className="mb-3 block text-sm font-semibold text-fg">{children}</span>
-}
-
-function Primary({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+/** A choice is a row in a record, not a card: index, name, note, and the
+ *  aperture's hairline snapping to whatever the pointer is on. */
+function ScanRow({
+  index,
+  title,
+  note,
+  selected,
+  disabled,
+  onClick,
+  arrow,
+}: {
+  index: string
+  title: string
+  note: string
+  selected?: boolean
+  disabled?: boolean
+  onClick: () => void
+  arrow?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-xl bg-acid-500 py-3.5 text-base font-bold text-[#0a0d05] transition-[filter,opacity] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+      aria-pressed={selected}
+      className={`scan-row group flex w-full items-baseline gap-4 border-b border-edge py-4 pl-3 pr-1 text-left disabled:cursor-not-allowed disabled:opacity-45 ${
+        selected ? "is-on" : ""
+      }`}
     >
-      {children}
+      <span className={`font-mono text-micro ${selected ? "text-acid-500" : "text-fg-dim"}`}>
+        {index}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-semibold text-fg">{title}</span>
+        <span className="mt-1 block font-mono text-micro text-fg-dim">{note}</span>
+      </span>
+      {arrow && (
+        <span
+          aria-hidden
+          className="font-mono text-sm text-fg-dim transition-transform duration-200 group-hover:translate-x-1 group-hover:text-acid-500"
+        >
+          →
+        </span>
+      )}
     </button>
   )
 }
 
-function Skip({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+/** An underline rather than a filled box — the field is a rule you write on. */
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  onEnter,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  type?: string
+  onEnter?: () => void
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-3 block w-full pb-0.5 text-sm text-fg-dim transition-colors hover:text-fg-muted"
-    >
-      {children}
-    </button>
+    <label className="mt-6 block">
+      <span className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
+        placeholder={placeholder}
+        type={type}
+        spellCheck={false}
+        className="mt-2 w-full border-b border-edge-strong bg-transparent pb-2.5 font-mono text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500"
+      />
+    </label>
+  )
+}
+
+/** The action and its escape hatch on one line: a block that seats when
+ *  pressed, and a link that draws its rule. No pills. */
+function Actions({
+  primary,
+  onPrimary,
+  disabled,
+  skip,
+  onSkip,
+}: {
+  primary?: string
+  onPrimary?: () => void
+  disabled?: boolean
+  skip: string
+  onSkip: () => void
+}) {
+  return (
+    <div className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+      {primary ? (
+        <button
+          type="button"
+          onClick={onPrimary}
+          disabled={disabled}
+          /* Unavailable is an outline, not a faded fill. Lime at 40% over black
+             puts the black label at roughly 3:1 — the state that most needs to
+             be read clearly was the least readable thing on the panel. An
+             unfilled block with fg-dim reads as "not yet" at 5.24:1, and it is
+             the same vocabulary as the feed's inactive toggles. */
+          className="block-btn bg-acid-500 font-semibold text-ink-950 disabled:cursor-not-allowed disabled:border disabled:border-edge-strong disabled:bg-transparent disabled:text-fg-dim"
+        >
+          {primary}
+        </button>
+      ) : (
+        <span />
+      )}
+      <button
+        type="button"
+        onClick={onSkip}
+        className="scan-link font-mono text-micro uppercase tracking-[0.14em]"
+      >
+        {skip}
+      </button>
+    </div>
   )
 }
 
@@ -385,7 +559,8 @@ function Msg({ msg }: { msg: { text: string; kind?: "err" | "ok" } | null }) {
   if (!msg) return <div className="min-h-[18px]" />
   return (
     <div
-      className={`mt-3 min-h-[18px] text-center text-sm leading-relaxed ${
+      role="status"
+      className={`mt-5 min-h-[18px] font-mono text-micro leading-relaxed ${
         msg.kind === "err" ? "text-danger" : msg.kind === "ok" ? "text-acid-500" : "text-fg-muted"
       }`}
     >
@@ -394,67 +569,34 @@ function Msg({ msg }: { msg: { text: string; kind?: "err" | "ok" } | null }) {
   )
 }
 
-function Input({
-  value, onChange, placeholder, type = "text", onEnter,
-}: {
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  type?: string
-  onEnter?: () => void
-}) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
-      placeholder={placeholder}
-      type={type}
-      spellCheck={false}
-      className="mb-3 w-full rounded-xl border border-edge-strong bg-white/[.04] px-4 py-3.5 text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500/55"
-    />
-  )
-}
+/** Settles a string out of scramble, once, on mount. `ResolveText` in
+ *  `kinetic.tsx` does this on a ScrollTrigger, which never fires inside a fixed
+ *  dialog — the string is already in view the moment it exists. */
+function Resolve({ text, className = "" }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
 
-function WalletButton({
-  onClick, disabled, accent, title, sub,
-}: {
-  onClick: () => void
-  disabled?: boolean
-  accent?: boolean
-  title: string
-  sub: string
-}) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !text) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const tw = gsap.to(el, {
+      duration: 0.9,
+      scrambleText: { text, chars: "0123456789abcdef", speed: 0.8, revealDelay: 0.1 },
+      ease: "none",
+    })
+    return () => {
+      tw.kill()
+      el.textContent = text
+    }
+  }, [text])
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`mb-3 flex w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        accent
-          ? "border-acid-500/28 bg-acid-500/[.06] hover:border-acid-500/60 hover:bg-acid-500/10"
-          : "border-edge bg-white/[.03] hover:border-edge-strong hover:bg-white/[.06]"
-      }`}
-    >
-      <span className={`grid h-10 w-10 flex-none place-items-center rounded-xl ${accent ? "bg-acid-500/12" : "bg-white/10"}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent ? "#cdff4d" : "#f5f7fa"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {accent ? (
-            <>
-              <path d="M6 12a6 6 0 0 1 12 0M9 12a3 3 0 0 1 6 0" />
-              <circle cx="12" cy="12" r="1" fill="#cdff4d" stroke="none" />
-            </>
-          ) : (
-            <>
-              <rect x="3" y="6" width="18" height="13" rx="2.5" />
-              <path d="M3 10.5h18" />
-            </>
-          )}
-        </svg>
+    <span className={className}>
+      {/* The real string is always in the DOM; only the aria-hidden copy scrambles. */}
+      <span className="sr-only">{text}</span>
+      <span ref={ref} aria-hidden>
+        {text}
       </span>
-      <span className="flex flex-col gap-0.5">
-        <span className="text-base font-semibold leading-tight">{title}</span>
-        <span className="text-xs leading-tight text-fg-dim">{sub}</span>
-      </span>
-    </button>
+    </span>
   )
 }

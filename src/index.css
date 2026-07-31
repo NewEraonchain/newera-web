@@ -223,6 +223,13 @@ p { text-wrap: pretty; }
 .scan-row:hover { background: rgba(255, 255, 255, 0.022); }
 .scan-row:hover::before { transform: scaleY(1); }
 
+/* A row that is the current answer keeps the hairline lit — a made choice reads
+   as the instrument still resting on it, rather than needing a tick of its own.
+   It lives here rather than as a utility on the element because the base rule
+   already owns ::before's transform, and no utility can outrank it. */
+.scan-row.is-on { background: rgba(255, 255, 255, 0.034); }
+.scan-row.is-on::before { transform: scaleY(1); }
+
 /* Focus must be visible on every interactive thing, at document scope.
    Scoping this to .plate meant the nav, both feed toggles, every cluster row
    and every tape row fell back to the UA default — outline: auto 1px
@@ -235,6 +242,14 @@ p { text-wrap: pretty; }
 }
 /* Inside a plate, focus also resolves the text it lands on. */
 .plate :focus-visible { color: var(--color-fg); }
+
+/* A dialog panel takes focus on open, so a screen reader starts at the question
+   rather than at the close button — but it is a container, not a control, and
+   drawing a 2px ring around the whole modal for that reads as an error state.
+   It has to be excluded here rather than with a utility on the element: every
+   rule in this file is unlayered and therefore outranks Tailwind's utilities
+   whatever their specificity. */
+[role="dialog"]:focus-visible { outline: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -251,7 +266,12 @@ p { text-wrap: pretty; }
   from { clip-path: inset(0 0 108% 0); transform: translateY(0.16em); }
   to   { clip-path: inset(0 0 -12% 0); transform: translateY(0); }
 }
-.rise { animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* backwards, not both: the end keyframe is visually identical to the natural
+   state, but `both` leaves the clip-path applied forever — and a clip-path
+   crops anything drawn outside the border box, which is where focus rings live.
+   On the dialog that showed as a lime hairline along one edge: three sides of
+   the ring clipped away and the fourth left behind. */
+.rise { animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
 /* A block-height digit that just changed drops into place and its colour
    decays from the signal back to normal. */
