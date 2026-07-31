@@ -111,7 +111,7 @@ const SPOOFS = [
 const FAQ = [
   {
     q: "Does NewEra predict which tokens will go up?",
-    a: "No, and we would rather say so plainly. What is measured is survival — whether anyone traded a token at all after it launched. On that measure the risk score separates outcomes by roughly 4.2x, which makes it a strong filter on noise. It is not a price forecast.",
+    a: "No, and we would rather say so plainly. What is measured is survival — whether anyone traded a token at all after it launched. On that measure the risk score separates outcomes sharply, and the current multiple is shown further down this page with the number of launches it was measured over, rather than quoted from a run nobody can check. It is not a price forecast.",
   },
   {
     q: "How is this different from a trading terminal?",
@@ -378,8 +378,9 @@ function Evidence() {
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
-          Every figure here is read from the live index when the page loads. The one exception is
-          labelled, because it comes from a backtest rather than a counter.
+          Every figure here is read from the live index when the page loads. There is no longer an
+          exception: the survival separation below is measured on request too, and says so when the
+          sample is too thin to mean anything.
         </p>
 
         <Stagger as="dl" className="mt-14 border-t border-edge-strong" each={0.07}>
@@ -438,11 +439,11 @@ function Evidence() {
               />
             </>
           )}
-          <Fact
-            label="Risk separation"
-            value={<>4.2x</>}
-            unit="fewer high-risk launches survive their first hour — from backtest, not a counter"
-          />
+          {/* The risk separation used to sit here as a literal "4.2x", in a row
+              of figures that are all live — borrowing their credibility for a
+              number transcribed once from an admin backtest and never checked
+              again. It now belongs to the histogram below, which measures it and
+              shows the two populations it comes from. */}
           <Fact
             label="Transactions signed"
             value={<span>0</span>}

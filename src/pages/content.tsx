@@ -1,4 +1,58 @@
 import { Article, Section, Step, Callout, Bullets, Mono, Terms, FootNote } from "@/components/site/Article"
+import { useSeparation } from "@/components/figures"
+
+/* The two populations the risk score is judged on, measured on request.
+ *
+ * These were two hardcoded figures — 56.0% against 13.3%, n=232 — from one run
+ * of the backtest, and the "4.2x" quoted all over the site is their ratio. A
+ * frozen measurement presented in the present tense stops being evidence the
+ * moment the data moves, which for a live index is immediately.
+ *
+ * When the measurement cannot be had, the recorded pair is still shown, but
+ * labelled as recorded — losing the argument entirely would be worse, and
+ * pretending the number is current would be dishonest. */
+const RECORDED = {
+  low: { pct: 56.0, n: 134 },
+  high: { pct: 13.3, n: 98 },
+}
+
+function SurvivalSplit() {
+  const sep = useSeparation()
+  const low = sep ? { pct: sep.lowRisk!.survivalPct!, n: sep.lowRisk!.n } : RECORDED.low
+  const high = sep ? { pct: sep.highRisk!.survivalPct!, n: sep.highRisk!.n } : RECORDED.high
+  const lift = sep ? sep.lift! : RECORDED.low.pct / RECORDED.high.pct
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/* Not both lime. One of these is the good outcome and one is the bad
+            one, and rendering them in the same signal colour destroys the
+            comparison this section exists to make. */}
+        {[
+          { ...low, l: "of low-risk launches still active", tone: "text-acid-500" },
+          { ...high, l: "of high-risk launches still active", tone: "text-danger" },
+        ].map((s) => (
+          <div key={s.l} className="border-t border-edge pt-5">
+            <div className={`font-display text-3xl font-bold leading-none ${s.tone}`}>
+              {s.pct.toFixed(1)}%
+            </div>
+            <p className="mt-2 text-sm text-fg-muted">{s.l}</p>
+            <p className="mt-1 font-mono text-xs text-fg-dim">n={s.n.toLocaleString("en-US")}</p>
+          </div>
+        ))}
+      </div>
+      <p>
+        A <b>{lift.toFixed(1)}x separation</b>, from information available at block zero. The
+        duplicate flag on its own has held at 2–3x across four independent samples.
+      </p>
+      <p className="font-mono text-xs text-fg-dim">
+        {sep
+          ? `Measured now, over ${sep.sampleSize.toLocaleString("en-US")} launches at the ${sep.checkpoint}-minute checkpoint.`
+          : "Recorded sample, not a live reading — the index is not currently returning a measurement."}
+      </p>
+    </>
+  )
+}
 
 /* All long-form pages. Kept together because they share one layout and one
    voice; splitting them into nine files would be nine places to drift. */
@@ -170,25 +224,7 @@ export function Detection() {
           Every launch is measured again thirty minutes later to see whether anyone traded it.
           Comparing launches the score rated low-risk against those it rated high-risk:
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {/* Not both lime. One of these is the good outcome and one is the bad
-              one, and rendering them in the same signal colour destroys the
-              comparison this section exists to make. */}
-          {[
-            { v: "56.0%", l: "of low-risk launches still active", n: "n=134", tone: "text-acid-500" },
-            { v: "13.3%", l: "of high-risk launches still active", n: "n=98", tone: "text-danger" },
-          ].map((s) => (
-            <div key={s.l} className="border-t border-edge pt-5">
-              <div className={`font-display text-3xl font-bold leading-none ${s.tone}`}>{s.v}</div>
-              <p className="mt-2 text-sm text-fg-muted">{s.l}</p>
-              <p className="mt-1 font-mono text-xs text-fg-dim">{s.n}</p>
-            </div>
-          ))}
-        </div>
-        <p>
-          A <b>4.2x separation</b>, from information available at block zero. The duplicate flag on
-          its own has held at 2–3x across four independent samples.
-        </p>
+        <SurvivalSplit />
       </Section>
 
       <Section title="What this does not mean">
@@ -247,7 +283,7 @@ export function About() {
           items={[
             { term: "Chain-wide, not launchpad-wide", body: "Watching a single launchpad's contract captures around a fifth of the market. We watch the whole chain, so themes spanning multiple pads read as one narrative." },
             { term: "Creators, not just counts", body: "Thirty launches from one wallet is a script. Eight from six wallets is a narrative. Creator count sits beside every launch count so the two never get confused." },
-            { term: "Tested, not asserted", body: "The risk score is measured against what actually happened to each token. Low-risk launches stayed active 4.2x more often than high-risk ones." },
+            { term: "Tested, not asserted", body: "The risk score is measured against what actually happened to each token: low-risk launches stay active several times more often than high-risk ones. The current multiple and its sample size are on the detection page, read live rather than quoted." },
             { term: "Open by default", body: "The feed, theme pages and API are free, public and unauthenticated. There are no tiers." },
           ]}
         />

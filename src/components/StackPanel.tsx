@@ -16,10 +16,22 @@ gsap.registerPlugin(ScrollTrigger)
  * WHY STICKY AND NOT A ScrollTrigger PIN. Pinning wraps the element in a
  * pin-spacer and takes over its positioning, and this page already runs a pin
  * on the pipeline; stacking a second pinning system on top of it is the exact
- * combination the GSAP forums are full of. Sticky is native, costs nothing, and
- * degrades to ordinary flow for panels taller than the viewport. GSAP is left
- * doing the one thing sticky cannot: the recede, which animates the covered
- * panel and never touches scroll position.
+ * combination the GSAP forums are full of. Sticky is native and costs nothing.
+ * GSAP is left doing the one thing sticky cannot: the recede, which animates the
+ * covered panel and never touches scroll position.
+ *
+ * A TALL PANEL MUST PIN BY ITS BOTTOM EDGE. This file used to claim sticky
+ * "degrades to ordinary flow for panels taller than the viewport". It does not.
+ * A sticky element taller than the viewport still pins at top:0 and everything
+ * past the fold inside it becomes unreachable — you cannot scroll within it, and
+ * the next panel arrives over the part you never saw. Measured at 1440x900: the
+ * panels ran 973–1856px against a 900px viewport, and the last block of three of
+ * them was never more than 12% visible, the risk figures among them.
+ *
+ * So `top` is computed per panel: 0 when it fits, and -(height - viewport) when
+ * it does not, which pins it by the bottom instead. The panel then travels fully
+ * through the viewport before locking, and what it holds while covered is its
+ * end — which is the edge the next panel arrives at anyway.
  *
  * WHY THE STEPS GO UP THROUGH DARK RATHER THAN TO GREY OR WHITE. A light panel
  * was the obvious reading of "different background so you know you have moved",
@@ -86,6 +98,31 @@ export default function StackPanel({
   id?: string
 }) {
   const ref = useRef<HTMLElement>(null)
+
+  /* Keep the sticky offset matched to the panel's own height. Runs regardless
+     of motion preference: reduced motion turns the panel back into ordinary
+     flow in index.css, where `top` is inert, and this is a correctness fix
+     rather than an effect. Re-measured on resize and whenever the content
+     reflows, because the figures here load asynchronously and a panel is a
+     different height once its data arrives. */
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const fit = () => {
+      const over = el.offsetHeight - window.innerHeight
+      el.style.top = over > 0 ? `${-over}px` : "0px"
+    }
+    fit()
+
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    window.addEventListener("resize", fit)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("resize", fit)
+    }
+  }, [])
 
   useEffect(() => {
     const el = ref.current

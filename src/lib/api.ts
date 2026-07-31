@@ -38,6 +38,20 @@ export type Launch = {
 
 export type ThemeStatus = "EMERGING" | "HOT" | "SATURATED" | "DECAYING"
 
+/* GET /intel/separation — the one claim the product rests on, measured rather
+   than quoted. Every field is nullable on purpose: a sample too thin to mean
+   anything reports itself, and the page has to be able to say nothing. */
+export type Separation = {
+  checkpoint: number
+  sampleSize: number
+  lowRisk: { n: number; survivalPct: number | null } | null
+  highRisk: { n: number; survivalPct: number | null } | null
+  lift: number | null
+  conclusive: boolean
+  verdict: string
+  caveat: string | null
+}
+
 export type Theme = {
   id: string
   label: string

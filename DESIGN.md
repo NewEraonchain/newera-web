@@ -140,6 +140,18 @@ off the document-wide focus ring. A new state of an existing component is a rule
 next to that component — `.scan-row.is-on` is the selected row — and a genuine
 exception is an explicit selector, as `[role="dialog"]:focus-visible` is.
 
+**A sticky panel taller than the viewport must pin by its bottom edge.**
+`position: sticky; top: 0` does *not* fall back to ordinary flow when the
+element is too tall — it still pins at the top, and everything past the fold
+inside it becomes unreachable, because there is nothing left to scroll and the
+next panel arrives over the part nobody saw. Measured at 1440×900 before the
+fix: panels of 973–1856px against a 900px viewport, with the last block of
+three of them never more than 12% visible — the risk figures among them.
+`StackPanel` now sets `top` to `-(height - viewport)` when it overflows, so the
+panel travels fully through the viewport before locking and holds its end while
+it is covered. Re-measured on resize and on content reflow, because the figures
+load asynchronously and change the panel's height after mount.
+
 **Entrance animations fill `backwards`, never `both`.** `.rise` ends on
 `clip-path: inset(0 0 -12% 0)`, which looks identical to no clip but still crops
 everything drawn outside the border box. With `both` that clip is permanent, and
@@ -159,6 +171,18 @@ values of the same number on screen at once.
 Kickers above headings · cards inside cards · cards as page structure ·
 gradient text · section numbers restating a sequence the structure carries ·
 functional text below 11px · any figure not reproducible from a live API call.
+
+That last one was being broken by the site's central claim. "4.2x risk
+separation" was hardcoded into five places from a single hand-run of the
+admin-gated backtest, and by the time anyone read it nobody could say whether it
+was still true. It is now read from `GET /intel/separation`, which returns both
+populations with their sample sizes, and the pages show the two survival rates
+and derive the ratio from them rather than stating it. When the endpoint cannot
+answer — not deployed, or a sample too thin to be conclusive — the landing page
+renders nothing there and `/detection` falls back to the recorded pair,
+labelled as recorded. **11px is the floor for a label, not for a sentence**;
+prose at `text-micro` is what the detector's `tiny-text` rule catches, and it
+caught it in both the dialog's terms line and the account page.
 
 ## Verification
 

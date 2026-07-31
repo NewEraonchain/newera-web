@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { getJSON, type Launch, type Theme } from "@/lib/api"
+import { getJSON, type Launch, type Separation, type Theme } from "@/lib/api"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -190,9 +190,49 @@ export function ClusterField() {
 
 /* ── Where the score actually lands ────────────────────────────────────────
    The risk score is the product's most contestable claim, so the honest thing
-   is to show its whole distribution rather than quote one percentage. */
+   is to show its whole distribution rather than quote one percentage.
+
+   And to show the two populations rather than assert the ratio between them.
+   The separation used to be a hardcoded "4.2x" — one hand-run of an admin
+   backtest, transcribed into JSX, never re-derived, and by the time anyone read
+   it nobody could say whether it was still true. It is now measured at render
+   time, and when the sample is too thin to mean anything the block renders
+   nothing rather than a number. */
+/**
+ * The measured risk separation, or null if it cannot be had — an API without
+ * the endpoint, a sample too thin to be conclusive, and a network failure are
+ * all the same answer to the page: we do not know, so do not say.
+ *
+ * A hook rather than a component because the two places that show this draw it
+ * differently — bars beside the distribution here, two figures side by side on
+ * /detection — and sharing a layout to share a fetch would force one of them
+ * into the wrong shape.
+ */
+export function useSeparation(): Separation | null {
+  const [sep, setSep] = useState<Separation | null>(null)
+  useEffect(() => {
+    let alive = true
+    getJSON<Separation>("/intel/separation")
+      .then((r) => {
+        if (!alive) return
+        const ok =
+          r?.conclusive &&
+          r.lift != null &&
+          r.lowRisk?.survivalPct != null &&
+          r.highRisk?.survivalPct != null
+        setSep(ok ? r : null)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  return sep
+}
+
 export function RiskHistogram() {
   const [items, setItems] = useState<Launch[] | null>(null)
+  const sep = useSeparation()
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -237,6 +277,45 @@ export function RiskHistogram() {
 
   return (
     <div ref={root}>
+      {sep && (
+        <div className="mb-12">
+          <h3 className="font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
+            Survival at {sep.checkpoint} minutes
+          </h3>
+          <dl className="mt-4">
+            <Population
+              label="Scored under 15"
+              n={sep.lowRisk!.n}
+              pct={sep.lowRisk!.survivalPct!}
+              tone="acid"
+            />
+            <Population
+              label="Scored 40 or over"
+              n={sep.highRisk!.n}
+              pct={sep.highRisk!.survivalPct!}
+              tone="danger"
+            />
+          </dl>
+          {/* The ratio is the consequence of the two bars above it, not a claim
+              standing on its own — so it is stated after them, at their scale. */}
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-3 border-t border-edge pt-4">
+            <span className="font-display text-3xl font-bold text-fg" style={{ fontStretch: "82%" }}>
+              {sep.lift!.toFixed(2)}x
+            </span>
+            <span className="measure-tight text-sm text-fg-muted">
+              more of the low-risk launches were still being traded, across{" "}
+              {sep.sampleSize.toLocaleString("en-US")} measured launches.
+            </span>
+          </p>
+          {sep.caveat && (
+            <p className="measure mt-3 text-xs leading-relaxed text-fg-dim">{sep.caveat}</p>
+          )}
+        </div>
+      )}
+
+      <h3 className="mb-4 font-mono text-micro uppercase tracking-[0.14em] text-fg-dim">
+        Where the score lands
+      </h3>
       <div className="flex h-56 items-end gap-[3px]">
         {buckets.map((n, i) => {
           const risky = i * 5 >= 40
@@ -260,6 +339,42 @@ export function RiskHistogram() {
         {items.length} launches from the live index. The threshold is not a prediction; it is where
         a launch stops resembling a person and starts resembling a script.
       </p>
+    </div>
+  )
+}
+
+/* One of the two groups, drawn to the same scale so the comparison is made by
+   the eye rather than by arithmetic. The bar is the survival rate; the count
+   sits beside it, because a rate without its n is not a measurement. */
+function Population({
+  label,
+  n,
+  pct,
+  tone,
+}: {
+  label: string
+  n: number
+  pct: number
+  tone: "acid" | "danger"
+}) {
+  return (
+    <div className="border-b border-edge py-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+        <dt className="text-sm font-semibold text-fg">{label}</dt>
+        <dd className="flex items-baseline gap-3 font-mono text-micro text-fg-dim">
+          <span className={tone === "acid" ? "text-acid-500" : "text-danger"}>
+            {pct.toFixed(1)}% still traded
+          </span>
+          <span>n={n.toLocaleString("en-US")}</span>
+        </dd>
+      </div>
+      <div className="mt-2.5 h-1.5 bg-ink-800">
+        <div
+          data-bar-h
+          style={{ width: `${Math.max(0.5, pct)}%` }}
+          className={`h-full origin-left ${tone === "acid" ? "bg-acid-500" : "bg-danger"}`}
+        />
+      </div>
     </div>
   )
 }
