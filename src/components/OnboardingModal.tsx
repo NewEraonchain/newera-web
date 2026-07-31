@@ -8,6 +8,7 @@ import { anonId, track, K_DONE, K_DECLINED, K_INTENT } from "@/lib/onboarding"
 import type { Intent } from "@/lib/onboarding"
 import { connect, isRejection, currentAddress } from "@/lib/wallet"
 import type { ConnectKind } from "@/lib/wallet"
+import { ScanRow, WALLETS } from "@/components/rows"
 
 gsap.registerPlugin(ScrambleTextPlugin)
 
@@ -290,22 +291,17 @@ export default function OnboardingModal({
             {step === 1 && (
               <>
                 <div className="border-t border-edge">
-                  <ScanRow
-                    index="01"
-                    title="MetaMask"
-                    note="Browser extension"
-                    disabled={busy}
-                    onClick={() => doConnect("metamask")}
-                    arrow
-                  />
-                  <ScanRow
-                    index="02"
-                    title="WalletConnect"
-                    note="Trust, OKX, Binance & mobile"
-                    disabled={busy}
-                    onClick={() => doConnect("walletconnect")}
-                    arrow
-                  />
+                  {WALLETS.map((w, i) => (
+                    <ScanRow
+                      key={w.kind}
+                      index={String(i + 1).padStart(2, "0")}
+                      title={w.title}
+                      note={w.note}
+                      disabled={busy}
+                      onClick={() => doConnect(w.kind)}
+                      arrow
+                    />
+                  ))}
                 </div>
                 <Msg msg={msg} />
                 <Actions skip="I'll do this later" onSkip={() => dismiss("later")} />
@@ -429,54 +425,6 @@ export default function OnboardingModal({
 }
 
 /* ---- the pieces, all in the site's own vocabulary ---- */
-
-/** A choice is a row in a record, not a card: index, name, note, and the
- *  aperture's hairline snapping to whatever the pointer is on. */
-function ScanRow({
-  index,
-  title,
-  note,
-  selected,
-  disabled,
-  onClick,
-  arrow,
-}: {
-  index: string
-  title: string
-  note: string
-  selected?: boolean
-  disabled?: boolean
-  onClick: () => void
-  arrow?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={selected}
-      className={`scan-row group flex w-full items-baseline gap-4 border-b border-edge py-4 pl-3 pr-1 text-left disabled:cursor-not-allowed disabled:opacity-45 ${
-        selected ? "is-on" : ""
-      }`}
-    >
-      <span className={`font-mono text-micro ${selected ? "text-acid-500" : "text-fg-dim"}`}>
-        {index}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-base font-semibold text-fg">{title}</span>
-        <span className="mt-1 block font-mono text-micro text-fg-dim">{note}</span>
-      </span>
-      {arrow && (
-        <span
-          aria-hidden
-          className="font-mono text-sm text-fg-dim transition-transform duration-200 group-hover:translate-x-1 group-hover:text-acid-500"
-        >
-          →
-        </span>
-      )}
-    </button>
-  )
-}
 
 /** An underline rather than a filled box — the field is a rule you write on. */
 function Field({

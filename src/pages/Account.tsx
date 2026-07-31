@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { API, authHeaders, shortAddr } from "@/lib/api"
-import { currentAddress, hasSession, disconnect } from "@/lib/wallet"
+import { currentAddress, hasSession, disconnect, connect, isRejection } from "@/lib/wallet"
+import type { ConnectKind } from "@/lib/wallet"
+import { anonId } from "@/lib/onboarding"
 import { EmptyState } from "@/components/intel"
+import { ScanRow, WALLETS } from "@/components/rows"
 
 type Me = {
   walletAddress: string
@@ -50,6 +53,30 @@ export default function Account() {
   useEffect(() => {
     load()
   }, [load])
+
+  /* The only connect entry point on the site outside the onboarding dialog —
+     and that dialog remembers a decline for thirty days, so without this there
+     was no way to connect at all in between. */
+  async function doConnect(kind: ConnectKind) {
+    setBusy(true)
+    setMsg({ text: "Approve the signature in your wallet…" })
+    try {
+      await connect(kind, { anonId: anonId() })
+      // Everything on this page keys off currentAddress(); a reload is how the
+      // disconnect button already re-reads it.
+      location.reload()
+    } catch (e) {
+      setMsg({
+        text: isRejection(e)
+          ? "Signature cancelled — no problem, try again when ready."
+          : e instanceof Error
+            ? e.message
+            : "Connection failed.",
+        kind: "err",
+      })
+      setBusy(false)
+    }
+  }
 
   async function exportData() {
     setBusy(true)
@@ -137,23 +164,6 @@ export default function Account() {
 
   if (loading) return <Wrap><EmptyState>Loading…</EmptyState></Wrap>
 
-  if (!addr) {
-    return (
-      <Wrap>
-        <EmptyState>
-          <p className="mb-2 text-base font-semibold text-fg">No wallet connected</p>
-          <p className="measure mb-5">
-            The live feed works without one. Connect only if you want preferences saved against your
-            address.
-          </p>
-          <Link to="/app" className="block-btn bg-acid-500 text-ink-950">
-            Back to the feed
-          </Link>
-        </EmptyState>
-      </Wrap>
-    )
-  }
-
   const rows: [string, React.ReactNode, string?][] = [
     ["Wallet address", me?.walletAddress, "your account identifier"],
     ["Signing wallet", me?.ownerAddress ? shortAddr(me.ownerAddress) : null, "the address that signed in"],
@@ -169,6 +179,77 @@ export default function Account() {
   ]
   const set = rows.filter(([, v]) => v !== null && v !== undefined && v !== "").length
 
+  /* Disconnected is the state most visitors are in, and it used to be a
+     three-line empty state on an otherwise blank page — with no way to connect
+     from anywhere on the site once the onboarding dialog had been dismissed.
+     It now answers the only question worth answering here: what would this cost
+     me. Same field list as the connected view, every row reading "not set",
+     shown *before* connecting rather than after. */
+  if (!addr) {
+    return (
+      <Wrap>
+        <h1 className="font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">Account</h1>
+        <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
+          NewEra needs no account. The feed, the clusters and the API are open to everyone. A wallet
+          only changes what can be remembered — so here is exactly what that would be.
+        </p>
+
+        <Section title="Connect a wallet">
+          <div className="border-t border-edge">
+            {WALLETS.map((w, i) => (
+              <ScanRow
+                key={w.kind}
+                index={String(i + 1).padStart(2, "0")}
+                title={w.title}
+                note={w.note}
+                disabled={busy}
+                onClick={() => doConnect(w.kind)}
+                arrow
+              />
+            ))}
+          </div>
+          {msg && (
+            <p className={`mt-4 font-mono text-micro ${msg.kind === "err" ? "text-danger" : "text-fg-muted"}`}>
+              {msg.text}
+            </p>
+          )}
+          <p className="measure mt-4 text-xs leading-relaxed text-fg-dim">
+            Signing proves the address is yours. It authorises no transaction and moves nothing —
+            NewEra holds no keys and has never signed one.
+          </p>
+        </Section>
+
+        <Section title="What would be held against your wallet" note={`${rows.length} fields, none set`}>
+          <Fields rows={rows} />
+        </Section>
+
+        <Section title="What is never held">
+          <ul className="flex flex-col">
+            {[
+              ["Private keys", "you sign in your own wallet; nothing leaves it"],
+              ["Funds", "NewEra cannot move a token, and has no contract that could"],
+              ["Your browsing outside this site", "no third-party analytics, no ad network"],
+              ["Your on-chain history", "it is public, it is the chain's, and it exists whether or not you use NewEra"],
+            ].map(([label, note]) => (
+              <li key={label} className="flex flex-wrap items-baseline gap-x-4 border-b border-edge py-3">
+                <span className="text-sm font-semibold text-fg">{label}</span>
+                {/* text-xs: these are sentences, and 11px is the floor for a
+                    label, not for something a reader has to parse. */}
+                <span className="font-mono text-xs text-fg-dim">{note}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <div className="mt-9">
+          <Link to="/app" className="block-btn bg-acid-500 text-ink-950">
+            Back to the feed
+          </Link>
+        </div>
+      </Wrap>
+    )
+  }
+
   return (
     <Wrap>
       <h1 className="font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">Account</h1>
@@ -179,29 +260,14 @@ export default function Account() {
 
       <Section title="Wallet">
         <div className="flex flex-wrap items-center gap-3 border-y border-edge py-4">
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#c8cdd6]">{addr}</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-fg">{addr}</span>
           <Btn onClick={() => navigator.clipboard.writeText(addr)}>Copy</Btn>
           <Btn onClick={() => { disconnect(); location.reload() }}>Disconnect</Btn>
         </div>
       </Section>
 
       <Section title="What we hold against this wallet" note={`${set} of ${rows.length} fields set`}>
-        <div className="flex flex-col gap-2">
-          {rows.map(([label, value, hint]) => {
-            const empty = value === null || value === undefined || value === ""
-            return (
-              <div key={label} className="flex items-center gap-3 border-b border-edge py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-[#c8cdd6]">{label}</div>
-                  {hint && <div className="mt-0.5 text-xs text-fg-dim">{hint}</div>}
-                </div>
-                <span className={`flex-none truncate text-xs ${empty ? "text-fg-dim" : "font-mono text-fg"}`}>
-                  {empty ? "not set" : String(value)}
-                </span>
-              </div>
-            )
-          })}
-        </div>
+        <Fields rows={rows} />
         <p className="mt-3 text-xs leading-relaxed text-fg-dim">
           On-chain activity shown throughout the feed comes from the public blockchain and exists
           whether or not you use NewEra. The rows above are only what this site stores.
@@ -210,7 +276,7 @@ export default function Account() {
 
       <Section title="Your data">
         <div className="flex flex-wrap items-center gap-3 border-y border-edge py-4">
-          <span className="min-w-[220px] flex-1 text-sm text-[#c8cdd6]">
+          <span className="min-w-[220px] flex-1 text-sm text-fg">
             Download everything we hold, or remove the optional contact details while keeping the account.
           </span>
           <Btn onClick={exportData} disabled={busy}>Download my data</Btn>
@@ -266,8 +332,36 @@ export default function Account() {
   )
 }
 
+/* Held to a column. Full-bleed suits the feed and the tape, where the width is
+   the point; here it stranded every value a thousand pixels from its own label. */
 function Wrap({ children }: { children: React.ReactNode }) {
-  return <div className="px-[4vw] pb-[14vh] pt-[13vh]">{children}</div>
+  return <div className="mx-auto max-w-[54rem] px-[4vw] pb-[14vh] pt-[13vh]">{children}</div>
+}
+
+/* One definition, both states. The disconnected page shows the identical list
+   with every row reading "not set", which is the whole point: the disclosure is
+   worth more before you connect than after. */
+function Fields({ rows }: { rows: [string, React.ReactNode, string?][] }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.map(([label, value, hint]) => {
+        const empty = value === null || value === undefined || value === ""
+        return (
+          <div key={label} className="flex items-center gap-3 border-b border-edge py-3">
+            <div className="min-w-0 flex-1">
+              {/* text-fg, not the stray #c8cdd6 these rows carried over from the
+                  pre-Aperture palette. */}
+              <div className="text-sm font-semibold text-fg">{label}</div>
+              {hint && <div className="mt-0.5 text-xs text-fg-dim">{hint}</div>}
+            </div>
+            <span className={`flex-none truncate text-xs ${empty ? "text-fg-dim" : "font-mono text-fg"}`}>
+              {empty ? "not set" : String(value)}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
