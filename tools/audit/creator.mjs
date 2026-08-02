@@ -53,7 +53,13 @@ const link = await p.evaluate(() => {
 ok("3a cluster page links to the deployer", !!link, link || "no internal creator link found")
 if (link) {
   await wait(5000)
-  const after = await p.evaluate(() => ({ path: location.pathname, has: /deployed/i.test(document.body.innerText) }))
+  /* Either outcome is correct. A wallet with one launch has no CreatorProfile
+     row, and the page says so rather than inventing a record — asserting only
+     on "deployed" failed on that entirely valid state. */
+  const after = await p.evaluate(() => ({
+    path: location.pathname,
+    has: /deployed|No behavioural record has been built/i.test(document.body.innerText),
+  }))
   ok("3b clicking it lands on the record", after.path.startsWith("/app/creator/") && after.has, after.path)
 }
 

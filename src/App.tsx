@@ -18,6 +18,7 @@ import Landing from "@/pages/Landing"
 const Feed = lazy(() => import("@/pages/Feed"))
 const ThemeDetail = lazy(() => import("@/pages/ThemeDetail"))
 const Creator = lazy(() => import("@/pages/Creator"))
+const Token = lazy(() => import("@/pages/Token"))
 const Account = lazy(() => import("@/pages/Account"))
 const HowItWorks = lazy(() => import("@/pages/content").then((m) => ({ default: m.HowItWorks })))
 const Themes = lazy(() => import("@/pages/content").then((m) => ({ default: m.Themes })))
@@ -74,8 +75,13 @@ const TITLES: Record<string, string> = {
 
 function useDocumentTitle(pathname: string) {
   useEffect(() => {
-    // Both detail routes title themselves from their own data.
-    if (pathname.startsWith("/app/theme/") || pathname.startsWith("/app/creator/")) return
+    // The detail routes title themselves from their own data.
+    if (
+      pathname.startsWith("/app/theme/") ||
+      pathname.startsWith("/app/creator/") ||
+      pathname.startsWith("/app/token/")
+    )
+      return
     document.title = TITLES[pathname] ?? "Not found · NewEra"
   }, [pathname])
 }
@@ -296,6 +302,7 @@ function Shell() {
           <Route path="/app" element={<Feed />} />
           <Route path="/app/theme/:slug" element={<ThemeDetail />} />
           <Route path="/app/creator/:wallet" element={<Creator />} />
+          <Route path="/app/token/:address" element={<Token />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/themes" element={<Themes />} />
           <Route path="/detection" element={<Detection />} />

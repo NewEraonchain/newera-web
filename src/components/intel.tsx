@@ -105,15 +105,16 @@ export function LaunchRow({
     <div className="scan-row relative border-b border-edge py-3 pl-3">
       <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-4">
         <span className="font-mono text-micro text-fg-dim">{ago(launch.ageSeconds)}</span>
-        <a
-          href={`${EXPLORER}/token/${launch.address}`}
-          target="_blank"
-          rel="noopener"
+        {/* Stays on the site. Every row used to open a block explorer in a new
+            tab — the most natural action in the tape sent the reader away to a
+            tool that cannot say what the index knows about the launch. */}
+        <Link
+          to={`/app/token/${launch.address}`}
           className="-my-1 flex min-w-0 flex-wrap items-baseline gap-x-3 py-1"
         >
           <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
           <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
-        </a>
+        </Link>
         <span className="flex flex-none items-baseline gap-3">
           {launch.devBuyEth > 0 && (
             <span

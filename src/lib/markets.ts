@@ -25,6 +25,11 @@ import { useEffect, useState } from "react"
 
 export type Market = {
   address: string
+  /* The venue's own name for the token. Carried because the token page must
+     still be able to say what it is looking at when our index cannot answer —
+     an unknown address is a much worse heading than a ticker. */
+  symbol: string
+  name: string
   priceUsd: number | null
   liquidityUsd: number | null
   volume24h: number | null
@@ -87,6 +92,8 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
       const sells = num(pair?.txns?.h24?.sells) ?? 0
       out.set(addr, {
         address: addr,
+        symbol: String(pair?.baseToken?.symbol || ""),
+        name: String(pair?.baseToken?.name || ""),
         priceUsd: num(pair?.priceUsd),
         liquidityUsd,
         volume24h: num(pair?.volume?.h24),

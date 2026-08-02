@@ -103,6 +103,24 @@ export type CreatorDossier = {
   launches: Launch[]
 }
 
+/* Everything the index knows about one launch. `GET /intel/token/:address`.
+   Siblings are the other launches in the same cluster — "is this one of forty
+   copies?" is the question the risk score answers, and a single row cannot
+   show it. */
+export type TokenDetail = {
+  launch: Launch
+  theme: Theme | null
+  creator: {
+    wallet: string
+    totalLaunches: number
+    distinctThemes: number
+    duplicateRate: number
+    spamScore: number
+    totalDevBuyEth: number
+  } | null
+  siblings: Launch[]
+}
+
 export function ago(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`

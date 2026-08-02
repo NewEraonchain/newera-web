@@ -7,7 +7,6 @@ import {
   RiskPill,
   FlagPill,
   MarketLine,
-  EXPLORER,
   EmptyState,
   Skeleton,
 } from "@/components/intel"
@@ -392,15 +391,10 @@ function Launches({ launches }: { launches: Launch[] }) {
             >
               <div className="grid grid-cols-[3.4rem_minmax(0,1fr)_auto] items-baseline gap-3">
                 <div className="text-right font-mono text-xs text-fg-dim">{ago(l.ageSeconds)}</div>
-                <a
-                  href={`${EXPLORER}/token/${l.address}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="min-w-0"
-                >
+                <Link to={`/app/token/${l.address}`} className="min-w-0">
                   <div className="truncate font-mono text-sm font-semibold">{l.symbol || "—"}</div>
                   <div className="truncate text-xs text-fg-dim">{l.name}</div>
-                </a>
+                </Link>
                 <div className="flex flex-none items-center gap-2">
                   {l.devBuyEth > 0 && (
                     <span className="font-mono text-micro text-acid-500">
