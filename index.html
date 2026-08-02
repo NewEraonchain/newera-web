@@ -13,15 +13,22 @@
          at all, and a cluster URL is the thing most likely to be shared. Per-route
          titles are set at runtime; these are the static fallbacks a crawler and
          an unfurler see. -->
+    <!-- Absolute, not root-relative. Several unfurlers (and Twitter in
+         particular) will not resolve a relative og:image against the page URL,
+         so "/og.png" silently produced a card with no image. -->
+    <link rel="canonical" href="https://neweraai.xyz/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NewEra" />
+    <meta property="og:url" content="https://neweraai.xyz/" />
     <meta property="og:title" content="NewEra · Launch intelligence for Robinhood Chain" />
     <meta property="og:description" content="See what is launching on Robinhood Chain before it has a price. Clusters as they form, copies and ticker impersonation flagged, from the moment a token is created." />
-    <meta property="og:image" content="/og.png" />
+    <meta property="og:image" content="https://neweraai.xyz/og.png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="NewEra · Launch intelligence for Robinhood Chain" />
     <meta name="twitter:description" content="See what is launching on Robinhood Chain before it has a price." />
-    <meta name="twitter:image" content="/og.png" />
+    <meta name="twitter:image" content="https://neweraai.xyz/og.png" />
   </head>
   <body>
     <!--
