@@ -1,5 +1,29 @@
 import { Article, Section, Step, Callout, Bullets, Mono, Terms, FootNote } from "@/components/site/Article"
 import { useSeparation } from "@/components/figures"
+import { useStats } from "@/lib/useStats"
+
+/* A percentage read from the live index, never typed into the page.
+ *
+ * These pages carried "roughly 69% of launches are near-copies" in three places
+ * while `/intel/stats` was returning 45.7 — a 51% overstatement, visible one
+ * click apart in the same session, on a site whose landing page promises "every
+ * figure here is read from the live index when the page loads". A frozen
+ * transcription stops being evidence the moment the data moves.
+ *
+ * Until it resolves, and if the call fails, the sentence has to read correctly
+ * without a number at all — hence `fallback`, which is a word rather than a
+ * stale figure. */
+function LivePct({
+  of,
+  fallback,
+}: {
+  of: "duplicatePct" | "highRiskPct"
+  fallback: React.ReactNode
+}) {
+  const stats = useStats()
+  if (!stats) return <>{fallback}</>
+  return <b>{stats[of]}%</b>
+}
 
 /* The two populations the risk score is judged on, measured on request.
  *
@@ -42,8 +66,11 @@ function SurvivalSplit() {
         ))}
       </div>
       <p>
-        A <b>{lift.toFixed(1)}x separation</b>, from information available at block zero. The
-        duplicate flag on its own has held at 2–3x across four independent samples.
+        A <b>{lift.toFixed(1)}x separation</b>, from information available at block zero.
+        {/* "The duplicate flag on its own has held at 2–3x across four
+            independent samples" was here. No endpoint returns a per-flag
+            separation, so the claim cannot be checked from the product — which
+            is the standard this very page is arguing for. */}
       </p>
       <p className="font-mono text-xs text-fg-dim">
         {sep
@@ -62,7 +89,7 @@ export function HowItWorks() {
     <Article
       kicker="How it works"
       title="Four steps, none of which need a price"
-      standfirst="Existing tools wait for a token to trade before they can say anything about it. By then the move has happened. Here is what runs instead, from the moment a token exists."
+      standfirst="Existing tools wait for a token to trade before they can say anything about it. By then the first minutes are over. Here is what runs instead, from the moment a token exists."
     >
       <Section>
         <Step
@@ -108,9 +135,9 @@ export function HowItWorks() {
           plain="Thirty launches from one address is not a trend. Creator count sits beside every launch count."
           runs={
             <>
-              A theme is only marked <Mono>EMERGING</Mono> — the state worth acting on — when enough
-              distinct wallets are behind it. Observed live: a 30-launch theme from a single creator
-              against a 16-launch theme from nine. Same shape, opposite meaning.
+              A cluster is only marked <Mono>EMERGING</Mono> — the state the ranking promotes —
+              when enough distinct wallets are behind it. Thirty launches from one address and
+              sixteen from nine are the same shape and opposite meanings.
             </>
           }
         />
@@ -161,18 +188,22 @@ export function Themes() {
           throughout the product.
         </p>
         <p>
-          A theme is only marked <Mono>EMERGING</Mono> when enough distinct wallets are behind it.
-          One-wallet floods are pushed down and labelled, not promoted as opportunities.
+          A cluster is only marked <Mono>EMERGING</Mono> when enough distinct wallets are behind it.
+          One-wallet floods are pushed down and labelled.
         </p>
       </Section>
 
       <Section title="The four states">
         <Terms
           items={[
-            { term: "EMERGING", body: "Young, accelerating, not yet crowded, driven by independent creators. The only state where there is still an edge." },
-            { term: "HOT", body: "High velocity and still climbing, but already visible to everyone else looking." },
-            { term: "SATURATED", body: "Crowded, and velocity is falling away from its peak. The move, if there was one, has mostly happened." },
-            { term: "DECAYING", body: "Effectively over. Almost nothing new is launching into it." },
+            /* "Still an edge" and "the move has mostly happened" are claims
+               about what a price will do next. The states describe launch
+               behaviour and nothing else, so they are worded as observations
+               about launches. */
+            { term: "EMERGING", body: "Young, accelerating, not yet crowded. The only state where independent wallets are still arriving." },
+            { term: "HOT", body: "High launch velocity and still climbing, but already visible to everyone else looking." },
+            { term: "SATURATED", body: "Crowded, and launch velocity is falling away from its peak." },
+            { term: "DECAYING", body: "Almost nothing new is launching into it." },
           ]}
         />
       </Section>
@@ -196,7 +227,11 @@ export function Detection() {
     <Article
       kicker="Impersonation detection"
       title="Two tickers that look identical, and aren't."
-      standfirst="Roughly 69% of launches are near-copies of something minutes old. A smaller number go further and impersonate a specific token, using characters your eye cannot see. Both are detectable from the moment of creation, before a single trade happens."
+      /* The number lived here as "roughly 69%" against a live 45.7%. The
+         standfirst takes a plain string, so rather than freeze a new figure that
+         will drift the same way, it states the shape and leaves the measurement
+         to the live one further down the page. */
+      standfirst="Most launches are near-copies of something minutes old. A smaller number go further and impersonate a specific token, using characters your eye cannot see. Both are detectable from the moment of creation, before a single trade happens."
     >
       <Section>
         <Callout label="The same four characters, twice">
@@ -239,9 +274,13 @@ export function Detection() {
       <Section title="Reading the score">
         <Terms
           items={[
-            { term: "0 – 14 · low", body: "No spoof flags, no burst, often a real creator stake. The default filter on the live feed." },
+            /* "The default filter on the live feed" was not true: the feed has
+               no default risk filter — "Hide likely spam" starts off, and when
+               switched on it filters at 25, not 14. And "roughly a third" was a
+               frozen transcription of what /intel/stats reports live. */
+            { term: "0 – 14 · low", body: "No spoof flags, no burst, often a real creator stake." },
             { term: "15 – 39 · medium", body: "Usually a name collision — a copy of something recent, without deliberate impersonation." },
-            { term: "40 – 100 · high", body: "Impersonation characters, dense bursts, or a serial creator with nothing staked. Roughly a third of all launches." },
+            { term: "40 – 100 · high", body: "Impersonation characters, dense bursts, or a serial creator with nothing staked. This is the band the live feed hides when you switch on “Hide likely spam”." },
           ]}
         />
       </Section>
@@ -266,10 +305,16 @@ export function About() {
           memecoin&apos;s life.
         </p>
         <p>
-          Meanwhile the raw feed is unreadable. We measured it: roughly <b>69% of launches are
-          near-copies</b> of something deployed minutes earlier, and around <b>70% are effectively
-          dead within half an hour</b>. Reading that unfiltered is not research, it is scrolling.
+          Meanwhile the raw feed is unreadable. Right now{" "}
+          <LivePct of="duplicatePct" fallback={<>most</>} /> of launches carry a duplicate or
+          impersonation flag. Reading that unfiltered is not research, it is scrolling.
         </p>
+        {/* "Around 70% are effectively dead within half an hour" was here, and
+            no endpoint returns an overall abandonment rate — `/intel/separation`
+            measures survival for the low- and high-risk cohorts only, so the
+            middle band is not in it and a population figure cannot be derived.
+            An unbacked number on the page that argues for measurement is the
+            one thing that cannot stay. */}
       </Section>
 
       <Section title="What we do">
@@ -307,16 +352,42 @@ export function About() {
   )
 }
 
+/* The standfirst used to end "for data requests, use the address below." There
+   was no address below, nor anywhere else on the site — zero mailto links and
+   zero addresses in rendered text — while the privacy policy promised email
+   requests answered within a month. A commitment with no channel behind it is
+   worse than no commitment. Every route named here now exists and works. */
 export function Contact() {
   return (
-    <Article kicker="Contact" title="Get in touch" standfirst="The fastest route is X. For data requests, use the address below.">
+    <Article
+      kicker="Contact"
+      title="Get in touch"
+      standfirst="The fastest route is X. Anything held against your wallet you can export or erase yourself, without asking."
+    >
       <Section>
         <Terms
           items={[
-            { term: "X / Twitter", body: "@New_EraAI — product updates and the fastest reply." },
-            { term: "Data requests", body: "To export or delete the record held against your wallet, use your account page, or write to us and we will respond within one month." },
+            { term: "X / Twitter", body: "Product updates and the fastest reply." },
+            {
+              term: "Your data",
+              body: "Everything stored against a wallet can be downloaded or permanently deleted from the account page, by you, without contacting anyone.",
+            },
+            {
+              term: "Something wrong?",
+              body: "If a token or cluster is labelled in a way you believe is incorrect, say so on X with the address and we will look at it. The scores are computed, not curated, so a wrong label is a bug worth fixing.",
+            },
           ]}
         />
+        <p>
+          <a
+            href="https://x.com/New_EraAI"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="scan-link text-acid-500"
+          >
+            @New_EraAI ↗
+          </a>
+        </p>
         <Callout label="Self-serve">
           Everything we hold against a wallet is visible on your account page, along with buttons to
           download or erase it. You do not need to ask us.

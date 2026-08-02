@@ -81,6 +81,28 @@ export type Stats = {
   lastIngestAt: string | null
 }
 
+/* A deployer's record. `GET /intel/creators/:wallet` has always returned this
+   and nothing rendered it — the one screen where a reader asks "who is this?"
+   handed them to a block explorer, which cannot answer it. */
+export type CreatorProfile = {
+  totalLaunches: number
+  distinctThemes: number
+  /** Most launches this wallet has fired inside one minute. */
+  fastestBurst: number
+  /** Percentage of their launches that collided with something else. */
+  duplicateRate: number
+  spamScore: number
+  totalDevBuyEth: number
+  firstLaunchAt: string
+  lastLaunchAt: string
+}
+
+export type CreatorDossier = {
+  wallet: string
+  profile: CreatorProfile | null
+  launches: Launch[]
+}
+
 export function ago(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`

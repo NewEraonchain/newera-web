@@ -35,7 +35,12 @@ const STEPS = [
   {
     label: "Intent",
     title: "What are you here for?",
-    sub: "One tap. It decides what the feed puts in front of you first.",
+    /* Was "It decides what the feed puts in front of you first." Nothing reads
+       `intent` — not Feed.tsx, not any /intel handler. It is the first sentence
+       a visitor reads and the justification for the only question asked before
+       any value is delivered, and it was untrue. The real reason is a good one,
+       so it says that instead. */
+    sub: "One tap. It tells us who NewEra is being built for.",
   },
   {
     label: "Wallet",
@@ -56,10 +61,13 @@ const STEPS = [
 
 export default function OnboardingModal({
   open,
+  source = "gate",
   onClose,
   onFinish,
 }: {
   open: boolean
+  /** "gate" when it interrupted a deep link, "manual" when the visitor asked. */
+  source?: "gate" | "manual"
   onClose: (reason: string) => void
   onFinish: () => void
 }) {
@@ -74,9 +82,20 @@ export default function OnboardingModal({
   // Radix reports "it closed", not how. The handlers below name it first.
   const reason = useRef("dismiss")
 
+  /* Whatever had focus when the dialog opened. Radix restores focus to its
+     own `<Trigger>`, and this dialog is controlled with no trigger element, so
+     `triggerRef` is null and focus was being dropped on `<body>` on every close
+     path — leaving a keyboard user at the top of the document, eight tabs from
+     the content they were reading. */
+  const opener = useRef<HTMLElement | null>(null)
+
   // Open: restore any earlier answer, pick the right starting step, and record it.
   useEffect(() => {
     if (!open) return
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    // A reopened dialog must not greet the visitor with the last session's error.
+    setMsg(null)
+    setBusy(false)
     const saved = localStorage.getItem(K_INTENT) as Intent | null
     if (saved) setIntent(saved)
     const existing = currentAddress()
@@ -88,22 +107,26 @@ export default function OnboardingModal({
     } else {
       setStep(0)
     }
-    track("MODAL_SHOWN")
-  }, [open])
+    track("MODAL_SHOWN", { source })
+  }, [open, source])
 
   const dismiss = useCallback(
     (why: string) => {
-      track("MODAL_DISMISSED", { at: ["intent", "wallet", "contact", "code"][step], reason: why })
-      // Remember the decline, or the next cluster page asks again.
-      try {
-        localStorage.setItem(K_DECLINED, String(Date.now()))
-      } catch {
-        // Private mode with storage disabled: the modal reappearing is a far
-        // smaller problem than a thrown error taking the page down.
+      track("MODAL_DISMISSED", { at: ["intent", "wallet", "contact", "code"][step], reason: why, source })
+      /* Only an interruption can be declined. Closing something you opened
+         yourself is not a refusal, and writing the 30-day flag there meant one
+         curious tap on "Get started" silently suppressed onboarding for a month. */
+      if (source === "gate") {
+        try {
+          localStorage.setItem(K_DECLINED, String(Date.now()))
+        } catch {
+          // Private mode with storage disabled: the modal reappearing is a far
+          // smaller problem than a thrown error taking the page down.
+        }
       }
       onClose(why)
     },
-    [step, onClose],
+    [step, onClose, source],
   )
 
   function finish() {
@@ -215,6 +238,15 @@ export default function OnboardingModal({
             e.preventDefault()
             e.currentTarget instanceof HTMLElement && e.currentTarget.focus()
           }}
+          /* Radix restores focus to its own <Trigger>; this dialog is
+             controlled and has none, so focus was landing on <body> and a
+             keyboard user was dumped at the top of the document. Put it back
+             where it came from. */
+          onCloseAutoFocus={(e) => {
+            e.preventDefault()
+            opener.current?.focus?.()
+          }}
+          aria-modal="true"
           className="rise fixed inset-0 z-[101] m-auto h-fit max-h-[100dvh] w-full max-w-[560px] overflow-y-auto border border-edge bg-ink-950 px-6 py-7 sm:px-10 sm:py-9"
         >
           <div className="border-b border-edge pb-4">
@@ -321,9 +353,16 @@ export default function OnboardingModal({
                     className="mt-1.5 block break-all font-mono text-sm text-fg"
                   />
                 </div>
+                {/* Was "Want alerts? We only message you about things you asked
+                    to follow." — a privacy reassurance about a system that does
+                    not exist. There is nothing to follow: /account says so two
+                    screens away, and whichever the visitor read second used to
+                    destroy the credibility of the first. Ask honestly or not at
+                    all. */}
                 <p className="mt-7 text-sm leading-relaxed text-fg-muted">
-                  Want alerts? We only message you about things you asked to follow. Skip and
-                  everything still works.
+                  Alerts are not built yet. Leave an email and you will be the first to know when
+                  they are — nothing else, and you can erase it from your account page at any time.
+                  Skip and everything still works.
                 </p>
                 <Field
                   label="Email"
@@ -413,7 +452,7 @@ export default function OnboardingModal({
           <span className="absolute right-6 top-7 sm:right-10 sm:top-9">
             <D.Close
               onClick={() => (reason.current = "close-button")}
-              className="scan-link font-mono text-micro uppercase tracking-[0.14em]"
+              className="scan-link -m-2 p-2 font-mono text-micro uppercase tracking-[0.14em]"
             >
               Close
             </D.Close>
@@ -452,7 +491,12 @@ function Field({
         placeholder={placeholder}
         type={type}
         spellCheck={false}
-        className="mt-2 w-full border-b border-edge-strong bg-transparent pb-2.5 font-mono text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500"
+        /* 16px on small screens, not 14px. iOS Safari zooms the whole page in
+           when a focused input is under 16px and does not zoom back out, so a
+           visitor tapping the email field mid-signup was left in a magnified
+           viewport for the rest of the flow. Back to text-sm from `sm:` up,
+           where no browser does this. */
+        className="mt-2 w-full border-b border-edge-strong bg-transparent pb-2.5 font-mono text-base text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-acid-500 sm:text-sm"
       />
     </label>
   )
@@ -492,10 +536,13 @@ function Actions({
       ) : (
         <span />
       )}
+      {/* -my-2 py-2 so declining clears a 24px target without shifting the row.
+          At text-micro this was a 15px-tall control, and the way out of a
+          dialog is the last thing that should be hard to hit. */}
       <button
         type="button"
         onClick={onSkip}
-        className="scan-link font-mono text-micro uppercase tracking-[0.14em]"
+        className="scan-link -my-2 py-2 font-mono text-micro uppercase tracking-[0.14em]"
       >
         {skip}
       </button>

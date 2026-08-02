@@ -38,11 +38,17 @@ fails at 2.25:1 as a background.
 
 ## Type
 
-**Anybody Variable** for display — wdth 50–150 and wght 100–900. The width axis
-is driven by scroll velocity, which is the reason for the face rather than
-taste: no static family can do it, and shipping a variable font without touching
-its axes pays the download cost for nothing. Each headline line carries its own
-base width so the block reads as a set composition, not three lines at one size.
+**Anybody Variable** for display — wdth 50–150 and wght 100–900. Each headline
+line carries its own width and weight, so the block reads as a set composition
+rather than three lines at one size; that is the reason for the face, since no
+static family sets three widths from one file.
+
+**The width axis is set, never animated.** Scroll velocity used to drive it, so
+every display heading compressed as the page moved and released as it settled.
+Read from the built site that is text stretching in and out while you scroll,
+and it was reported exactly so. An effect nobody asked for, running on the words
+they are trying to read, is a cost rather than a signature. Removing it also
+removed what it had dragged in behind it — see the note on reflow under Motion.
 
 **Archivo Variable** for long-form prose, where a display family would tire.
 **Geist Mono Variable** for data, addresses, tickers, labels and all chrome.
@@ -115,6 +121,39 @@ target.
 
 A scrubbed sequence must finish while its block is still travelling into view.
 
+**The width axis may only drive text that cannot re-wrap.** `font-stretch`
+changes glyph advances, so on text the browser is free to re-break it changes
+how many lines there are — and a heading that gains or loses a line changes its
+panel's height and the document's, on every frame of a scroll. Measured on the
+landing page: 136 document-height changes and 215 layout shifts in one pass,
+CLS 8.7 against a 0.1 threshold, panels oscillating 42px, and long tasks to
+452ms. Freezing the axis with one `!important` rule took both counts to zero,
+which is how it was identified. So the lines are fixed first — SplitText, one
+`nowrap` box per rendered line — and the axis is driven on those, which is what
+the hero has always done. The parent keeps the resting width so every re-split
+measures the composition rather than whatever compression a scroll was passing
+through.
+
+**Every trigger's start is a number measured once, and the figures arrive
+later.** GSAP refreshes on resize and on load, neither of which is a fetch
+resolving, so a page whose panels change height when their data lands holds
+stale offsets: the pinned pipeline engaged about 2300px early and covered the
+viewport while the section before it was still being read — scrolling down went
+pipeline, previous panel, pipeline. `SmoothScroll` now re-measures when the
+document's own height settles. Two constraints on that: it must wait for the
+reader to stop, because a refresh recalculates every trigger and doing it
+mid-gesture cost a 1270ms frame and put the shifts back; and it must re-read the
+height afterwards so a pin-spacer resizing during the refresh cannot feed back
+into another one.
+
+**Do not depend an effect on a polled object.** The pipeline's pin was built in
+an effect keyed on the stats object, which the poller replaces every eight
+seconds — four polls, twelve pin-spacer mutations. Idle that is only wasteful,
+but a rebuild during a scroll recreates the scrubbed tween and the track snaps
+to it. Key on the transition that actually matters, here the presence of data.
+It also hid the stale-measurement bug above, because each rebuild silently
+re-measured: a re-measure with a page teardown attached is not a fix.
+
 ## Components
 
 **shadcn/ui for behaviour, not looks** — `dialog`, `accordion`, `tooltip`,
@@ -151,6 +190,38 @@ three of them never more than 12% visible — the risk figures among them.
 panel travels fully through the viewport before locking and holds its end while
 it is covered. Re-measured on resize and on content reflow, because the figures
 load asynchronously and change the panel's height after mount.
+
+**A covered panel does not transform, and body content does not animate in.**
+Two separate versions of the same mistake — motion attached to content rather
+than to a moment — both reported from the built site as the page looking
+broken.
+
+The panels had a pool of departures (scale 0.94, a 7deg `rotateX`, a drifting
+scale) so no two consecutive ones left alike. The depth never read, because a
+6% shrink against an identical near-black ground is not perceptible — but
+everything the shrink uncovered did. `.stack-panel::before` is the arriving
+edge at `rgba(255,255,255,.15)`, and scaled to 0.94 at 1440px it stops 43px
+short of both sides. The light panel showed the whole failure at once: inverted
+against the void, the shrink opened a dark strip down each edge with the
+previous section legible through it — captured at 2x, its axis labels sat
+beside the survival figures. Sticky does the overlap, the shadow says which
+surface is in front, the hairline says where the new one starts; nothing else
+was carrying anything.
+
+`Rise`, `Wipe` and `Stagger` are now plain blocks for the same reason. `Article`
+put a reveal around every section's prose, two around every Step, and a
+*staggered* one around every bullet and definition list — so a content page ran
+dozens of clip-path wipes, each firing at `top 88%`, uncovering blocks that were
+already being read. At that density a reveal stops reading as an entrance and
+starts reading as the page failing to draw. The identity is in the aperture, the
+kinetic axis, the tape wall, the stacked panels, the case file and the homoglyph
+scan — mechanics that happen once and carry an argument. Uncovering a paragraph
+carries nothing; it only delays it.
+
+**Verify this class of thing at 2x, cropped to the element.** A downscaled
+full-page screenshot is not evidence: dimmed tape-wall glyphs read as colliding
+rows in one, and the collision did not exist — the DOM had 11px gaps and a
+single glyph size throughout.
 
 **Entrance animations fill `backwards`, never `both`.** `.rise` ends on
 `clip-path: inset(0 0 -12% 0)`, which looks identical to no clip but still crops
@@ -199,7 +270,27 @@ on stdout, which reads exactly like a clean sweep. Use the npx package, and read
 what the process actually wrote.
 
 `/app/theme/:slug` is scanned with the onboarding dialog open, which is its
-first-visit state.
+first-visit state. On 2026-08-01 it reported one `cramped-padding` — a `mb-8`
+wrapper whose children sit flush against a left border — which reproduces
+identically on the previous commit and so is data-dependent on whichever cluster
+is live, not a regression. Unfixed and unaccepted; it needs a look with a
+cluster that triggers it.
+
+**The detector cannot see motion, so scroll health is measured separately.** It
+reads a settled DOM, and every bug on this page lived in the frames between
+settled states. What it takes: a `layout-shift` PerformanceObserver with
+`e.sources` kept — the source elements are what turn "CLS is 8.7" into "this
+heading is re-wrapping" — plus rAF deltas and `longtask`, sampled while driving
+the page with real `mouse.wheel` events, because Lenis interpolates a `scrollTo`
+straight back and never sees a programmatic scroll the way it sees a person.
+Confirm a cause by removing it rather than by reading the code: an `!important`
+author rule beats an inline style the ticker writes, which is how the width axis
+was ruled in without touching the source. And check reading order separately
+from CLS — `elementFromPoint` down the page, which is what caught a section
+appearing, being replaced by one already passed, and appearing again. Measured
+this way, `/` went CLS 6.56 → 2.15 under an identical sweep, of which 1.99 is
+the pin's two inherent `position: fixed` transitions; `/detection` 0.23 → 0; and
+p95 frame time roughly halved, 14ms → 7ms, on every content route.
 
 ## Signature mechanics
 
@@ -211,17 +302,25 @@ surface is whether it owns mechanics nobody else could ship. These are ours.
 unresolved outside it. `Aperture.tsx`, one engine, one rAF loop. Accessible
 default is fully resolved.
 
-**Kinetic type.** Anybody carries wdth 50–150, and scroll velocity drives it, so
-every display heading on the site compresses as the page moves and releases as
-it settles. One shared velocity signal in `kinetic.tsx` — every element reads the
-same number, so they compress in sympathy rather than each running its own
-decay. `KineticText` renders the heading element itself; wrapping heading text
-in an inner span makes it read as body text to a detector and cost five
-`all-caps-body` findings before it was collapsed.
+**Set type on the width axis.** Three widths in one headline from one file —
+still a composition no static family can set, now held still. `KineticText`
+renders the heading element itself; wrapping heading text in an inner span makes
+it read as body text to a detector and cost five `all-caps-body` findings before
+it was collapsed. Two removed mechanics were once listed here as signatures, and
+both turned out to be defects wearing the word:
 
-**Rolling numerals.** Only digits that actually changed animate, compared from
-the right so a figure keeps its identity as it lengthens. A live block height
-reads as a counter rather than a repaint.
+- **Kinetic type** — the velocity-driven axis, above.
+- **Rolling numerals** — a changed digit ran a keyframe starting at
+  `translateY(0.9em)` with `opacity: 0` inside an `overflow-hidden` box, so for
+  part of its 520ms it was transparent *and* outside its own box. The header's
+  block height changes every eight seconds, several digits at a time; a capture
+  of the hero caught `25,02 , 38` while the chain was at `25,022,338`. A real
+  odometer needs the outgoing digit leaving as the incoming arrives so the column
+  is never empty. A block height in 11px mono does not need selling, so it is
+  `tabular-nums` and it ticks.
+
+The test both failed: a mechanic has to survive being looked at on the built
+page, at speed, by someone who did not design it.
 
 **Resolving text.** Page slugs settle from a scramble, character by character.
 The DOM always holds the real string; the scramble is written to an aria-hidden

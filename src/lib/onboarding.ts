@@ -59,6 +59,31 @@ export function wasDeclined(): boolean {
   return Date.now() - Number(t) < 30 * 24 * 60 * 60 * 1000
 }
 
+/* Asking for it, from anywhere.
+ *
+ * The dialog used to open on exactly one route — a cluster detail page — and
+ * nowhere else, with no control that opened it. So a visitor who came in on the
+ * feed, which is the acquisition surface and the one route deliberately left
+ * ungated, had no way to onboard at all; and anyone who dismissed it once was
+ * locked out for the thirty days `wasDeclined` remembers.
+ *
+ * This is the deliberate way in, so it ignores both flags. Declining an
+ * interruption is not declining the offer, and a control the visitor pressed
+ * themselves must always do what it says. */
+export const ONBOARD_EVENT = "newera:onboard"
+/** Fired when onboarding completes, so chrome that reads `isOnboarded()` can
+    catch up without a reload. */
+export const ONBOARD_DONE_EVENT = "newera:onboarded"
+
+/* No `track()` here. The modal already fires MODAL_SHOWN on open, so doing it
+   here too logged every deliberate open twice — and pressing the control while
+   the dialog was already open logged it again with no state change, making the
+   count unbounded. The modal is the single place that knows it actually opened;
+   `source` rides along on the event for it to report. */
+export function openOnboarding(source: string) {
+  window.dispatchEvent(new CustomEvent(ONBOARD_EVENT, { detail: { source } }))
+}
+
 function param(name: string): string | null {
   try {
     return new URLSearchParams(location.search).get(name)

@@ -5,7 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NewEra · Launch intelligence for Robinhood Chain</title>
-    <meta name="description" content="See what is launching on Robinhood Chain before it has a price. Themes as they form, copies and ticker impersonation flagged, from data available at block zero." />
+    <!-- "block zero" led the description, which is the site's most internal
+         term aimed at people who have not arrived yet. -->
+    <meta name="description" content="See what is launching on Robinhood Chain before it has a price. Clusters as they form, copies and ticker impersonation flagged, from the moment a token is created." />
+
+    <!-- Pasting a cluster link produced an unlabelled card: no og tags existed
+         at all, and a cluster URL is the thing most likely to be shared. Per-route
+         titles are set at runtime; these are the static fallbacks a crawler and
+         an unfurler see. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NewEra" />
+    <meta property="og:title" content="NewEra · Launch intelligence for Robinhood Chain" />
+    <meta property="og:description" content="See what is launching on Robinhood Chain before it has a price. Clusters as they form, copies and ticker impersonation flagged, from the moment a token is created." />
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NewEra · Launch intelligence for Robinhood Chain" />
+    <meta name="twitter:description" content="See what is launching on Robinhood Chain before it has a price." />
+    <meta name="twitter:image" content="/og.png" />
   </head>
   <body>
     <!--

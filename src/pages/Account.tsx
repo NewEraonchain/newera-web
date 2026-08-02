@@ -32,6 +32,9 @@ export default function Account() {
   const [confirming, setConfirming] = useState(false)
   const [confirmText, setConfirmText] = useState("")
   const [erased, setErased] = useState(false)
+  /** Set when the record could not be read, so the page never presents an
+      unknown record as an empty one. */
+  const [stale, setStale] = useState<"expired" | "unreachable" | null>(null)
 
   const addr = currentAddress()
 
@@ -41,12 +44,37 @@ export default function Account() {
       setMe({ walletAddress: addr })
       return setLoading(false)
     }
+    /* A failure here must never be rendered as an empty record.
+     *
+     * This used to fall back to `{ walletAddress: addr }` on any error, which
+     * on a page headed "What we hold against this wallet" printed "1 of 11
+     * fields set" with every row reading "not set" — a false and flattering
+     * disclosure produced by an outage or an expired token. Tokens last seven
+     * days and `newera_address` is never cleared, so every returning user past
+     * day 7 landed in exactly that state, with all three data-rights buttons
+     * failing silently against a 401.
+     *
+     * So the two cases are separated: an expired session is reported as one and
+     * the connect rows come back; a transport failure says so and leaves the
+     * record unknown rather than empty. */
     fetch(`${API}/onboarding/me`, { headers: authHeaders() })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(async (r) => {
+        if (r.ok) return r.json()
+        if (r.status === 401 || r.status === 403) {
+          throw Object.assign(new Error("expired"), { expired: true })
+        }
+        throw new Error(`HTTP ${r.status}`)
+      })
       .then((d) => setMe(d.user || { walletAddress: addr }))
-      // Session expired or API down — show what the browser knows rather than
-      // an error, since the address itself is still valid.
-      .catch(() => setMe({ walletAddress: addr }))
+      .catch((e: { expired?: boolean }) => {
+        if (e?.expired) {
+          // Drop the dead token so the page offers a way back in.
+          localStorage.removeItem("newera_token")
+          setStale("expired")
+        } else {
+          setStale("unreachable")
+        }
+      })
       .finally(() => setLoading(false))
   }, [addr])
 
@@ -106,9 +134,16 @@ export default function Account() {
   async function clearContact() {
     setBusy(true)
     try {
+      /* `body: "{}"` is load-bearing. `authHeaders()` always sets
+         Content-Type: application/json, and Fastify's JSON parser rejects an
+         empty body with FST_ERR_CTP_EMPTY_JSON_BODY *before* the auth
+         preHandler runs — so this returned 400 for every user who ever pressed
+         it, and the control backing the privacy policy's withdrawal commitment
+         has never once worked. */
       const r = await fetch(`${API}/onboarding/contact/clear`, {
         method: "POST",
         headers: authHeaders(),
+        body: "{}",
       })
       if (!r.ok) throw new Error("Could not remove contact details.")
       setMsg({ text: "Contact details removed. Your account is unchanged otherwise.", kind: "ok" })
@@ -185,14 +220,30 @@ export default function Account() {
      It now answers the only question worth answering here: what would this cost
      me. Same field list as the connected view, every row reading "not set",
      shown *before* connecting rather than after. */
-  if (!addr) {
+  /* An unreadable record is not an empty one. Showing the disconnected view
+     with an explanation is the honest option: the connect rows below give a way
+     back in, which the old silent fallback did not — its only affordance was
+     "Disconnect". */
+  if (!addr || stale) {
     return (
       <Wrap>
         <h1 className="font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.02em]">Account</h1>
-        <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
-          NewEra needs no account. The feed, the clusters and the API are open to everyone. A wallet
-          only changes what can be remembered — so here is exactly what that would be.
-        </p>
+        {stale === "expired" ? (
+          <p className="measure mt-2 text-sm leading-relaxed text-warn">
+            Your session expired, so we cannot show your record. Nothing has been deleted —
+            reconnect the same wallet and it will all still be there.
+          </p>
+        ) : stale === "unreachable" ? (
+          <p className="measure mt-2 text-sm leading-relaxed text-warn">
+            We could not reach the API, so we cannot show what is held against this wallet. This is
+            a connection problem, not an empty record — try again in a moment.
+          </p>
+        ) : (
+          <p className="measure mt-2 text-sm leading-relaxed text-fg-muted">
+            NewEra needs no account. The feed, the clusters and the API are open to everyone. A
+            wallet only changes what can be remembered — so here is exactly what that would be.
+          </p>
+        )}
 
         <Section title="Connect a wallet">
           <div className="border-t border-edge">
@@ -303,7 +354,12 @@ export default function Account() {
             <Btn danger onClick={() => setConfirming(true)}>Delete my account</Btn>
           ) : (
             <div>
-              <p className="mb-2.5 text-sm text-danger">
+              {/* The instruction is tied to the field with aria-describedby,
+                  and the field has a real accessible name. It had neither: the
+                  placeholder was doing the work of a label, which disappears
+                  the moment you type and is not a label to a screen reader —
+                  on the one irreversible control in the product. */}
+              <p id="erase-help" className="mb-2.5 text-sm text-danger">
                 Type <b>DELETE</b> to confirm. There is no undo.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -311,8 +367,13 @@ export default function Account() {
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder="DELETE"
+                  aria-label="Type DELETE to confirm erasing your account"
+                  aria-describedby="erase-help"
                   spellCheck={false}
-                  className="w-[200px] border-b border-edge-strong bg-transparent px-1 py-2 font-mono text-sm outline-none focus:border-danger"
+                  // 16px on phones so iOS does not zoom in on focus — see the
+                  // note on the onboarding Field. This is the confirmation for
+                  // an irreversible delete; being trapped zoomed here is worse.
+                  className="w-[200px] border-b border-edge-strong bg-transparent px-1 py-2 font-mono text-base outline-none focus:border-danger sm:text-sm"
                 />
                 <Btn danger onClick={erase} disabled={busy}>Erase permanently</Btn>
                 <Btn onClick={() => { setConfirming(false); setConfirmText(""); setMsg(null) }}>Cancel</Btn>

@@ -119,7 +119,13 @@ const FAQ = [
   },
   {
     q: "How current is the feed?",
-    a: "Ingest runs roughly nine to ten minutes behind the chain head. That is live in the sense that matters — you see a launch long before it has a price — but it is not instant, and we would rather state the number than imply otherwise.",
+    /* "Nine to ten minutes" was a frozen measurement. Re-measured against the
+       chain head today it sat around six to seven, and a subagent measuring two
+       hours earlier got two to five — the gap moves through the day because the
+       cursor advances in batches. A fixed number here is wrong whichever number
+       you pick, so the FAQ describes the shape and points at the live figure the
+       feed header now publishes. */
+    a: "Not instant, and the gap moves. Ingest typically runs a few minutes behind the chain head, and the live feed prints how far behind it is at the top of the page rather than asking you to trust a number written here. You still see a launch long before it has a price, which is the window this exists for.",
   },
   {
     q: "What does it cost?",
@@ -285,7 +291,15 @@ function Pipeline() {
     return () => {
       mm.revert()
     }
-  }, [live])
+    /* Presence, not the object. `live` is a fresh object from the stats poll
+       every eight seconds, and depending on it tore the pin down and rebuilt
+       it on every one — measured: four polls, twelve pin-spacer mutations.
+       Idle that is merely wasteful, but a rebuild during a scroll recreates
+       the scrubbed tween and the track snaps back to it. The cards are
+       `flex-none` at a fixed width, so the live block changes their height and
+       never the distance this pin scrolls; the only transition that matters
+       here is the stats arriving at all. */
+  }, [!!live])
 
   return (
     <section

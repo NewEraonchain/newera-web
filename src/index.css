@@ -162,6 +162,22 @@ p { text-wrap: pretty; }
    keep it. */
 .reticle-on input, .reticle-on textarea, .reticle-on [contenteditable] { cursor: text; }
 
+/* ── Windows High Contrast ───────────────────────────────────────────────
+   Forced colours rewrite the reticle's arms to the system Canvas colour, and
+   `mix-blend-difference` of black over black is a no-op — so the replacement
+   pointer disappeared while `cursor: none` was still suppressing the real one.
+   Measured with `forced-colors: active`: the crosshair vanished entirely,
+   leaving only its orphaned block-height readout floating on screen. The users
+   who turn this mode on are the low-vision users it made the site unusable for.
+
+   The aperture goes too. It is a 93%-opaque veil over display type, and forced
+   colours exist precisely to guarantee legibility. */
+@media (forced-colors: active) {
+  .reticle-on, .reticle-on * { cursor: auto; }
+  .reticle-on a, .reticle-on button, .reticle-on [role="button"] { cursor: pointer; }
+  .ap-scrim, .aperture-rule { display: none !important; }
+}
+
 /* ── Interaction vocabulary ──────────────────────────────────────────────
    Every hover and press in this world is the same gesture the aperture makes:
    something resolves, and a hairline marks what the instrument is on. A page
@@ -192,7 +208,10 @@ p { text-wrap: pretty; }
 .block-btn {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  /* 12px, not 11px. A button's label is the text a reader has to act on, and
+     these run to whole phrases — "Include one-wallet clusters" is not a label,
+     it is a sentence wearing a button. 11px is the floor for a two-word tag. */
+  font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 12px 20px;
@@ -288,10 +307,10 @@ p { text-wrap: pretty; }
 
 /* A digit that changed rolls up into place. Only changed digits animate, so a
    block height ticking reads as a counter rather than a repaint. */
-@keyframes roll {
-  0%   { transform: translateY(0.9em); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
+/* `roll` lived here — a changed digit slid up into place from opacity 0. It is
+   gone with RollingNumber's animation: inside an overflow-hidden box that
+   keyframe renders the digit absent for the first part of its run, so a live
+   figure ticked over with holes in it rather than reading as a counter. */
 
 /* ── Route transitions ───────────────────────────────────────────────────
    Navigation is the aperture opening on the next page: the incoming view is

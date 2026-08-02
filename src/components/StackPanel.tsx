@@ -1,24 +1,19 @@
 import { useEffect, useRef, type ReactNode } from "react"
-import gsap from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
-
-gsap.registerPlugin(ScrollTrigger)
 
 /* Sections that stack, so arriving at one is felt rather than inferred.
  *
  * Each panel sticks to the top of the viewport and the next one rides up over
- * it on its own opaque ground, casting a shadow as it comes. The panel being
- * covered recedes — a small scale down and a dim — so the movement reads as
- * one surface passing in front of another rather than as content scrolling.
- * That is the depth cue; without it the overlap is invisible because both
- * grounds are dark.
+ * it on its own opaque ground, casting a shadow as it comes. The shadow is the
+ * depth cue and the hairline is the arriving surface's edge; the panel being
+ * covered does nothing at all. See the note on departures below for what used
+ * to happen there and why it had to stop.
  *
  * WHY STICKY AND NOT A ScrollTrigger PIN. Pinning wraps the element in a
  * pin-spacer and takes over its positioning, and this page already runs a pin
  * on the pipeline; stacking a second pinning system on top of it is the exact
- * combination the GSAP forums are full of. Sticky is native and costs nothing.
- * GSAP is left doing the one thing sticky cannot: the recede, which animates the
- * covered panel and never touches scroll position.
+ * combination the GSAP forums are full of. Sticky is native and costs nothing —
+ * and now that nothing animates the covered panel, this file runs no GSAP at
+ * all.
  *
  * A TALL PANEL MUST PIN BY ITS BOTTOM EDGE. This file used to claim sticky
  * "degrades to ordinary flow for panels taller than the viewport". It does not.
@@ -53,36 +48,37 @@ export const PANEL_TONES = [
   "bg-[#1e2329]",
 ] as const
 
-/* A pool of departures, not one repeated.
+/* WHY THE PANELS NO LONGER TRANSFORM AS THEY LEAVE.
  *
- * Every panel receding identically is the same monotony the page already had
- * in its headline scale — the eye learns it once and stops reading it as
- * movement. Each variant is a different way of getting out of the way, and
- * they are assigned so no two consecutive panels leave alike.
+ * There was a pool of departures here — recede (scale 0.94), tilt (scale plus
+ * a 7deg rotateX on a 1400 perspective), drift (scale plus yPercent) — assigned
+ * so no two consecutive panels left alike. The idea was a depth cue for an
+ * overlap that is otherwise invisible, because both grounds are dark.
  *
- * All of them are transform-only. Nothing here dims text: a brightness filter
- * measured 1.2:1 on a covered panel, and anyone who stops mid-transition reads
- * at whatever it is showing. */
+ * The cue never arrived and its edges did. A 6% scale against an identical
+ * near-black ground is not perceptible as depth; what *is* perceptible is
+ * everything the shrink uncovers. Two ways, both visible:
+ *
+ *   - `.stack-panel::before` is the arriving surface's edge, and it is
+ *     rgba(255,255,255,.15) — plainly visible on black. Scaled to 0.94 at
+ *     1440px it stops 43px short of each side, so the page's one structural
+ *     hairline hangs in space with a gap at both ends.
+ *   - The light panel is the whole failure in one frame. Inverted against the
+ *     void, the shrink opens a dark strip down each edge, and the panel behind
+ *     shows through it — captured at 2x mid-recede you can read the previous
+ *     section's axis labels beside the survival figures.
+ *
+ * Content appearing around the edges of a panel reads as the page failing to
+ * draw, which is what it was reported as. The stack itself needs none of it:
+ * sticky does the overlap, the shadow says which surface is in front, and the
+ * hairline says where the new one starts. `exit` is kept on the props so the
+ * call sites keep reading as a composition, and so turning a departure back on
+ * for one panel stays a local decision. */
 export type PanelExit = "recede" | "tilt" | "drift" | "hold"
-
-const EXITS: Record<PanelExit, gsap.TweenVars> = {
-  // Straight back, away from the viewer.
-  recede: { scale: 0.94 },
-  // Tipping away at the top edge — the closest this gets to depth, and the
-  // perspective is on the parent so the rotation reads as a plane, not a skew.
-  tilt: { scale: 0.965, rotateX: 7, transformPerspective: 1400 },
-  // Leaving upward as it shrinks, so it reads as travelling rather than
-  // shrinking in place.
-  drift: { scale: 0.97, yPercent: -6 },
-  // Stillness. A beat where the incoming panel does all the work, so the
-  // others land harder by contrast.
-  hold: {},
-}
 
 export default function StackPanel({
   children,
   tone = 0,
-  exit = "recede",
   light = false,
   className = "",
   id,
@@ -90,7 +86,7 @@ export default function StackPanel({
   children: ReactNode
   /** Index into PANEL_TONES. Rising through a page reads as ascending. */
   tone?: number
-  /** How this panel gets out of the way when the next one arrives. */
+  /** Accepted and ignored — see the note on departures above. */
   exit?: PanelExit
   /** Invert to the light ground. See .panel-light in index.css. */
   light?: boolean
@@ -123,45 +119,6 @@ export default function StackPanel({
       window.removeEventListener("resize", fit)
     }
   }, [])
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-
-    const ctx = gsap.context(() => {
-      /* Geometry only — no brightness filter.
-       *
-         Dimming the outgoing panel was the obvious depth cue and it fails:
-         at brightness(0.45) the body text measures 1.2:1 while the panel is
-         being covered, and anyone who stops mid-transition is reading at that.
-         On the lighter panels *any* dim breaks 4.5:1, because they start at
-         4.74:1. The recede is carried by scale and by the shadow the incoming
-         panel casts, both of which cost nothing in contrast. */
-      const vars = EXITS[exit]
-      if (!Object.keys(vars).length) return // "hold" — the incoming panel carries it.
-
-      gsap.fromTo(
-        el,
-        { scale: 1, rotateX: 0, yPercent: 0 },
-        {
-          ...vars,
-          ease: "none",
-          immediateRender: false,
-          scrollTrigger: {
-            trigger: el,
-            // Begins only once the panel's own end is at the viewport floor —
-            // i.e. exactly when the next panel starts covering it.
-            start: "bottom bottom",
-            end: "bottom top",
-            scrub: 0.5,
-          },
-        }
-      )
-    }, el)
-
-    return () => ctx.revert()
-  }, [exit])
 
   return (
     <section

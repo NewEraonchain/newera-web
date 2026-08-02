@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { Article, Section, Callout, Bullets, Mono, FootNote } from "@/components/site/Article"
+import { API } from "@/lib/api"
 
 /* Terms, Privacy and Risk. These describe an information service that holds no
    funds and executes no trades — the shape of the product, not the previous one. */
@@ -21,10 +22,16 @@ export function Docs() {
         <p>There is nothing to set up. Open the live feed and it is already running.</p>
         <Bullets
           items={[
+            /* This walked users through a control and a layout that no longer
+               exist: the toggle is "Include one-wallet clusters" (inverted
+               sense, different words) and the two-pane layout was replaced by a
+               single scrolling column. A getting-started page describing a
+               different product is worse than none. */
             <>Open the <Link to="/app" className="text-acid-500 hover:underline">live feed</Link>. No wallet, no signup.</>,
-            <>Leave <b>Organic themes only</b> on — it hides clusters that are one wallet repeating itself.</>,
-            <>Watch the left panel for themes forming and the right panel for the raw tape.</>,
-            <>Connect a wallet only if you want preferences saved to your address.</>,
+            <>Read the opening line — it says how many tokens launched in the last hour and how many of them are copies.</>,
+            <><b>Worth looking at</b> ranks the clusters that have more than one wallet launching into them. Leave <b>Include one-wallet clusters</b> off to keep it that way.</>,
+            <><b>Getting traded</b> is the subset that has a market at all; <b>Everything launching</b> is the raw tape underneath.</>,
+            <>Connect a wallet only if you want a record kept against your address.</>,
           ]}
         />
       </Section>
@@ -43,9 +50,18 @@ export function Docs() {
       </Section>
 
       <Section title="API reference">
+        {/* The base URL was described as "the NewEra API host" and printed
+            nowhere on the site, so the one page written for developers omitted
+            the single fact needed to make a request. Read from the same
+            constant the app itself uses, so the two cannot drift apart. */}
         <p>
-          The same endpoints this site runs on. Public, unauthenticated, JSON. Base URL is the
-          NewEra API host.
+          The same endpoints this site runs on. Public, unauthenticated, JSON. Base URL:
+        </p>
+        <p>
+          <Mono>{API}</Mono>
+        </p>
+        <p>
+          So a first call is <Mono>{`curl ${API}/intel/stats`}</Mono>.
         </p>
         <Bullets
           items={[
@@ -345,7 +361,14 @@ export function Privacy() {
           You may also have the right to object to processing, or to complain to your local data
           protection authority. Where we rely on a legal basis under the UK or EU GDPR, it is
           legitimate interest for the analytics described in section 2, and consent for anything you
-          volunteered. Requests made by email are answered within one month.
+          volunteered.
+          {/* "Requests made by email are answered within one month" was a
+              commitment with no channel behind it — there is no email address
+              anywhere on this site. Access and erasure are self-serve on the
+              account page, which is stronger than a promise to reply, and the
+              contact page names the route for anything else. */}{" "}
+          Access and erasure do not require a request at all: both are buttons on your account page,
+          and they act immediately.
         </p>
         <Callout tone="warn">
           One limit we cannot get around: anything already written to a blockchain is permanent and
@@ -400,9 +423,14 @@ export function Risk() {
 
       <Section title="4. Market risk">
         <p>
-          Newly launched tokens are among the most speculative assets that exist. On the chain
-          NewEra indexes, we have measured that <b>roughly 70% are effectively abandoned within
-          thirty minutes</b> of launching.
+          {/* "We have measured that roughly 70% are effectively abandoned" —
+              no endpoint returns an overall abandonment rate, so this was a
+              measurement claim with nothing behind it. What the index can
+              support is the cohort comparison on /detection, which is read live
+              and carries its own sample sizes. */}
+          Newly launched tokens are among the most speculative assets that exist. Most of what
+          launches on the chain NewEra indexes is never traded at all — the measured survival rates,
+          with the sample they were taken from, are on the detection page.
         </p>
         <Bullets
           items={[

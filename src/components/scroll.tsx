@@ -31,106 +31,47 @@ type CommonProps = {
   delay?: number
 }
 
-/** Uncovered from below. The workhorse for headings and prose blocks. */
-export function Rise({ children, className = "", as: Tag = "div", delay = 0 }: CommonProps) {
-  const ref = useRef<HTMLElement>(null)
+/* ── Why these three no longer animate ───────────────────────────────────
+ *
+ * They were the site's two entrance gestures, and they were attached to
+ * content rather than to moments. `Article` puts a Rise around every section's
+ * prose, a Rise around each half of every Step, and a Stagger around every
+ * bullet list and every definition list — so a content page ran dozens of
+ * independent reveals, each firing at `top 88%`, which on an ordinary scroll
+ * means blocks uncovering themselves while they are already being read. At that
+ * density a reveal stops reading as an entrance and starts reading as the page
+ * failing to draw. Reported from the built site as "glitch animations, every
+ * single page, every single section" — which was a fair description of what
+ * dozens of simultaneous clip-path wipes look like.
+ *
+ * The site's identity does not live here. It lives in the aperture, the kinetic
+ * width axis, the tape wall, the stacked panels, the case file and the homoglyph
+ * scan — mechanics that are moments, that happen once, and that carry an
+ * argument. Uncovering a paragraph carries nothing; it just delays it.
+ *
+ * They stay as components because the composition reads better with the intent
+ * named in the JSX, and because turning one back on for a genuine moment should
+ * be a local decision rather than a re-import across nine files. */
 
-  useEffect(() => {
-    const el = ref.current
-    if (!el || still()) return
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        { clipPath: "inset(0 0 100% 0)", y: 18 },
-        {
-          clipPath: "inset(0 0 -8% 0)",
-          y: 0,
-          duration: 0.85,
-          delay,
-          ease: "expo.out",
-          immediateRender: false,
-          scrollTrigger: { trigger: el, start: "top 88%", once: true },
-        }
-      )
-    }, el)
-    return () => ctx.revert()
-  }, [delay])
-
-  return (
-    <Tag ref={ref} className={className}>
-      {children}
-    </Tag>
-  )
+/** Was: uncovered from below. Now a plain block — see the note above. */
+export function Rise({ children, className = "", as: Tag = "div" }: CommonProps) {
+  return <Tag className={className}>{children}</Tag>
 }
 
-/** Uncovered left to right — the same gesture the case file's record uses. */
-export function Wipe({ children, className = "", as: Tag = "div", delay = 0 }: CommonProps) {
-  const ref = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || still()) return
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        { clipPath: "inset(0 100% 0 0)" },
-        {
-          clipPath: "inset(0 -2% 0 0)",
-          duration: 0.9,
-          delay,
-          ease: "expo.out",
-          immediateRender: false,
-          scrollTrigger: { trigger: el, start: "top 88%", once: true },
-        }
-      )
-    }, el)
-    return () => ctx.revert()
-  }, [delay])
-
-  return (
-    <Tag ref={ref} className={className}>
-      {children}
-    </Tag>
-  )
+/** Was: uncovered left to right. Now a plain block — see the note above. */
+export function Wipe({ children, className = "", as: Tag = "div" }: CommonProps) {
+  return <Tag className={className}>{children}</Tag>
 }
 
-/** Direct children arrive one after another, each on the wipe. */
+/** Was: children arriving one after another. Now a plain block. A staggered
+    list is the single worst offender at this density — every item in every
+    bullet list on the site was arriving on its own delay. */
 export function Stagger({
   children,
   className = "",
   as: Tag = "div",
-  each = 0.07,
 }: CommonProps & { each?: number }) {
-  const ref = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || still()) return
-    const ctx = gsap.context(() => {
-      const kids = Array.from(el.children)
-      if (!kids.length) return
-      gsap.fromTo(
-        kids,
-        { clipPath: "inset(0 0 100% 0)", y: 14 },
-        {
-          clipPath: "inset(0 0 -8% 0)",
-          y: 0,
-          duration: 0.7,
-          ease: "expo.out",
-          stagger: each,
-          immediateRender: false,
-          scrollTrigger: { trigger: el, start: "top 86%", once: true },
-        }
-      )
-    }, el)
-    return () => ctx.revert()
-  }, [each])
-
-  return (
-    <Tag ref={ref} className={className}>
-      {children}
-    </Tag>
-  )
+  return <Tag className={className}>{children}</Tag>
 }
 
 /** A hairline that draws itself in as its section arrives. */

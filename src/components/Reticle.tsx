@@ -21,7 +21,12 @@ export default function Reticle() {
     if (!el) return
     const fine = window.matchMedia("(pointer: fine)").matches
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (!fine || still) return
+    /* Forced colours would repaint the arms in the system Canvas colour and
+       `mix-blend-difference` cancels them out entirely, so the replacement
+       pointer is invisible while `cursor: none` hides the real one. Don't
+       install at all — the CSS guard is the belt, this is the braces. */
+    const forced = window.matchMedia("(forced-colors: active)").matches
+    if (!fine || still || forced) return
 
     document.documentElement.classList.add("reticle-on")
 
@@ -59,7 +64,17 @@ export default function Reticle() {
       ref={ref}
       aria-hidden="true"
       style={{ opacity: 0 }}
-      className="pointer-events-none fixed left-0 top-0 z-[100] mix-blend-difference"
+      /* Above everything, without exception.
+       *
+       * This replaces the system cursor — `.reticle-on * { cursor: none }` —
+       * so anything that paints over it does not hide a decoration, it hides
+       * the pointer. At z-[100] it sat underneath the onboarding dialog's
+       * overlay (also z-[100], and later in the DOM) and its panel (z-[101]),
+       * so opening the dialog left no visible pointer at all: no reticle,
+       * because it was covered, and no arrow, because we had turned it off.
+       * The one element standing in for the mouse has to outrank every layer
+       * that will ever be added. */
+      className="pointer-events-none fixed left-0 top-0 z-[9999] mix-blend-difference"
     >
       <span className="absolute -left-3 top-0 block h-px w-6 bg-white" />
       <span className="absolute left-0 -top-3 block h-6 w-px bg-white" />

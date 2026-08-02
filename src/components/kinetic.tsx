@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react"
+import { useEffect, useRef, type ElementType, type ReactNode } from "react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { SplitText } from "gsap/SplitText"
@@ -6,98 +6,77 @@ import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin"
 
 gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin)
 
-/* The kinetic type system.
+/* The display type system.
  *
- * The hero works because the letterforms themselves respond — Anybody carries a
- * width axis from 50 to 150, and scroll velocity drives it. Everything here
- * extends that one idea so the whole site shares the hero's signature instead
- * of the hero being an exception on an otherwise static page.
+ * This was the kinetic type system: Anybody carries a width axis from 50 to 150
+ * and scroll velocity drove it, so every display heading compressed as the page
+ * moved and released as it settled. On the built site that reads as text
+ * stretching in and out while you scroll, and it was reported that way. The
+ * axis is now only ever set, never animated — see KineticText.
  *
- * All of it degrades to ordinary text: the axes settle at their base values,
- * the digits render as digits, the characters render as characters. */
+ * All of it degrades to ordinary text: the axes sit at their set values, the
+ * digits render as digits, the characters render as characters. */
 
 const still = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-/* Scroll velocity, shared. One listener and one ticker for the whole page —
-   every kinetic element reads the same number, so they compress in sympathy
-   rather than each running its own slightly different decay. */
-let velocity = 0
-let lastY = 0
-let listeners = 0
-let tickerFn: (() => void) | null = null
-
-function onScroll() {
-  velocity = Math.min(Math.abs(window.scrollY - lastY), 90)
-  lastY = window.scrollY
-}
-
-function useVelocity(apply: (v: number) => void) {
-  useEffect(() => {
-    if (still()) return
-    if (listeners === 0) {
-      lastY = window.scrollY
-      window.addEventListener("scroll", onScroll, { passive: true })
-      tickerFn = () => {
-        velocity *= 0.9
-      }
-      gsap.ticker.add(tickerFn)
-    }
-    listeners++
-
-    const tick = () => apply(velocity)
-    gsap.ticker.add(tick)
-
-    return () => {
-      gsap.ticker.remove(tick)
-      listeners--
-      if (listeners === 0) {
-        window.removeEventListener("scroll", onScroll)
-        if (tickerFn) gsap.ticker.remove(tickerFn)
-        tickerFn = null
-      }
-    }
-  }, [apply])
-}
-
-/* Display text whose width axis answers the scroll. The same mechanic as the
-   hero, available to any heading on the site. */
+/* Display text set on the width axis. Static.
+ *
+ * THE AXIS NO LONGER ANSWERS THE SCROLL. An effect nobody asked for, running on
+ * the words they are trying to read, is a cost rather than a signature.
+ *
+ * The width axis is still the reason for the face: `base` differs per heading,
+ * and each line of the hero carries its own, which is a composition no static
+ * family can set from one file. It just holds still now.
+ *
+ * This also removed what the animation had dragged in behind it. Driving the
+ * axis re-broke wrapping text every frame, which changed each heading's height,
+ * its panel's, and the document's - 136 document-height changes and 215 layout
+ * shifts in a single pass, CLS 8.7 against a 0.1 threshold. The fix for that was
+ * to split every heading into `nowrap` lines so compression could not move text
+ * between them, and that split landed 1.6-1.9s after first paint, re-rendering
+ * the heading well into the read. A static axis reflows nothing, so the
+ * SplitText, the shared velocity ticker and its scroll listener are all gone
+ * with it. */
 export function KineticText({
   children,
   base = 72,
-  amount = 0.28,
   className = "",
   as: Tag = "span",
 }: {
   children: string
-  /** Resting width, in font-stretch percent. */
+  /** Width, in font-stretch percent. */
   base?: number
-  /** How hard velocity compresses it. */
+  /** Accepted and ignored - the axis is no longer velocity-driven. */
   amount?: number
   className?: string
   as?: ElementType
 }) {
-  const ref = useRef<HTMLElement>(null)
-
-  useVelocity((v) => {
-    const el = ref.current
-    if (!el) return
-    el.style.fontStretch = `${(base - v * amount).toFixed(1)}%`
-  })
-
   return (
-    <Tag ref={ref} className={className} style={{ fontStretch: `${base}%` }}>
+    <Tag className={className} style={{ fontStretch: `${base}%` }}>
       {children}
     </Tag>
   )
 }
 
-/* Numerals that roll rather than swap.
+/* A live figure, set in tabular numerals so its columns never shuffle.
  *
- * A live figure that changes in place reads as a glitch; a whole number that
- * re-renders reads as a page reload. Only the digits that actually changed
- * move, so a block height ticking up looks like a counter and not a repaint. */
+ * THE DIGITS USED TO ROLL AND IT WAS A DEFECT, NOT AN EFFECT. Every changed
+ * digit ran the `roll` keyframe, which begins at `translateY(0.9em)` with
+ * `opacity: 0` inside an `overflow-hidden` box - so for the first part of its
+ * 520ms that digit is both transparent and outside its own box, which is to say
+ * absent. The header's block height changes every eight seconds, several digits
+ * at a time, so it spent much of every minute reading as a number with holes in
+ * it: a capture of the hero caught "25,02 , 38" while the chain was at
+ * 25,022,338. The comment here used to claim this "looks like a counter and not
+ * a repaint". It looked like a rendering fault, and was reported as one.
+ *
+ * A real odometer needs the outgoing digit travelling out as the incoming one
+ * arrives, so the column is never empty. That is worth building only if a
+ * ticking figure has to sell something, and this one does not - it is a block
+ * height in 11px mono. React already replaces only the text, `tabular-nums`
+ * holds every column still, and the number simply ticks. */
 export function RollingNumber({
   value,
   className = "",
@@ -106,33 +85,7 @@ export function RollingNumber({
   className?: string
 }) {
   const text = typeof value === "number" ? value.toLocaleString("en-US") : value
-  const prev = useRef<string>(text)
-  const [chars, setChars] = useState<{ ch: string; changed: boolean; key: string }[]>([])
-
-  useLayoutEffect(() => {
-    const before = prev.current
-    const next = text.split("").map((ch, i) => {
-      // Compare from the right so a digit keeps its identity as the number
-      // lengthens: 999 → 1,000 must not repaint every column.
-      const fromRight = text.length - i
-      const b = before[before.length - fromRight]
-      return { ch, changed: before !== text && b !== ch, key: `${i}-${ch}-${fromRight}` }
-    })
-    setChars(next)
-    prev.current = text
-  }, [text])
-
-  return (
-    <span className={`inline-flex tabular-nums ${className}`}>
-      {chars.map((c, i) => (
-        <span key={`${c.key}-${i}`} className="relative inline-block overflow-hidden">
-          <span className={c.changed ? "inline-block animate-[roll_520ms_cubic-bezier(0.16,1,0.3,1)]" : "inline-block"}>
-            {c.ch === " " ? " " : c.ch}
-          </span>
-        </span>
-      ))}
-    </span>
-  )
+  return <span className={`tabular-nums ${className}`}>{text}</span>
 }
 
 export function ResolveText({
@@ -175,7 +128,7 @@ export function ResolveText({
 /* Lines that rise from behind a mask.
  *
  * SplitText ships free with GSAP 3.13 onward, and `mask: "lines"` wraps each
- * line in its own overflow-hidden box — so the lines are genuinely uncovered
+ * line in its own overflow-hidden box - so the lines are genuinely uncovered
  * rather than sliding under a gradient. This is the mechanic that reads as
  * typeset rather than animated.
  *

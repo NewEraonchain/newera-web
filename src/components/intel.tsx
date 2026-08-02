@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import type { Launch, Theme, ThemeStatus } from "@/lib/api"
 import { ago } from "@/lib/api"
+import { usd, type Market } from "@/lib/markets"
 
 /* The Operate surface, in the Aperture world.
  *
@@ -50,11 +51,20 @@ export function StatusBadge({ status }: { status: ThemeStatus }) {
   )
 }
 
+/* The tier a score falls in, in words. Colour encodes it too, but acid and warn
+   measure ΔE 10.4 under deuteranopia — the two commonest tiers are effectively
+   the same hue for a red-green colour-blind reader. The number itself carries
+   the information, and this makes the threshold available to anyone who cannot
+   hover: `title` on a non-focusable span is unreachable on touch and is not
+   announced by NVDA or JAWS when the element already has text. */
+const riskTier = (score: number) => (score >= 40 ? "high" : score >= 15 ? "medium" : "low")
+
 export function RiskPill({ score }: { score: number }) {
   const tone = score >= 40 ? "text-danger" : score >= 15 ? "text-warn" : "text-acid-500"
   return (
     <span
       className={`min-w-[2.2rem] text-right font-mono text-sm font-semibold ${tone}`}
+      aria-label={`Spam risk ${score} out of 100, ${riskTier(score)}`}
       title={`Spam risk ${score}/100 — how much this looks like machine-generated noise, not a price prediction`}
     >
       {score}
@@ -66,6 +76,9 @@ export function FlagPill({ flag }: { flag: string }) {
   return (
     <span
       className="font-mono text-micro font-semibold tracking-[0.06em] text-danger"
+      /* The plain-language explanations in FLAG_TEXT existed only as a `title`,
+         so the work of writing them reached mouse users and nobody else. */
+      aria-label={FLAG_TEXT[flag] || flag}
       title={FLAG_TEXT[flag] || flag}
     >
       {FLAG_SHORT[flag] || flag}
@@ -73,123 +86,211 @@ export function FlagPill({ flag }: { flag: string }) {
   )
 }
 
-/** One row of the live tape. */
-export function LaunchRow({ launch, isNew }: { launch: Launch; isNew?: boolean }) {
+/* One row of the live tape.
+ *
+ * It carries a second link now — the market handoff — and a link inside a link
+ * is invalid HTML and unreachable by keyboard, so the row is a container with
+ * two anchors rather than one anchor wrapping everything. */
+export function LaunchRow({
+  launch,
+  market,
+  marketStatus = "ok",
+}: {
+  launch: Launch
+  market?: Market
+  marketStatus?: "ok" | "loading" | "down"
+}) {
   const risky = launch.riskScore >= 40
   return (
-    <a
-      href={`${EXPLORER}/token/${launch.address}`}
-      target="_blank"
-      rel="noopener"
-      className={`scan-row grid grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-4 border-b border-edge py-3 pl-3 ${
-        isNew ? "animate-[flash_1.4s_ease-out]" : ""
-      }`}
-    >
-      <span className="font-mono text-micro text-fg-dim">{ago(launch.ageSeconds)}</span>
-      <span className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-        <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
-        <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
-      </span>
-      <span className="flex flex-none items-baseline gap-3">
-        {launch.devBuyEth > 0 && (
-          <span
-            className="font-mono text-micro text-fg-dim"
-            title={`Creator committed ${launch.devBuyEth} ETH at launch`}
-          >
-            {launch.devBuyEth.toFixed(2)}Ξ
-          </span>
-        )}
-        {(launch.spoofFlags || []).slice(0, 2).map((f) => (
-          <FlagPill key={f} flag={f} />
-        ))}
-        {/* Only when no collision flag already says it. NAME_COLLISION shortens
-            to "COPY", so rendering both printed COPY twice on the same row. */}
-        {launch.dupeCount > 0 &&
-          !(launch.spoofFlags || []).some(
-            (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
-          ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
-        <RiskPill score={launch.riskScore} />
-      </span>
+    <div className="scan-row relative border-b border-edge py-3 pl-3">
+      <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-4">
+        <span className="font-mono text-micro text-fg-dim">{ago(launch.ageSeconds)}</span>
+        <a
+          href={`${EXPLORER}/token/${launch.address}`}
+          target="_blank"
+          rel="noopener"
+          className="-my-1 flex min-w-0 flex-wrap items-baseline gap-x-3 py-1"
+        >
+          <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
+        </a>
+        <span className="flex flex-none items-baseline gap-3">
+          {launch.devBuyEth > 0 && (
+            <span
+              className="font-mono text-micro text-fg-dim"
+              // "Ξ" is never expanded anywhere in the UI, and the only thing
+              // saying what this figure is was a hover.
+              aria-label={`Creator staked ${launch.devBuyEth} ETH in their own launch`}
+              title={`Creator committed ${launch.devBuyEth} ETH at launch`}
+            >
+              {launch.devBuyEth.toFixed(2)}Ξ
+            </span>
+          )}
+          {(launch.spoofFlags || []).slice(0, 2).map((f) => (
+            <FlagPill key={f} flag={f} />
+          ))}
+          {/* Only when no collision flag already says it. NAME_COLLISION shortens
+              to "COPY", so rendering both printed COPY twice on the same row. */}
+          {launch.dupeCount > 0 &&
+            !(launch.spoofFlags || []).some(
+              (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
+            ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
+          <RiskPill score={launch.riskScore} />
+        </span>
+      </div>
+
+      <div className="mt-1.5 pl-[3.9rem]">
+        <MarketLine market={market} status={marketStatus} />
+      </div>
+
       {/* A high-risk row keeps a marker, but as a hairline in the gutter rather
           than a 2px coloured border on a card. */}
       {risky && (
         <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-px bg-danger/70" />
       )}
-    </a>
+    </div>
   )
 }
 
-/** One cluster in the left panel. */
-export function ThemeCard({ theme }: { theme: Theme }) {
+/* What the market says, or that there is not one.
+ *
+ * "No market yet" is not an empty state to be hidden — it is the product's
+ * central claim about the token in front of you, and it is true of most of
+ * them. Saying it plainly is what makes the rows that *do* have a market read
+ * as significant. */
+export function MarketLine({
+  market,
+  status = "ok",
+  big,
+}: {
+  market?: Market
+  /** "loading" while the lookup is in flight, "down" when it failed. */
+  status?: "ok" | "loading" | "down"
+  big?: boolean
+}) {
+  // Three states, not one. Saying "nobody can trade this" is a measurement,
+  // and it must never be printed from a pending or failed lookup.
+  if (status === "loading") return <span className="font-mono text-xs text-fg-dim">Checking for a market…</span>
+  if (status === "down")
+    return <span className="font-mono text-xs text-warn">Market data unavailable right now.</span>
+
+  if (!market || !market.liquidityUsd) {
+    return <span className="font-mono text-xs text-fg-dim">No market yet. Nobody can trade this.</span>
+  }
+
+  const chg = market.priceChange24h
+  const tone = chg === null ? "text-fg-dim" : chg >= 0 ? "text-acid-500" : "text-danger"
+  /* text-xs, not text-micro. 11px is the floor for a *label*; this is a
+     sentence's worth of running data and reads as body text, which is what the
+     detector's tiny-text rule catches — it caught sixteen of these. */
+  const size = big ? "text-sm" : "text-xs"
+
+  return (
+    <span className={`flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono ${size} text-fg-dim`}>
+      <span>
+        <span className="text-fg-muted">{usd(market.liquidityUsd)}</span> liquidity
+      </span>
+      <span>
+        <span className="text-fg-muted">{usd(market.volume24h)}</span> traded 24h
+      </span>
+      {market.txns24h !== null && market.txns24h > 0 && (
+        <span>
+          <span className="text-fg-muted">{market.txns24h.toLocaleString("en-US")}</span> trades
+        </span>
+      )}
+      {chg !== null && (
+        <span className={tone}>
+          {chg >= 0 ? "+" : ""}
+          {chg.toFixed(chg >= 100 || chg <= -100 ? 0 : 1)}% 24h
+        </span>
+      )}
+      {market.url && (
+        <a
+          href={market.url}
+          target="_blank"
+          rel="noopener"
+          className="scan-link -my-1.5 py-1.5 text-acid-500"
+          title={`Opens the ${market.dex} market on DexScreener. NewEra does not execute trades.`}
+        >
+          Trade ↗
+        </a>
+      )}
+    </span>
+  )
+}
+
+/** One cluster, with its judgement written out.
+ *
+ * This row used to encode the finding three times over and state it none: a bar
+ * chart of creators against launches, the same two counts again as figures, and
+ * a status badge. The badge said EMERGING on every cluster on the site —
+ * measured, 100 of 100 — so the loudest coloured element on the page carried no
+ * information at the exact moment it was meant to. The bar said the same thing
+ * as the numbers beside it, which is decoration wearing the costume of a chart.
+ *
+ * A reader needs one sentence: how many wallets, how many launches, how long.
+ * That is the whole judgement, and in words it needs no legend. */
+export function ClusterRow({ theme }: { theme: Theme }) {
+  const wallets = theme.creatorCount
+  const solo = wallets <= 1
   return (
     <Link
       to={`/app/theme/${theme.slug}`}
       viewTransition
-      className={`scan-row block border-b border-edge py-4 pl-3 ${
-        theme.isOrganic ? "" : "opacity-70"
-      }`}
+      className="scan-row grid gap-x-6 gap-y-1.5 border-b border-edge py-5 pl-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline"
     >
-      <span className="flex flex-wrap items-baseline gap-x-3">
+      <span className="min-w-0">
         {/* The row and the page it opens are the same object, so the browser
             morphs one into the other instead of cutting. Only one element may
             carry a given name at a time, which holds because the row unmounts
             as the detail page mounts. */}
         <span
           style={{ viewTransitionName: `cluster-${theme.slug}` }}
-          className="min-w-0 flex-1 truncate text-base font-semibold text-fg"
+          className="block truncate text-lg font-semibold text-fg"
         >
           {theme.label}
         </span>
 
-        {/* The discriminating figure, not the status.
-         *
-            Every live cluster currently reports EMERGING — measured, 100 of
-            100 — so the badge was the loudest coloured element on the page
-            and carried no information at the exact moment it was meant to.
-            What actually separates a narrative from one wallet is how many
-            distinct wallets arrived, so that is what gets the visual: a bar
-            per launch, lit for each independent creator. */}
-        <span
-          aria-hidden
-          className="flex flex-none items-center gap-[2px]"
-          title={`${theme.creatorCount} of ${theme.launchCount} launches from distinct wallets`}
-        >
-          {Array.from({ length: Math.min(theme.launchCount, 10) }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-3 w-[3px] ${
-                i < theme.creatorCount ? "bg-acid-500" : "bg-edge-strong"
-              }`}
-            />
-          ))}
+        <span className="mt-1.5 block text-sm leading-relaxed text-fg-muted">
+          {solo ? (
+            <>
+              <b className="font-semibold text-danger">One wallet</b> launched all{" "}
+              {theme.launchCount} of these, over {ago(theme.ageMinutes * 60)}. That is a single
+              address repeating itself, not a narrative.
+            </>
+          ) : (
+            <>
+              <b className="font-semibold text-acid-500">{wallets} independent wallets</b> launched{" "}
+              {theme.launchCount} tokens into this over {ago(theme.ageMinutes * 60)}.
+            </>
+          )}
         </span>
-      </span>
 
-      <span className="mt-1.5 flex flex-wrap gap-x-4 font-mono text-micro text-fg-dim">
-        <span>
-          <b className="font-semibold text-fg-muted">{theme.launchCount}</b>{" "}
-          {theme.launchCount === 1 ? "launch" : "launches"}
-        </span>
-        {/* The comparison that carries the whole judgement. */}
-        <span className={theme.isOrganic ? "text-acid-500" : "text-danger"}>
-          {theme.isOrganic
-            ? `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"}`
-            : `${theme.creatorCount} creator${theme.creatorCount === 1 ? "" : "s"} · one-wallet spam`}
-        </span>
-        <span>{ago(theme.ageMinutes * 60)} old</span>
-        <StatusBadge status={theme.status} />
-      </span>
-
-      {theme.samples?.length > 0 && (
-        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-micro text-fg-dim">
-          {theme.samples.slice(0, 6).map((s, i) => (
-            <span key={s.address} className="max-w-[10rem] truncate">
-              {i > 0 && <span className="mr-3 opacity-40">/</span>}
-              {s.symbol || s.name}
+        {/* Distinct tickers only. These clusters are built out of near-copies,
+            so the raw samples are frequently the same string over and over —
+            rows were reading "AI · AI · AI · AI". One ticker repeating is the
+            finding, and it says more once. */}
+        {(() => {
+          // Array.isArray, not `|| []`. The truthiness guard passes a string
+          // straight through to .map, and one drifted field here took the whole
+          // document down before there was a boundary to catch it.
+          const samples = Array.isArray(theme.samples) ? theme.samples : []
+          const tickers = [...new Set(samples.map((s) => s?.symbol || s?.name))].filter(Boolean)
+          if (!tickers.length) return null
+          return (
+            <span className="mt-2 block truncate font-mono text-xs text-fg-dim">
+              {tickers.slice(0, 5).join("  ·  ")}
+              {tickers.length === 1 && theme.launchCount > 1 && (
+                <span className="ml-2 text-fg-dim/70">· every launch used this ticker</span>
+              )}
             </span>
-          ))}
-        </span>
-      )}
+          )
+        })()}
+      </span>
+
+      <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim sm:text-right">
+        Open →
+      </span>
     </Link>
   )
 }

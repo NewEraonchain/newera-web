@@ -33,6 +33,62 @@ function Sync() {
     }
   }, [lenis])
 
+  /* Re-measure when the page's own height settles.
+   *
+   * Every ScrollTrigger start and end is a number measured once, and this page
+   * is not that page: the stats, the clusters and the separation figures all
+   * arrive after mount and each one changes a panel's height. GSAP refreshes on
+   * resize and on load, neither of which is a fetch resolving — so the pinned
+   * pipeline held a start computed against a shorter document and engaged
+   * roughly 2300px early, covering the viewport while the section before it was
+   * still being read. Scrolling down went pipeline → previous panel → pipeline.
+   *
+   * It was invisible for as long as the pin was being torn down and rebuilt on
+   * every eight-second stats poll, because each rebuild silently re-measured.
+   * That is a re-measure with a page teardown attached, not a fix.
+   *
+   * The height is re-read after refreshing so a pin-spacer resizing during the
+   * refresh cannot feed back into another one. */
+  useEffect(() => {
+    let height = document.documentElement.scrollHeight
+    let t: number | undefined
+    let lastScroll = 0
+
+    const onScroll = () => {
+      lastScroll = performance.now()
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+
+    /* A refresh recalculates every trigger on the page, which is the one thing
+       that must not happen under a moving scroll — measured mid-gesture it cost
+       a 1270ms frame and put the layout shifts back. So it waits for the reader
+       to stop, and keeps waiting for as long as they do not. */
+    const run = () => {
+      if (performance.now() - lastScroll < 400) {
+        t = window.setTimeout(run, 200)
+        return
+      }
+      ScrollTrigger.refresh()
+      height = document.documentElement.scrollHeight
+    }
+
+    const settle = () => {
+      if (document.documentElement.scrollHeight === height) return
+      window.clearTimeout(t)
+      t = window.setTimeout(run, 180)
+    }
+
+    const ro = new ResizeObserver(settle)
+    ro.observe(document.body)
+    document.fonts?.ready.then(settle)
+
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      ro.disconnect()
+      window.clearTimeout(t)
+    }
+  }, [])
+
   return null
 }
 
