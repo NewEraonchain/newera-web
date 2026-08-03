@@ -458,10 +458,14 @@ function Evidence() {
               number transcribed once from an admin backtest and never checked
               again. It now belongs to the histogram below, which measures it and
               shows the two populations it comes from. */}
+          {/* Read as "no trading happens here" once the swap panel shipped,
+              which is not what it says or means. The number is unchanged and
+              still zero — it counts signatures NewEra makes — but the label now
+              says whose signatures it is counting. */}
           <Fact
-            label="Transactions signed"
+            label="Transactions signed by NewEra"
             value={<span>0</span>}
-            unit="NewEra reads the chain and holds no keys"
+            unit="you sign your own; we hold no keys and never take custody"
           />
         </Stagger>
 
