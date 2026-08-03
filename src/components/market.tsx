@@ -47,7 +47,7 @@ export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }
   }, [venueUrl, tf])
 
   return (
-    <section className="mt-[6vh]">
+    <section>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-3">
         <h2 className="text-xl font-semibold text-fg">Price</h2>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Chart timeframe">
@@ -143,15 +143,15 @@ export function Trades({
           {/* A real table, so a screen reader announces rows and columns instead
               of reading a wall of unlabelled numbers. */}
           <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[34rem] border-collapse text-sm">
+            <table className="w-full table-fixed border-collapse text-sm sm:min-w-[30rem] lg:min-w-[34rem]">
               <thead>
                 <tr className="text-left font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-                  <th scope="col" className="py-2 pr-4 font-normal">Age</th>
-                  <th scope="col" className="py-2 pr-4 font-normal">Side</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-normal">ETH</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-normal">{symbol || "Tokens"}</th>
-                  <th scope="col" className="py-2 pr-4 font-normal">Trader</th>
-                  <th scope="col" className="py-2 font-normal">Tx</th>
+                  <th scope="col" className="w-[10%] py-2 pr-4 font-normal">Age</th>
+                  <th scope="col" className="w-[12%] py-2 pr-4 font-normal">Side</th>
+                  <th scope="col" className="w-[20%] py-2 pr-4 text-right font-normal">ETH</th>
+                  <th scope="col" className="w-[26%] py-2 pr-4 text-right font-normal"><span className="block truncate">{symbol || "Tokens"}</span></th>
+                  <th scope="col" className="hidden w-[22%] py-2 pr-4 font-normal sm:table-cell">Trader</th>
+                  <th scope="col" className="hidden w-[10%] py-2 text-right font-normal sm:table-cell">Tx</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,8 +167,8 @@ export function Trades({
                     <td className="py-2 pr-4 text-right font-mono text-xs text-fg">
                       {amount(t.tokenWei, decimals)}
                     </td>
-                    <td className="py-2 pr-4 font-mono text-xs text-fg-dim">{shortAddr(t.trader)}</td>
-                    <td className="py-2">
+                    <td className="hidden py-2 pr-4 font-mono text-xs text-fg-dim sm:table-cell">{shortAddr(t.trader)}</td>
+                    <td className="hidden py-2 text-right sm:table-cell">
                       <a
                         href={explorerTx(t.txHash)}
                         target="_blank"

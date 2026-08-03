@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
-import { LaunchRow, ClusterRow, MarketLine, Toggle, Skeleton, EmptyState } from "@/components/intel"
+import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
+import { LaunchTable } from "@/components/LaunchTable"
+import { Page } from "@/components/shell"
 import { KineticText } from "@/components/kinetic"
 import { useMarkets } from "@/lib/markets"
 
@@ -228,7 +230,7 @@ export default function Feed() {
   const live = indexerUp && dataAgeSeconds !== null && dataAgeSeconds < 120
 
   return (
-    <div className="mx-auto max-w-[78rem] px-[4vw] pb-[14vh] pt-[13vh]">
+    <Page>
       {/* Held updates, offered rather than applied. Fixed to the bottom so it
           is reachable from wherever the reader is, and announced politely so a
           screen reader is told the feed has moved on without the list changing
@@ -292,13 +294,16 @@ export default function Feed() {
           first. Ranking by total size would put the oldest and most crowded at the top.
         </p>
 
-        <div className="mt-7 border-t border-edge">
+        {/* A grid, not a column. These are short comparable blocks, and one per
+            row left two thirds of the width empty while making the reader scroll
+            to compare the third cluster against the first. */}
+        <div className="mt-7 grid border-t border-edge lg:grid-cols-2 lg:gap-x-10 xl:grid-cols-3">
           {failures >= 1 && clusters === null ? (
             <EmptyState>
               The intelligence API is not responding, so there is nothing to rank here yet.
             </EmptyState>
           ) : clusters === null ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={110} />)
+            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} h={110} />)
           ) : clusters.length === 0 ? (
             <EmptyState>
               {includeSolo
@@ -330,7 +335,7 @@ export default function Feed() {
           where a swap is offered it is signed by your own wallet and settles on Uniswap.
         </p>
 
-        <div className="mt-7 border-t border-edge">
+        <div className="mt-7">
           {marketsDown ? (
             <EmptyState>
               Market data is unavailable right now, so we cannot say what is trading. This is a
@@ -344,24 +349,7 @@ export default function Feed() {
               the reason this page exists: you are seeing them before they have a price.
             </EmptyState>
           ) : (
-            traded.map(({ launch, market }) => (
-              <div key={launch.address} className="border-b border-edge py-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                  <span className="flex min-w-0 items-baseline gap-3">
-                    <span className="font-mono text-base font-semibold text-fg">
-                      {launch.symbol || "—"}
-                    </span>
-                    <span className="min-w-0 truncate text-sm text-fg-dim">{launch.name}</span>
-                  </span>
-                  <span className="font-mono text-xs text-fg-dim">
-                    {ago(launch.ageSeconds)} old · spam risk {launch.riskScore}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <MarketLine market={market} big />
-                </div>
-              </div>
-            ))
+            <LaunchTable rows={traded} caption="Launches with a live market, deepest first" />
           )}
         </div>
       </section>
@@ -400,13 +388,6 @@ export default function Feed() {
           removes anything above 25. It is not a price forecast.
         </p>
 
-        {/* The risk column was a bare number under no heading. */}
-        <div className="mt-6 grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-4 border-b border-edge-strong pb-2 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-          <span>Age</span>
-          <span>Token</span>
-          <span className="text-right">Spam risk</span>
-        </div>
-
         <div>
           {/* Failure is checked BEFORE the null case. Ordered the other way,
               `tape === null` matched first on a cold outage and the honest
@@ -426,14 +407,14 @@ export default function Feed() {
           ) : tape.length === 0 ? (
             <EmptyState>Nothing indexed in this window yet.</EmptyState>
           ) : (
-            tape.map((l) => (
-              <LaunchRow
-                key={l.address}
-                launch={l}
-                market={markets?.markets.get(l.address.toLowerCase())}
-                marketStatus={marketStatus}
-              />
-            ))
+            <LaunchTable
+              rows={tape.map((l) => ({
+                launch: l,
+                market: markets?.markets.get(l.address.toLowerCase()),
+              }))}
+              marketStatus={marketStatus}
+              caption="Every launch in the current window, newest first"
+            />
           )}
         </div>
 
@@ -445,7 +426,7 @@ export default function Feed() {
           .
         </p>
       </section>
-    </div>
+    </Page>
   )
 }
 

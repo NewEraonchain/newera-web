@@ -121,7 +121,7 @@ export default function SwapPanel({
 
   if (!pool.supported) {
     return (
-      <section className="mt-[6vh] border border-edge p-6">
+      <section className="border border-edge p-6">
         <h2 className="text-lg font-semibold text-fg">Trading this one happens elsewhere</h2>
         <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
           {pool.reason ||
@@ -145,7 +145,7 @@ export default function SwapPanel({
   const balanceDecimals = side === "buy" ? 18 : decimals
 
   return (
-    <section className="mt-[6vh] border border-edge">
+    <section className="border border-edge">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge px-6 py-4">
         <div className="flex" role="group" aria-label="Trade direction">
           {(["buy", "sell"] as Side[]).map((s) => (
@@ -154,13 +154,13 @@ export default function SwapPanel({
               type="button"
               aria-pressed={side === s}
               onClick={() => swapSide(s)}
-              className={`border px-4 py-1.5 text-sm font-semibold transition-colors ${
+              className={`border px-5 py-1.5 text-sm font-semibold transition-colors ${
                 side === s
                   ? "border-acid-500 text-acid-500"
                   : "border-edge text-fg-dim hover:text-fg"
               } ${s === "sell" ? "-ml-px" : ""}`}
             >
-              {s === "buy" ? "Buy" : "Sell"} {symbol}
+              {s === "buy" ? "Buy" : "Sell"}
             </button>
           ))}
         </div>

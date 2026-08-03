@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
 import type { TokenDetail } from "@/lib/api"
 import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/components/intel"
+import { Page, SectionHead } from "@/components/shell"
 import { useMarkets, usd, type Market } from "@/lib/markets"
 import { Chart, Trades } from "@/components/market"
 import SwapPanel from "@/components/SwapPanel"
@@ -115,7 +116,7 @@ export default function Token() {
   }, [symbol, address])
 
   return (
-    <div className="mx-auto max-w-[72rem] px-[4vw] pb-[14vh] pt-[13vh]">
+    <Page>
       <Link
         to="/app"
         className="mb-4 inline-flex items-center gap-2 py-1.5 text-sm text-fg-dim transition-colors hover:text-acid-500"
@@ -161,27 +162,43 @@ export default function Token() {
 
       <TheMarket market={market} state={marketState} />
 
-      {/* Trade before chart before tape: the action first, then the context for
-          it. The old page put a 520px iframe between the figures and everything
-          else, which pushed the index — the half only we have — below two
-          screenfolds of someone else's widget. */}
-      {market?.liquidityUsd && pool && (
-        <SwapPanel
-          token={address}
-          symbol={symbol}
-          pool={pool}
-          venueUrl={market.url}
-          venueName={market.dex}
-        />
-      )}
+      {/* Two rails, because deciding and acting are one task.
+          Stacked, the trade panel sat a full screen above the chart it is a
+          judgement about — you set an amount, then scrolled away from the form
+          to see the price, then scrolled back. Side by side, the chart and the
+          tape answer "is this worth it" while the panel that acts on the answer
+          stays in view. Below `xl` there is not enough width for a chart and a
+          form to coexist, so it returns to one column with the panel first —
+          on a narrow screen the action outranks its context. */}
+      <div className="mt-[6vh] grid items-start gap-x-10 gap-y-[6vh] xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="order-2 min-w-0 xl:order-1">
+          {market?.url && market.liquidityUsd ? (
+            <Chart venueUrl={market.url} symbol={symbol} />
+          ) : null}
+          <Trades source={tapeSource} symbol={symbol} decimals={decimals} />
+        </div>
 
-      {market?.url && market.liquidityUsd ? <Chart venueUrl={market.url} symbol={symbol} /> : null}
-
-      <Trades source={tapeSource} symbol={symbol} decimals={decimals} />
+        {market?.liquidityUsd && pool && (
+          /* Sticky by its top edge only because this panel is shorter than a
+             viewport. DESIGN.md's rule holds: a sticky element taller than the
+             screen pins anyway and buries everything past its fold, so the rail
+             caps its height and scrolls internally rather than trusting that it
+             always fits. */
+          <div className="order-1 xl:sticky xl:top-24 xl:order-2 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
+            <SwapPanel
+              token={address}
+              symbol={symbol}
+              pool={pool}
+              venueUrl={market.url}
+              venueName={market.dex}
+            />
+          </div>
+        )}
+      </div>
 
       <WhatWeKnow data={data} state={indexState} />
       <Siblings data={data} />
-    </div>
+    </Page>
   )
 }
 
@@ -238,29 +255,31 @@ function TheMarket({
     { v: usd(market.marketCap), l: "market cap" },
   ]
 
+  const figures = chg === null ? cells : [...cells, {
+    v: `${chg >= 0 ? "+" : ""}${chg.toFixed(chg >= 100 || chg <= -100 ? 0 : 1)}%`,
+    l: "24h",
+    tone,
+  }]
+
   return (
     <section className="mt-[6vh] border-y border-edge py-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap gap-x-10 gap-y-5">
-          {cells.map((c) => (
+      {/* An even grid across the full width, not a left-packed flex row. Packed,
+          the figures clustered against the left edge and left a 500px hole
+          before the venue link at 1920 — six measurements reading as a huddle
+          rather than as the instrument panel they are. Equal columns give each
+          figure the same weight, which is also true: no one of them leads. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
+        <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
+          {figures.map((c) => (
             <div key={c.l}>
-              <div className="font-mono text-xl font-medium text-fg">{c.v}</div>
+              <div className={`font-mono text-xl font-medium tabular-nums ${("tone" in c && c.tone) || "text-fg"}`}>
+                {c.v}
+              </div>
               <div className="mt-1 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
                 {c.l}
               </div>
             </div>
           ))}
-          {chg !== null && (
-            <div>
-              <div className={`font-mono text-xl font-medium ${tone}`}>
-                {chg >= 0 ? "+" : ""}
-                {chg.toFixed(chg >= 100 || chg <= -100 ? 0 : 1)}%
-              </div>
-              <div className="mt-1 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-                24h
-              </div>
-            </div>
-          )}
         </div>
 
         {market.url && (
@@ -268,7 +287,7 @@ function TheMarket({
             href={market.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="scan-link -my-1.5 py-1.5 text-sm text-acid-500"
+            className="scan-link -my-1.5 flex-none py-1.5 text-sm text-acid-500"
           >
             See it on {market.dex || "the venue"} ↗
           </a>
@@ -300,9 +319,7 @@ function WhatWeKnow({
   if (state === "missing" || state === "down") {
     return (
       <section className="mt-[7vh]">
-        <h2 className="border-b border-edge pb-3 text-xl font-semibold text-fg">
-          What the index knows
-        </h2>
+        <SectionHead title="What the index knows" />
         <div className="mt-5">
           <EmptyState>
             {state === "missing"
@@ -320,9 +337,7 @@ function WhatWeKnow({
 
   return (
     <section className="mt-[7vh]">
-      <h2 className="border-b border-edge pb-3 text-xl font-semibold text-fg">
-        What the index knows
-      </h2>
+      <SectionHead title="What the index knows" />
 
       <p className="measure mt-5 text-base leading-relaxed text-fg">
         Launched <b className="font-mono">{ago(launch.ageSeconds)}</b> ago on{" "}
@@ -393,12 +408,7 @@ function Siblings({ data }: { data: TokenDetail | null }) {
 
   return (
     <section className="mt-[7vh]">
-      <div className="flex items-baseline justify-between gap-4 border-b border-edge pb-3">
-        <h2 className="text-xl font-semibold text-fg">Others in this cluster</h2>
-        <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-          {siblings.length} shown
-        </span>
-      </div>
+      <SectionHead title="Others in this cluster" note={`${siblings.length} shown`} />
       <div className="mt-2">
         {siblings.map((s) => (
           <Link

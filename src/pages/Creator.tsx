@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { getJSON, shortAddr } from "@/lib/api"
 import type { CreatorDossier } from "@/lib/api"
-import { LaunchRow, EXPLORER, EmptyState, Skeleton } from "@/components/intel"
+import { EXPLORER, EmptyState, Skeleton } from "@/components/intel"
+import { LaunchTable } from "@/components/LaunchTable"
+import { Page } from "@/components/shell"
 import { useMarkets } from "@/lib/markets"
 
 /* Who deployed this.
@@ -66,7 +68,7 @@ export default function Creator() {
 
 function Shell({ wallet, children }: { wallet: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-[72rem] px-[4vw] pb-[14vh] pt-[13vh]">
+    <Page>
       <Link
         to="/app"
         className="mb-4 inline-flex items-center gap-2 py-1.5 text-sm text-fg-dim transition-colors hover:text-acid-500"
@@ -93,7 +95,7 @@ function Shell({ wallet, children }: { wallet: string; children: React.ReactNode
       </p>
 
       <div className="mt-[6vh]">{children}</div>
-    </div>
+    </Page>
   )
 }
 
@@ -231,14 +233,14 @@ function Launches({ dossier }: { dossier: CreatorDossier }) {
         {launches.length === 0 ? (
           <EmptyState>No launches recorded for this address.</EmptyState>
         ) : (
-          launches.map((l) => (
-            <LaunchRow
-              key={l.address}
-              launch={l}
-              market={markets?.markets.get(l.address.toLowerCase())}
-              marketStatus={status}
-            />
-          ))
+          <LaunchTable
+            rows={launches.map((l) => ({
+              launch: l,
+              market: markets?.markets.get(l.address.toLowerCase()),
+            }))}
+            marketStatus={status}
+            caption="Every launch recorded from this deployer"
+          />
         )}
       </div>
     </section>

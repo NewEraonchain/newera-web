@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
+import { Page } from "@/components/shell"
+import { LaunchTable } from "@/components/LaunchTable"
 import { Link, useParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
 import type { Launch, Theme } from "@/lib/api"
-import {
-  StatusBadge,
-  RiskPill,
-  FlagPill,
-  MarketLine,
-  EmptyState,
-  Skeleton,
-} from "@/components/intel"
+import { StatusBadge, EmptyState, Skeleton } from "@/components/intel"
 import { useMarkets } from "@/lib/markets"
 
 type Detail = {
@@ -92,7 +87,7 @@ export default function ThemeDetail() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-[4vw] pb-[14vh] pt-[13vh]">
+    <Page>
       <Link
         to="/app"
         className="mb-4 inline-flex items-center gap-2 py-1.5 text-sm text-fg-dim transition-colors hover:text-acid-500"
@@ -103,7 +98,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         Back to live feed
       </Link>
       {children}
-    </div>
+    </Page>
   )
 }
 
@@ -378,40 +373,23 @@ function Launches({ launches }: { launches: Launch[] }) {
             : `${launches.length} shown · ${withMarket} tradeable`
         }
       />
-      <div className="flex flex-col gap-2">
+      {/* The same instrument as the feed, the deployer page and the token page.
+          Four surfaces listing the same objects had four different row layouts,
+          so a reader relearned where liquidity sits on every one of them. This
+          also retires a 2px danger-coloured left border on high-risk rows —
+          the hairline in `.scan-tr` says it without the costume. */}
+      <div>
         {launches.length === 0 ? (
           <EmptyState>No launches recorded for this cluster.</EmptyState>
         ) : (
-          launches.map((l) => (
-            <div
-              key={l.address}
-              className={`scan-row relative border-b py-3 pl-3 ${
-                l.riskScore >= 40 ? "border-l-2 border-l-danger/55 border-edge" : "border-edge"
-              }`}
-            >
-              <div className="grid grid-cols-[3.4rem_minmax(0,1fr)_auto] items-baseline gap-3">
-                <div className="text-right font-mono text-xs text-fg-dim">{ago(l.ageSeconds)}</div>
-                <Link to={`/app/token/${l.address}`} className="min-w-0">
-                  <div className="truncate font-mono text-sm font-semibold">{l.symbol || "—"}</div>
-                  <div className="truncate text-xs text-fg-dim">{l.name}</div>
-                </Link>
-                <div className="flex flex-none items-center gap-2">
-                  {l.devBuyEth > 0 && (
-                    <span className="font-mono text-micro text-acid-500">
-                      {l.devBuyEth.toFixed(2)}Ξ
-                    </span>
-                  )}
-                  {(l.spoofFlags || []).slice(0, 2).map((f) => (
-                    <FlagPill key={f} flag={f} />
-                  ))}
-                  <RiskPill score={l.riskScore} />
-                </div>
-              </div>
-              <div className="mt-1.5 pl-[4.4rem]">
-                <MarketLine market={markets?.markets.get(l.address.toLowerCase())} status={status} />
-              </div>
-            </div>
-          ))
+          <LaunchTable
+            rows={launches.map((l) => ({
+              launch: l,
+              market: markets?.markets.get(l.address.toLowerCase()),
+            }))}
+            marketStatus={status}
+            caption="Every launch recorded in this cluster"
+          />
         )}
       </div>
     </section>
