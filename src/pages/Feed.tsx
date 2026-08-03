@@ -326,8 +326,8 @@ export default function Feed() {
         <p className="measure mt-4 text-sm leading-relaxed text-fg-muted">
           Of the launches below, these are the ones somebody is actually trading. Liquidity, volume
           and price come from DexScreener, which indexes both DEXes on this chain.{" "}
-          <b className="font-semibold text-fg">NewEra does not execute trades</b> and holds no keys —
-          the trade link opens the market on its own venue.
+          <b className="font-semibold text-fg">NewEra never holds your funds or your keys</b> —
+          where a swap is offered it is signed by your own wallet and settles on Uniswap.
         </p>
 
         <div className="mt-7 border-t border-edge">

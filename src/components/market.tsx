@@ -1,0 +1,194 @@
+import { useMemo, useState } from "react"
+import { formatUnits } from "viem"
+import { explorerTx } from "@/lib/chain"
+import { useTrades } from "@/lib/trades"
+import { shortAddr } from "@/lib/api"
+
+/* The chart and the tape.
+ *
+ * Neither is our own market data system, which is the point. The candles are
+ * DexScreener's — they already index this chain, and rebuilding an OHLC pipeline
+ * to draw the same thing would be work with no product in it. What IS ours is
+ * the timeframe control: the embed accepts an `interval`, so the buttons are in
+ * our type and our layout while the rendering stays theirs.
+ *
+ * The tape is read from the pool's Swap events directly. DexScreener publishes
+ * no endpoint for individual fills, so the alternative was their iframe pane,
+ * and reading the chain gives us real rows we can style, link and colour. */
+
+const TIMEFRAMES = [
+  { label: "1m", interval: "1" },
+  { label: "5m", interval: "5" },
+  { label: "15m", interval: "15" },
+  { label: "1h", interval: "60" },
+  { label: "4h", interval: "240" },
+  { label: "1D", interval: "1D" },
+] as const
+
+export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }) {
+  const [tf, setTf] = useState<string>("15")
+
+  /* Changing the interval remounts the iframe by key, which is the only way to
+     drive an embed we do not control. Keyed rather than mutated so React tears
+     down the old frame instead of leaving a stale chart behind it. */
+  const src = useMemo(() => {
+    const base = venueUrl.split("?")[0]
+    const params = new URLSearchParams({
+      embed: "1",
+      theme: "dark",
+      info: "0",
+      trades: "0",
+      chartLeftToolbar: "0",
+      chartTheme: "dark",
+      chartType: "usd",
+      interval: tf,
+    })
+    return `${base}?${params}`
+  }, [venueUrl, tf])
+
+  return (
+    <section className="mt-[6vh]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-3">
+        <h2 className="text-xl font-semibold text-fg">Price</h2>
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Chart timeframe">
+          {TIMEFRAMES.map((t) => (
+            <button
+              key={t.interval}
+              type="button"
+              aria-pressed={tf === t.interval}
+              onClick={() => setTf(t.interval)}
+              className={`border px-2.5 py-1 font-mono text-xs transition-colors ${
+                tf === t.interval
+                  ? "border-acid-500 text-acid-500"
+                  : "border-edge text-fg-dim hover:text-fg"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 overflow-hidden border border-edge">
+        <iframe
+          key={tf}
+          src={src}
+          title={`${symbol || "Token"} price chart`}
+          loading="lazy"
+          className="h-[420px] w-full border-0 sm:h-[520px]"
+        />
+      </div>
+      <p className="mt-3 text-xs text-fg-dim">
+        Candles by DexScreener, which indexes this chain. Timeframe is ours; the data is theirs.
+      </p>
+    </section>
+  )
+}
+
+/* ── The tape ──────────────────────────────────────────────────────────── */
+
+function ageLabel(s: number | null): string {
+  if (s === null) return "—"
+  if (s < 60) return `${s}s`
+  if (s < 3600) return `${Math.floor(s / 60)}m`
+  return `${Math.floor(s / 3600)}h`
+}
+
+function amount(wei: bigint, decimals: number, max = 4): string {
+  const n = Number(formatUnits(wei, decimals))
+  if (n === 0) return "0"
+  if (n < 0.0001) return n.toExponential(1)
+  if (n >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 })
+  return n.toLocaleString("en-US", { maximumFractionDigits: max })
+}
+
+export function Trades({
+  pool,
+  symbol,
+  decimals,
+}: {
+  pool: string | null
+  symbol: string
+  decimals: number
+}) {
+  const result = useTrades(pool)
+
+  if (!pool) return null
+
+  return (
+    <section className="mt-[7vh]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-edge pb-3">
+        <h2 className="text-xl font-semibold text-fg">Trades happening</h2>
+        <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+          {result === null
+            ? "reading the pool…"
+            : result.ok
+              ? "live · from the pool"
+              : "connection lost — showing the last read"}
+        </span>
+      </div>
+
+      {result === null ? (
+        <div className="mt-4 flex flex-col gap-2" aria-hidden>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 animate-pulse bg-[color-mix(in_srgb,var(--fg)_6%,transparent)]" />
+          ))}
+        </div>
+      ) : result.trades.length === 0 ? (
+        <p className="measure mt-5 text-sm leading-relaxed text-fg-muted">
+          No fills in the last few minutes. The pool exists, but nobody is trading it right now.
+        </p>
+      ) : (
+        <>
+          {/* A real table, so a screen reader announces rows and columns instead
+              of reading a wall of unlabelled numbers. */}
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full min-w-[34rem] border-collapse text-sm">
+              <thead>
+                <tr className="text-left font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+                  <th scope="col" className="py-2 pr-4 font-normal">Age</th>
+                  <th scope="col" className="py-2 pr-4 font-normal">Side</th>
+                  <th scope="col" className="py-2 pr-4 text-right font-normal">ETH</th>
+                  <th scope="col" className="py-2 pr-4 text-right font-normal">{symbol || "Tokens"}</th>
+                  <th scope="col" className="py-2 pr-4 font-normal">Trader</th>
+                  <th scope="col" className="py-2 font-normal">Tx</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.trades.map((t) => (
+                  <tr key={`${t.txHash}-${t.blockNumber}-${t.tokenWei}`} className="border-t border-edge">
+                    <td className="py-2 pr-4 font-mono text-xs text-fg-dim">{ageLabel(t.ageSeconds)}</td>
+                    <td className={`py-2 pr-4 font-mono text-xs font-semibold ${t.kind === "buy" ? "text-acid-500" : "text-danger"}`}>
+                      {t.kind === "buy" ? "Buy" : "Sell"}
+                    </td>
+                    <td className="py-2 pr-4 text-right font-mono text-xs text-fg-muted">
+                      {amount(t.ethWei, 18, 5)}
+                    </td>
+                    <td className="py-2 pr-4 text-right font-mono text-xs text-fg">
+                      {amount(t.tokenWei, decimals)}
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-xs text-fg-dim">{shortAddr(t.trader)}</td>
+                    <td className="py-2">
+                      <a
+                        href={explorerTx(t.txHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs text-acid-500 underline-offset-4 hover:underline"
+                      >
+                        ↗
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-fg-dim">
+            Read directly from the pool's swap events — the same record every other tool reads.
+            Roughly the last eight minutes; older fills are beyond what the public node keeps.
+          </p>
+        </>
+      )}
+    </section>
+  )
+}

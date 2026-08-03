@@ -61,8 +61,14 @@ const page = async () => {
     )
   )
   ok("4a og/twitter tags present", !!og["og:title"] && !!og["og:description"] && !!og["twitter:card"], `${Object.keys(og).length} tags`)
-  const res = await p.goto(`http://localhost:${PORT}${og["og:image"]}`, { timeout: 30000 })
-  ok("4b og:image resolves", res?.status() === 200, `${og["og:image"]} -> HTTP ${res?.status()}`)
+  /* og:image is absolute now — Twitter and several other unfurlers will not
+     resolve a root-relative path against the page URL. Fetch the local file it
+     points at rather than gluing the absolute URL onto localhost, which built
+     "http://localhost:5173https://neweraai.xyz/og.png" and hung. */
+  const imgPath = new URL(og["og:image"], "https://neweraai.xyz").pathname
+  ok("4a² og:image is absolute", /^https?:\/\//.test(og["og:image"]), og["og:image"])
+  const res = await p.goto(`http://localhost:${PORT}${imgPath}`, { timeout: 30000 })
+  ok("4b og:image resolves", res?.status() === 200, `${imgPath} -> HTTP ${res?.status()}`)
   await p.close()
 }
 

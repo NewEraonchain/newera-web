@@ -42,6 +42,8 @@ observations — a FAIL means a behaviour regressed.
 | `reticle.mjs` | The custom cursor stays visible and tracking above the dialog |
 | `stretch.mjs` | No element animates its font width axis (the "text stretching while scrolling" report) |
 | `ux-audit.mjs` | Dead links, unnamed controls, unlabelled inputs, heading order, focus rings, tap-target sizes, console errors, mobile overflow — across every route |
+| `swap.mjs` | **The money one.** Imports `src/lib/swap.ts` itself (bundled on the fly with esbuild, so it tests the shipped code, not a copy) and checks it against the live chain: the encoding reproduces a real successful on-chain swap byte for byte, a well-formed buy simulates cleanly, an unreachable minimum reverts with `V3TooLittleReceived`, `buildBuy` refuses a zero minimum or zero input, and only WETH-paired v3 markets claim in-app support |
+| `terminal.mjs` | The token terminal in a browser: a live quote renders, the guaranteed minimum sits below it, raising slippage actually lowers the floor, timeframe buttons drive the embed's `interval`, the tape resolves to real rows or an *explained* empty state, and no router address is ever shown as a trader |
 | `detect-all.ps1` | `npx impeccable detect --json` on all 13 routes. **Always `--json`** — in plain mode a clean run and a crashed run are both silent |
 
 ## Diagnostics
@@ -70,3 +72,15 @@ behind a detector finding), `crop.mjs` / `shot-at.mjs` / `film.mjs` (screenshots
   touching source.
 - **`git stash push -- newera-web/src`, re-run, unstash.** The only way to know
   whether a number is an improvement or was always that way.
+- **A test that only watches for reverts passes when everything reverts.** The
+  first version of `swap.mjs` reported "slippage enforced" while every swap was
+  broken — the guard check and the it-works check must both be present, and the
+  guard means nothing without the other.
+- **Uniswap's deployment here does not match Uniswap's docs.** This chain's
+  `V3_SWAP_EXACT_IN` input takes a sixth, empty `bytes` parameter; the
+  documented five-parameter encoding reverts with `SliceOutOfBounds()`. Decode a
+  real transaction before trusting an ABI — `swap.mjs` pins the layout against
+  a known-good mainnet swap for exactly this reason.
+- **Bundle to somewhere inside the repo.** `esbuild` with `external: ["viem"]`
+  emitting to the system temp dir produces a file that cannot resolve `viem`,
+  because node walks up from the *importing file* looking for `node_modules`.

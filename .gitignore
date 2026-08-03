@@ -25,3 +25,5 @@ dist-ssr
 
 # impeccable scratch: decision-page answers and sketches
 .impeccable/
+tools/audit/.tmp/
+tools/audit/out/

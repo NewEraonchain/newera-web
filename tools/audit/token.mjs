@@ -37,7 +37,11 @@ const r = await p.evaluate(() => ({
 ok("1a renders a market block", /liquidity/i.test(r.text) && /traded 24h/i.test(r.text))
 ok("1b embeds the chart", r.iframes.some((s) => /dexscreener/.test(s || "")), r.iframes[0] || "no iframe")
 ok("1c offers the handoff", !!r.trade && /dexscreener/.test(r.trade), r.trade || "none")
-ok("1d states we do not execute", /does not execute trades and holds no keys/i.test(r.text))
+/* The page used to promise "does not execute trades and holds no keys". Half of
+   that stopped being true when the swap panel shipped. What must still hold —
+   and is the claim that actually matters — is that we never take custody. */
+ok("1d states the custody position accurately", /never holds your funds or your keys/i.test(r.text))
+ok("1d² no stale 'does not execute trades' claim", !/does not execute trades/i.test(r.text))
 ok("1e address is selectable text", r.addrShown)
 ok("1f titles itself", /Token · NewEra$/.test(r.title), r.title)
 ok("1g no page errors", errs.length === 0, errs.join(" | ") || "clean")

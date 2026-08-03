@@ -4,8 +4,12 @@ import { getJSON, ago, shortAddr } from "@/lib/api"
 import type { TokenDetail } from "@/lib/api"
 import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/components/intel"
 import { useMarkets, usd, type Market } from "@/lib/markets"
+import { Chart, Trades } from "@/components/market"
+import SwapPanel from "@/components/SwapPanel"
+import { findFeeTier, getDecimals, poolFromLabels, type Pool } from "@/lib/swap"
+import { getPoolAddress } from "@/lib/trades"
 
-/* One token, everything about it, and the way out to trade it.
+/* One token: everything about it, the tape, and the trade.
  *
  * The missing route. There was no way to look a token up at all — no
  * `/token/:address`, no search, and the address was not even rendered as
@@ -13,16 +17,21 @@ import { useMarkets, usd, type Market } from "@/lib/markets"
  * ticker" is the most common way anyone arrives at a product like this, and it
  * terminated in a 404.
  *
- * WHAT THIS IS NOT. It is not a venue. NewEra executes nothing, holds no keys,
- * and quotes no prices of its own — the chart and the market figures come from
- * DexScreener, and the trade action opens that market on its own venue. Building
- * a swap here would mean routing against Uniswap V4's singleton with approvals
- * and slippage, which is the trading infrastructure this product exists not to
- * build, and it would falsify the claim on the landing page.
+ * WHAT THIS IS AND IS NOT. The interface is ours; the execution is not. A buy
+ * here is built as calldata and signed in the user's wallet against Uniswap's
+ * router — NewEra deploys no contract, holds no keys, and never takes custody,
+ * so we are not a venue and there is nothing of ours to audit. What we are is
+ * the surface that constructs the transaction, which is a real responsibility
+ * and is why the swap path is verified against the chain in
+ * `tools/audit/swap.mjs` rather than trusted.
  *
- * The index half degrades on its own: `/intel/token/:address` may not be
- * deployed yet, and a token that predates the indexer will 404 forever. Market
- * data still renders in that case, clearly separated from "what we know". */
+ * Only Uniswap v3 markets route in-app. v4 and flapsh, together most of the
+ * chain, fall through to the venue's own interface.
+ *
+ * Three sources, degrading independently: our index (`/intel/token/:address`,
+ * which 404s for anything older than the watcher), DexScreener (price, depth,
+ * candles), and the chain itself (quotes, fills, execution). Any one can be
+ * down without blanking the others. */
 
 export default function Token() {
   const { address = "" } = useParams()
@@ -43,6 +52,44 @@ export default function Token() {
   const markets = useMarkets(useMemo(() => (address ? [address] : []), [address]))
   const market = markets?.markets.get(address.toLowerCase())
   const marketState = markets === null ? "loading" : markets.ok ? "ok" : "down"
+
+  /* Which protocol holds the market decides whether we can route the trade at
+     all. DexScreener's labels answer it without another chain call; the fee
+     tier and pool address then come from the chain, because only the chain
+     knows them. */
+  const [pool, setPool] = useState<Pool | null>(null)
+  const [poolAddress, setPoolAddress] = useState<string | null>(null)
+  const [decimals, setDecimals] = useState(18)
+
+  useEffect(() => {
+    setPool(null)
+    setPoolAddress(null)
+    if (!market || !address) return
+    let alive = true
+
+    const candidate = poolFromLabels(market.dex || undefined, market.labels, market.quoteToken)
+    if (!candidate.supported) {
+      setPool(candidate)
+      return
+    }
+    ;(async () => {
+      const [fee, dec] = await Promise.all([findFeeTier(address), getDecimals(address)])
+      if (!alive) return
+      setDecimals(dec)
+      if (fee === null) {
+        // Labelled v3 but no tier answers — treat as unroutable, not as broken.
+        setPool({ protocol: "v3", supported: false })
+        return
+      }
+      setPool({ protocol: "v3", fee, supported: true })
+      const p = await getPoolAddress(address, fee)
+      if (alive) setPoolAddress(p)
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [market, address])
 
   const launch = data?.launch
   /* Our index first, the venue second, the address last. The index is the
@@ -104,6 +151,25 @@ export default function Token() {
       </div>
 
       <TheMarket market={market} state={marketState} />
+
+      {/* Trade before chart before tape: the action first, then the context for
+          it. The old page put a 520px iframe between the figures and everything
+          else, which pushed the index — the half only we have — below two
+          screenfolds of someone else's widget. */}
+      {market?.liquidityUsd && pool && (
+        <SwapPanel
+          token={address}
+          symbol={symbol}
+          pool={pool}
+          venueUrl={market.url}
+          venueName={market.dex}
+        />
+      )}
+
+      {market?.url && market.liquidityUsd ? <Chart venueUrl={market.url} symbol={symbol} /> : null}
+
+      <Trades pool={poolAddress} symbol={symbol} decimals={decimals} />
+
       <WhatWeKnow data={data} state={indexState} />
       <Siblings data={data} />
     </div>
@@ -193,32 +259,21 @@ function TheMarket({
             href={market.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block-btn bg-acid-500 font-semibold text-ink-950"
+            className="scan-link -my-1.5 py-1.5 text-sm text-acid-500"
           >
-            Trade on {market.dex || "the venue"} ↗
+            See it on {market.dex || "the venue"} ↗
           </a>
         )}
       </div>
 
+      {/* This paragraph used to say NewEra "does not execute trades", which
+          stopped being true the moment the swap panel shipped. What survives is
+          the part that still holds and matters more: no custody, no keys. */}
       <p className="measure mt-5 text-xs leading-relaxed text-fg-dim">
-        Price, depth and the chart come from DexScreener, which indexes this chain.{" "}
-        <b className="font-semibold text-fg-muted">NewEra does not execute trades and holds no
-        keys</b> — the button opens the market on its own venue, where you trade from your own
-        wallet.
+        Price, depth and the candles come from DexScreener, which indexes this chain.{" "}
+        <b className="font-semibold text-fg-muted">NewEra never holds your funds or your keys</b> —
+        trades you make below are signed by your own wallet and settle on Uniswap.
       </p>
-
-      {market.url && (
-        <div className="mt-6 overflow-hidden border border-edge">
-          {/* DexScreener sends no X-Frame-Options and no CSP on its embed view,
-              so the chart can be framed. It is their widget, not our quote. */}
-          <iframe
-            src={`${market.url}?embed=1&theme=dark&info=0`}
-            title="Price chart"
-            loading="lazy"
-            className="h-[420px] w-full border-0 sm:h-[520px]"
-          />
-        </div>
-      )}
     </section>
   )
 }

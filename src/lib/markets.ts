@@ -40,6 +40,12 @@ export type Market = {
   url: string
   /** Which DEX the liquidity is actually on. */
   dex: string
+  /** Protocol version tags, e.g. ["v3"] or ["v4"]. Decides whether we can
+      route a trade in-app or must hand off to the venue. */
+  labels: string[]
+  /** What the token is paired against. Only a WETH pair can be bought with ETH
+      in one hop, so this gates in-app routing alongside the protocol label. */
+  quoteToken: string
 }
 
 const API = "https://api.dexscreener.com/latest/dex/tokens/"
@@ -102,6 +108,8 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         marketCap: num(pair?.marketCap) ?? num(pair?.fdv),
         url: String(pair?.url || ""),
         dex: String(pair?.dexId || ""),
+        labels: Array.isArray(pair?.labels) ? pair.labels.map(String) : [],
+        quoteToken: String(pair?.quoteToken?.address || "").toLowerCase(),
       })
     }
   }

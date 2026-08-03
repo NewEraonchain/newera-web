@@ -106,8 +106,11 @@ export function Terms() {
       <Section>
         <Callout>
           NewEra is an information service. It reads publicly available blockchain data about tokens
-          launched on Robinhood Chain and presents analysis of it. It does not custody funds,
-          execute trades, or provide financial advice, and it is free to use.
+          launched on Robinhood Chain and presents analysis of it. It also offers a non-custodial
+          interface for swapping some of those tokens: the transaction is built in your browser and
+          signed by your own wallet, and it settles on third-party smart contracts. NewEra never
+          takes custody of funds, never holds keys, and provides no financial advice. It is free to
+          use.
         </Callout>
       </Section>
 
@@ -143,8 +146,9 @@ export function Terms() {
       <Section title="4. What NewEra provides">
         <Bullets
           items={[
-            <><b>It is free.</b> There is no charge, no subscription and no tier.</>,
-            <><b>It is informational.</b> NewEra does not hold funds, execute trades, route orders, or act as a broker, exchange or custodian.</>,
+            <><b>It is free.</b> There is no charge, no subscription and no tier. NewEra takes no fee or spread on a swap.</>,
+            <><b>It is non-custodial.</b> NewEra never holds your funds, never holds your keys, does not match or route orders as an intermediary, and is not a broker, exchange or custodian. Where a swap is offered, NewEra prepares a transaction and your wallet decides whether to sign it.</>,
+            <><b>Execution is third-party.</b> Swaps settle on Uniswap&apos;s smart contracts, which we do not own, control or operate. Once you sign, NewEra cannot stop, reverse or alter the transaction.</>,
             <><b>It is not a token service.</b> Using NewEra requires no token and confers no entitlement to one.</>,
           ]}
         />
@@ -444,8 +448,15 @@ export function Risk() {
 
       <Section title="5. On-chain finality">
         <p>
-          NewEra does not execute transactions, but anything you do elsewhere as a result of
-          reading it is <b>permanent and irreversible</b>.
+          Every transaction you sign — whether through NewEra&apos;s swap interface or anywhere
+          else as a result of reading it — is <b>permanent and irreversible</b>. Nobody, including
+          us, can reverse it, refund it or cancel it once it is confirmed.
+        </p>
+        <p>
+          Liquidity on this chain is thin. A trade large relative to a pool will execute at a
+          materially worse price than the one quoted, and selling back out will cost you again. The
+          swap interface shows the estimated price impact before you sign; treat a large number
+          there as the real cost of the trade, because it is.
         </p>
         <Callout tone="danger">
           Token names and tickers can be deliberately disguised. Two tokens can look identical and

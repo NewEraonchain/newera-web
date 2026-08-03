@@ -211,7 +211,7 @@ export function MarketLine({
           target="_blank"
           rel="noopener"
           className="scan-link -my-1.5 py-1.5 text-acid-500"
-          title={`Opens the ${market.dex} market on DexScreener. NewEra does not execute trades.`}
+          title={`Opens the ${market.dex} market on DexScreener. NewEra never holds your funds or keys.`}
         >
           Trade ↗
         </a>

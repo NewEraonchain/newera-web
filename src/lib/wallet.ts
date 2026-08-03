@@ -25,7 +25,7 @@ export type Session = {
   isNewUser: boolean
 }
 
-type Eip1193 = {
+export type Eip1193 = {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>
 }
 
@@ -58,6 +58,21 @@ async function getWalletConnect() {
     },
   })) as unknown as typeof wcProvider
   return wcProvider!
+}
+
+/**
+ * Connect a wallet and nothing more — no nonce, no signature, no session.
+ *
+ * Trading needs an account to send from, not an identity. Routing it through
+ * connect() would demand a personal_sign and a backend round-trip before anyone
+ * could swap, which is friction for no benefit and conflates "who you are" with
+ * "whose funds these are". A trade is authorised by the transaction signature
+ * itself.
+ */
+export async function connectForTrading(
+  kind: ConnectKind
+): Promise<{ provider: Eip1193; address: string }> {
+  return getProvider(kind)
 }
 
 async function getProvider(kind: ConnectKind): Promise<{ provider: Eip1193; address: string }> {
