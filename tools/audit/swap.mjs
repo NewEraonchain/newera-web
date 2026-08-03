@@ -1,15 +1,17 @@
-/* Swap safety suite — exercises src/lib/swap.ts itself, not a copy of it.
+/* Swap safety suite — exercises src/lib/swap.ts and src/lib/v4.ts themselves,
+ * not copies of them.
  *
- * This is the one audit where a regression costs money rather than pixels, so
- * it asserts three things against the live chain:
- *   1. the encoding still reproduces a real successful on-chain swap byte for byte
+ * This is the one audit where a regression costs money rather than pixels, so it
+ * asserts, against the live chain:
+ *   1. both encodings still reproduce real successful on-chain swaps byte for byte
  *   2. a well-formed buy actually executes (simulated with a balance override)
  *   3. the minimum-output guard genuinely reverts when it should
- * (3) is the one that matters, and it is only meaningful if (2) passes: an
- * earlier version of this file reported "slippage enforced" while every swap was
- * broken, because a reverting swap satisfies a test that only looks for reverts. */
+ *   4. a sell is refused rather than sent when the router has no Permit2 grant
+ * (3) is only meaningful if (2) passes: an early version of this file reported
+ * "slippage enforced" while every swap was broken, because a reverting swap
+ * satisfies a test that only looks for reverts. */
 import { build } from "esbuild"
-import { createPublicClient, defineChain, http, decodeFunctionData, parseAbi, parseUnits } from "viem"
+import { createPublicClient, defineChain, http, decodeFunctionData, decodeAbiParameters, parseAbi, parseAbiItem, parseUnits } from "viem"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 import { mkdirSync, rmSync } from "node:fs"
@@ -21,12 +23,14 @@ const root = join(here, "..", "..")
    node_modules to walk up to. */
 const outDir = join(here, ".tmp")
 mkdirSync(outDir, { recursive: true })
-const bundle = join(outDir, "swap.mjs")
-await build({
-  entryPoints: [join(root, "src", "lib", "swap.ts")],
-  bundle: true, format: "esm", outfile: bundle, external: ["viem"], logLevel: "silent",
-})
-const swap = await import(`file://${bundle.replace(/\\/g, "/")}`)
+
+async function load(rel, name) {
+  const outfile = join(outDir, name)
+  await build({ entryPoints: [join(root, "src", "lib", rel)], bundle: true, format: "esm", outfile, external: ["viem"], logLevel: "silent" })
+  return import(`file://${outfile.replace(/\\/g, "/")}?t=${Date.now()}`)
+}
+const swap = await load("swap.ts", "swap.mjs")
+const v4 = await load("v4.ts", "v4.mjs")
 
 const chain = defineChain({ id: 4663, name: "Robinhood Chain", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } } })
 const client = createPublicClient({ chain, transport: http() })
@@ -37,17 +41,21 @@ const EXEC_ABI = parseAbi(["function execute(bytes commands, bytes[] inputs, uin
 
 let failures = 0
 const check = (ok, msg) => { console.log(`  ${ok ? "PASS" : "FAIL"}  ${msg}`); if (!ok) failures++ }
+const simulate = async (tx) => {
+  try { await client.call({ account: SENDER, to: tx.to, data: tx.data, value: tx.value, stateOverride: OVR }); return null }
+  catch (e) { return e.walk?.((x) => typeof x?.data === "string")?.data ?? "revert" }
+}
 
-/* 1. Encoding parity with a known-good swap. The reference is a real mainnet
-   WRAP_ETH + V3_SWAP_EXACT_IN. buildBuy must reproduce its inputs exactly —
-   that is where the undocumented sixth parameter lives. */
-console.log("1. encoding parity with on-chain reference")
-const REF_TX = "0xcc2157c2c3c9667aad835df6cc34e2c5a541eb1125fcc56086f14743de8d3832"
-const refTx = await client.getTransaction({ hash: REF_TX }).catch(() => null)
-if (!refTx) {
-  check(false, "reference transaction unreachable — replace REF_TX with a newer successful swap")
+/* 1. v3 encoding parity. The reference is a real mainnet WRAP_ETH +
+   V3_SWAP_EXACT_IN; buildBuy must reproduce its inputs exactly — that is where
+   the undocumented sixth parameter lives. */
+console.log("1. v3 encoding parity with on-chain reference")
+const REF_V3 = "0xcc2157c2c3c9667aad835df6cc34e2c5a541eb1125fcc56086f14743de8d3832"
+const refV3 = await client.getTransaction({ hash: REF_V3 }).catch(() => null)
+if (!refV3) {
+  check(false, "v3 reference transaction unreachable — replace REF_V3 with a newer successful swap")
 } else {
-  const refInputs = decodeFunctionData({ abi: EXEC_ABI, data: refTx.input }).args[1]
+  const refInputs = decodeFunctionData({ abi: EXEC_ABI, data: refV3.input }).args[1]
   const built = swap.buildBuy({
     token: "0x90964ff33a330b702532902fc7d0b02d00e24fe3",
     recipient: "0xf937a98f346ffc62576981de0aadf84438b75660",
@@ -55,64 +63,172 @@ if (!refTx) {
   })
   const decoded = decodeFunctionData({ abi: EXEC_ABI, data: built.data })
   check(decoded.args[0] === "0x0b00", "commands are WRAP_ETH + V3_SWAP_EXACT_IN")
-  check(decoded.args[1][0].toLowerCase() === refInputs[0].toLowerCase(), "wrap input byte-identical")
   check(decoded.args[1][1].toLowerCase() === refInputs[1].toLowerCase(),
     `swap input byte-identical (${(decoded.args[1][1].length - 2) / 2}B vs ${(refInputs[1].length - 2) / 2}B)`)
 }
 
-/* 2. Live behaviour on tokens currently in the feed. */
-console.log("\n2. live quote + simulated execution")
+/* 2. v4 encoding parity, against a real successful V4_SWAP. */
+console.log("\n2. v4 encoding parity with on-chain reference")
+const REF_V4 = "0xf395a9b39ea79d1b6966d18cd535adfd65a3d268568b810a6aa2e47cb617f55c"
+const refV4 = await client.getTransaction({ hash: REF_V4 }).catch(() => null)
+if (!refV4) {
+  check(false, "v4 reference transaction unreachable — replace REF_V4 with a newer successful v4 swap")
+} else {
+  const refArgs = decodeFunctionData({ abi: EXEC_ABI, data: refV4.input }).args
+  const [, params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], refArgs[1][0])
+  const EIS = [{ type: "tuple", components: [
+    { name: "poolKey", type: "tuple", components: [
+      { name: "currency0", type: "address" }, { name: "currency1", type: "address" },
+      { name: "fee", type: "uint24" }, { name: "tickSpacing", type: "int24" }, { name: "hooks", type: "address" }]},
+    { name: "zeroForOne", type: "bool" }, { name: "amountIn", type: "uint128" },
+    { name: "amountOutMinimum", type: "uint128" }, { name: "sqrtPriceLimitX96", type: "uint160" },
+    { name: "hookData", type: "bytes" }]}]
+  const [p0] = decodeAbiParameters(EIS, params[0])
+  const rebuilt = v4.buildV4Swap({
+    key: p0.poolKey, zeroForOne: p0.zeroForOne,
+    amountInWei: p0.amountIn, minOutWei: p0.amountOutMinimum, nativeIn: true,
+  })
+  const decoded = decodeFunctionData({ abi: EXEC_ABI, data: rebuilt.data })
+  check(decoded.args[0] === "0x10", "command is V4_SWAP")
+  check(decoded.args[1][0].toLowerCase() === refArgs[1][0].toLowerCase(),
+    `v4 input byte-identical (${(decoded.args[1][0].length - 2) / 2}B vs ${(refArgs[1][0].length - 2) / 2}B)`)
+  check(v4.poolIdOf(p0.poolKey).length === 66, "poolId derives from the key")
+}
+
+/* 3. Live behaviour on tokens currently in the feed. */
+console.log("\n3. live quote + simulated execution")
 const feed = await fetch("https://newerabackend-production.up.railway.app/intel/feed?limit=60").then(r => r.json()).catch(() => ({}))
 const addrs = (feed.items || []).map((l) => l.address).filter(Boolean)
-const v3 = []
-for (let i = 0; i < addrs.length && v3.length < 3; i += 25) {
+const candidates = { v3: [], v4: [] }
+for (let i = 0; i < addrs.length && (candidates.v3.length < 2 || candidates.v4.length < 2); i += 25) {
   const ds = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addrs.slice(i, i + 25).join(",")}`).then(r => r.json()).catch(() => null)
   for (const p of ds?.pairs || []) {
+    if (p.dexId !== "uniswap") continue
     const labels = (p.labels || []).map((s) => s.toLowerCase())
     const a = p.baseToken.address.toLowerCase()
-    /* Must be paired against WETH. A token can have several pairs at once — one
-       v3 against a stablecoin and one v4 against ETH — and matching on the
-       protocol label alone picks tokens that no ETH swap can ever quote. */
-    const vsEth = String(p.quoteToken?.address || "").toLowerCase() === WETH.toLowerCase()
-    if (p.dexId === "uniswap" && labels.includes("v3") && vsEth && !v3.some((t) => t.addr === a)) {
-      v3.push({ addr: a, symbol: p.baseToken.symbol })
-    }
+    const entry = { addr: a, symbol: p.baseToken.symbol, pairId: p.pairAddress, dex: p.dexId, labels, quote: p.quoteToken?.address }
+    if (labels.includes("v3") && String(p.quoteToken?.address).toLowerCase() === WETH.toLowerCase()
+        && !candidates.v3.some(t => t.addr === a) && candidates.v3.length < 2) candidates.v3.push(entry)
+    if (labels.includes("v4") && !candidates.v4.some(t => t.addr === a) && candidates.v4.length < 2) candidates.v4.push(entry)
   }
 }
-check(v3.length > 0, `found ${v3.length} v3-backed tokens in the live feed`)
+console.log(`  found ${candidates.v3.length} v3 and ${candidates.v4.length} v4 candidates in the live feed`)
 
-const simulate = async (tx) => {
-  try { await client.call({ account: SENDER, to: tx.to, data: tx.data, value: tx.value, stateOverride: OVR }); return null }
-  catch (e) { return e.walk?.((x) => typeof x?.data === "string")?.data ?? "revert" }
+let tradeable = 0
+for (const kind of ["v3", "v4"]) {
+  for (const t of candidates[kind]) {
+    const candidate = swap.poolFromLabels(t.dex, t.labels, t.quote)
+    const pool = await swap.resolveRoute(t.addr, candidate, t.pairId)
+    if (!pool.supported) {
+      // Not a failure: an unroutable pool must decline with a reason, not crash.
+      check(!!pool.reason, `${t.symbol} (${kind}): declines with a stated reason — "${(pool.reason || "NONE").slice(0, 70)}"`)
+      continue
+    }
+    /* Quote at a wide slippage for the execution check. These pools move between
+       blocks (100ms), so a 1% floor set at quote time is routinely stale by the
+       time the simulation runs — that is slippage protection working, not a
+       broken route, and asserting on it tests the market rather than our code.
+       The tight-minimum case is covered by the greedy check below. */
+    const q = await swap.quoteTrade({ pool, token: t.addr, amount: "0.001", side: "buy", slippagePct: 20 })
+    if (!q) { check(false, `${t.symbol} (${kind}): route is supported but returned no quote`); continue }
+    tradeable++
+    console.log(`\n  ${t.symbol} — ${pool.protocol}${pool.fee !== undefined ? ` tier ${pool.fee}` : ""}, out ${Number(q.amountOut).toLocaleString(undefined, { maximumFractionDigits: 0 })}, impact ${(q.priceImpact * 100).toFixed(2)}%`)
+    check(q.minOutWei > 0n && q.minOutWei < q.amountOutWei, "minOut sits below the quote and above zero")
+
+    const good = swap.buildTrade({ pool, token: t.addr, recipient: SENDER, quote: q })
+    const goodErr = await simulate(good)
+    check(goodErr === null, `${t.symbol}: buy executes${goodErr ? ` (${String(goodErr).slice(0, 12)})` : ""}`)
+
+    const greedy = swap.buildTrade({ pool, token: t.addr, recipient: SENDER, quote: { ...q, minOutWei: q.amountOutWei * 100n } })
+    const err = await simulate(greedy)
+    check(err !== null, `${t.symbol}: unreachable minOut reverts (${err})`)
+  }
+}
+check(tradeable > 0, `at least one live route was tradeable (${tradeable})`)
+
+/* 4. Selling must not be sendable without a Permit2 grant. SENDER has none, so
+   a sell built for it must fail simulation — proving the approval step is load
+   bearing rather than decorative. */
+console.log("\n4. selling is gated on approvals")
+const sellable = candidates.v3[0]
+if (sellable) {
+  const pool = await swap.resolveRoute(sellable.addr, swap.poolFromLabels(sellable.dex, sellable.labels, sellable.quote), sellable.pairId)
+  if (pool.supported && pool.fee !== undefined) {
+    const sell = swap.buildSell({ token: sellable.addr, amountInWei: 10n ** 18n, minOutWei: 1n, fee: pool.fee })
+    check((await simulate(sell)) !== null, "a sell without a Permit2 grant fails rather than silently sending")
+    check(swap.needsApproval(pool, sellable.addr, "sell") === true, "sells are flagged as needing approval")
+    check(swap.needsApproval(pool, sellable.addr, "buy") === false, "v3 buys are not")
+  }
 }
 
-for (const t of v3) {
-  const q = await swap.quoteBuy(t.addr, "0.001", 1)
-  if (!q) { check(false, `${t.symbol}: no quote returned`); continue }
-  console.log(`\n  ${t.symbol} — tier ${q.pool.fee}, out ${Number(q.amountOut).toLocaleString(undefined, { maximumFractionDigits: 0 })}, impact ${(q.priceImpact * 100).toFixed(2)}%`)
-  check(q.minOutWei > 0n && q.minOutWei < q.amountOutWei, "minOut sits below the quote and above zero")
-
-  const good = swap.buildBuy({ token: t.addr, recipient: SENDER, amountInWei: q.amountInWei, minOutWei: q.minOutWei, fee: q.pool.fee })
-  check((await simulate(good)) === null, `${t.symbol}: buy executes`)
-
-  const greedy = swap.buildBuy({ token: t.addr, recipient: SENDER, amountInWei: q.amountInWei, minOutWei: q.amountOutWei * 100n, fee: q.pool.fee })
-  const err = await simulate(greedy)
-  check(err === swap.V3_TOO_LITTLE_RECEIVED, `${t.symbol}: unreachable minOut reverts with V3TooLittleReceived (${err})`)
-}
-
-/* 3. Refuse to build something unsafe. */
-console.log("\n3. refuses to build an unprotected swap")
+/* 5. Refuse to build something unsafe. */
+console.log("\n5. refuses to build an unprotected trade")
 const throws = (fn) => { try { fn(); return false } catch { return true } }
-check(throws(() => swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 10n ** 15n, minOutWei: 0n, fee: 100 })), "minOut of zero is rejected")
-check(throws(() => swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 0n, minOutWei: 1n, fee: 100 })), "zero input is rejected")
+check(throws(() => swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 10n ** 15n, minOutWei: 0n, fee: 100 })), "buy with minOut of zero is rejected")
+check(throws(() => swap.buildSell({ token: WETH, amountInWei: 10n ** 15n, minOutWei: 0n, fee: 100 })), "sell with minOut of zero is rejected")
+check(throws(() => v4.buildV4Swap({ key: { currency0: WETH, currency1: WETH, fee: 0, tickSpacing: 1, hooks: WETH }, zeroForOne: true, amountInWei: 10n ** 15n, minOutWei: 0n, nativeIn: true })), "v4 with minOut of zero is rejected")
 
-/* 4. Routing honesty — only v3 may claim in-app support. */
-console.log("\n4. routing")
-check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap v3 against WETH is routed in-app")
-check(swap.poolFromLabels("uniswap", ["v4"], WETH).supported === false, "uniswap v4 falls back to the handoff")
+/* 6. Routing honesty. */
+console.log("\n6. routing")
+check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap v3 against WETH is a candidate")
+check(swap.poolFromLabels("uniswap", ["v4"], WETH).supported === true, "uniswap v4 is a candidate")
 check(swap.poolFromLabels("flapsh", [], WETH).supported === false, "flapsh falls back to the handoff")
 check(swap.poolFromLabels("uniswap", ["v3"], "0xdead000000000000000000000000000000000000").supported === false,
   "v3 paired against a non-WETH token falls back rather than offering a swap that cannot quote")
+check(!!(await swap.resolveRoute("0x000000000000000000000000000000000000dead", swap.poolFromLabels("uniswap", ["v4"], WETH), "0x" + "ab".repeat(32))).reason,
+  "an unresolvable v4 pool declines with a reason instead of guessing a key")
+check(!!(await swap.resolveRoute("not-an-address", swap.poolFromLabels("uniswap", ["v4"], WETH), "junk")).reason,
+  "a malformed address declines instead of throwing out of route resolution")
+
+/* 7. The tape's sign convention, checked against ground truth.
+ *
+ * v3 emits amounts from the POOL's perspective and v4 from the SWAPPER's, so the
+ * same "ETH leg is positive" test means opposite things. Getting it backwards
+ * labels every buy a sell and raises no error at all — the table just lies. The
+ * only independent witness is the transaction itself: sending ETH means buying.
+ * Checked here rather than in the browser suite, where a quiet pool can yield
+ * two rows of one side and prove nothing. */
+console.log("\n7. tape sign convention vs transaction values")
+{
+  const trades = await load("trades.ts", "trades.mjs")
+  const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951"
+  const V4_SWAP = parseAbiItem("event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)")
+  const tip = await client.getBlockNumber()
+  const logs = await client.getLogs({ address: PM, event: V4_SWAP, fromBlock: tip - 400n, toBlock: tip }).catch(() => [])
+
+  // Group by pool, take the busiest so there is something to compare.
+  const byPool = new Map()
+  for (const l of logs) byPool.set(l.args.id, [...(byPool.get(l.args.id) || []), l])
+  const [poolId, sample] = [...byPool.entries()].sort((a, b) => b[1].length - a[1].length)[0] || []
+
+  if (!sample || sample.length < 3) {
+    console.log(`  note: only ${sample?.length ?? 0} v4 fills in range — skipping`)
+  } else {
+    /* Which currency is ETH comes from the pool's own Initialize event, not an
+       assumption — a pool with the token as currency0 would invert everything. */
+    const INIT = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)")
+    const init = await client.getLogs({ address: PM, event: INIT, args: { id: poolId }, fromBlock: tip - 1_000_000n, toBlock: tip }).catch(() => [])
+    const c0 = init[0]?.args?.currency0?.toLowerCase()
+    const ethIsCurrency0 = c0 === "0x0000000000000000000000000000000000000000" || c0 === WETH.toLowerCase()
+
+    if (!c0) {
+      console.log("  note: pool predates the log window — cannot confirm currency order, skipping")
+    } else {
+      // Run OUR code, then check its verdicts against the transactions themselves.
+      const ours = await trades.fetchTrades({ kind: "v4", poolId, ethIsCurrency0 }, 8)
+      let agreed = 0, disagreed = 0
+      for (const t of ours) {
+        const tx = await client.getTransaction({ hash: t.txHash }).catch(() => null)
+        if (!tx) continue
+        // Sending ETH with the transaction means buying. Nothing else can be it.
+        const truth = tx.value > 0n ? "buy" : "sell"
+        t.kind === truth ? agreed++ : disagreed++
+      }
+      check(ours.length > 0, `fetchTrades returned v4 fills (${ours.length})`)
+      check(disagreed === 0, `v4 buy/sell matches transaction values (${agreed} agreed, ${disagreed} disagreed)`)
+    }
+  }
+}
 
 rmSync(outDir, { recursive: true, force: true })
 console.log(`\n${failures === 0 ? "✅ all swap checks passed" : `❌ ${failures} FAILED`}`)

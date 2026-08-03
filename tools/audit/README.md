@@ -11,13 +11,14 @@ A settled DOM is not the product.
 
 ## Running them
 
-Needs a dev server already up (`npm run dev`, port 5173) and `puppeteer-core`,
-which is **not** a project dependency:
+Needs a dev server already up (`npm run dev`, port 5173). `puppeteer-core` is
+now a declared devDependency of `newera-web` — the repo split had lost it, and
+every browser suite here imported a package that was not installed:
 
 ```
-cd newera-web/tools/audit
-npm init -y && npm i puppeteer-core     # once
-node stability.mjs 5173
+npm i                    # from newera-web/
+node tools/audit/swap.mjs
+node tools/audit/stability.mjs 5173
 ```
 
 Chrome is expected at `C:\Program Files\Google\Chrome\Application\chrome.exe`;
@@ -42,8 +43,8 @@ observations — a FAIL means a behaviour regressed.
 | `reticle.mjs` | The custom cursor stays visible and tracking above the dialog |
 | `stretch.mjs` | No element animates its font width axis (the "text stretching while scrolling" report) |
 | `ux-audit.mjs` | Dead links, unnamed controls, unlabelled inputs, heading order, focus rings, tap-target sizes, console errors, mobile overflow — across every route |
-| `swap.mjs` | **The money one.** Imports `src/lib/swap.ts` itself (bundled on the fly with esbuild, so it tests the shipped code, not a copy) and checks it against the live chain: the encoding reproduces a real successful on-chain swap byte for byte, a well-formed buy simulates cleanly, an unreachable minimum reverts with `V3TooLittleReceived`, `buildBuy` refuses a zero minimum or zero input, and only WETH-paired v3 markets claim in-app support |
-| `terminal.mjs` | The token terminal in a browser: a live quote renders, the guaranteed minimum sits below it, raising slippage actually lowers the floor, timeframe buttons drive the embed's `interval`, the tape resolves to real rows or an *explained* empty state, and no router address is ever shown as a trader |
+| `swap.mjs` | **The money one.** Imports `src/lib/swap.ts`, `v4.ts` and `trades.ts` themselves (bundled on the fly with esbuild, so it tests the shipped code, not copies) and checks them against the live chain: both the v3 and v4 encodings reproduce real successful on-chain swaps byte for byte, well-formed buys simulate cleanly on each protocol, an unreachable minimum reverts, a sell without a Permit2 grant fails rather than sending, the builders refuse a zero minimum or zero input, unroutable pools decline with a stated reason instead of guessing a key, and the tape's buy/sell labels agree with the transactions' own ETH values |
+| `terminal.mjs` | The token terminal in a browser: a live quote renders, the guaranteed minimum sits below it, raising slippage actually lowers the floor, timeframe buttons drive the embed's `interval`, the tape resolves to real rows or an *explained* empty state, no router address is ever shown as a trader, the Sell tab flips what the amount means and discloses its approvals, and v4 pages either route or decline with a reason |
 | `detect-all.ps1` | `npx impeccable detect --json` on all 13 routes. **Always `--json`** — in plain mode a clean run and a crashed run are both silent |
 
 ## Diagnostics
@@ -76,11 +77,29 @@ behind a detector finding), `crop.mjs` / `shot-at.mjs` / `film.mjs` (screenshots
   first version of `swap.mjs` reported "slippage enforced" while every swap was
   broken — the guard check and the it-works check must both be present, and the
   guard means nothing without the other.
-- **Uniswap's deployment here does not match Uniswap's docs.** This chain's
-  `V3_SWAP_EXACT_IN` input takes a sixth, empty `bytes` parameter; the
-  documented five-parameter encoding reverts with `SliceOutOfBounds()`. Decode a
-  real transaction before trusting an ABI — `swap.mjs` pins the layout against
-  a known-good mainnet swap for exactly this reason.
+- **Uniswap's deployment here does not match Uniswap's docs — twice.** This
+  chain's `V3_SWAP_EXACT_IN` input takes a sixth, empty `bytes` parameter (the
+  documented five-parameter form reverts `SliceOutOfBounds()`), and its v4
+  `ExactInputSingleParams` still carries `sqrtPriceLimitX96`, which newer
+  v4-periphery dropped. Decode a real transaction before trusting an ABI —
+  `swap.mjs` pins both layouts against known-good mainnet swaps for this reason.
+- **A v4 quoter reverting `NotEnoughLiquidity` may be telling the truth.** Most
+  v4 launch pools here are drained: a live price with nothing behind it. The
+  quoter is the authority on tradeability, not `getLiquidity` — zero liquidity
+  *at the current tick* still trades, because the swap crosses into the next one.
 - **Bundle to somewhere inside the repo.** `esbuild` with `external: ["viem"]`
   emitting to the system temp dir produces a file that cannot resolve `viem`,
   because node walks up from the *importing file* looking for `node_modules`.
+- **`npx tsc --noEmit` checks NOTHING here.** The root `tsconfig.json` is
+  `{"files": []}` with project references, so a bare run is silently vacuous.
+  Typecheck with `npm run build` (which runs `tsc -b`) or `tsc -b` directly.
+- **`innerText` reflects CSS `text-transform`.** A label with an `uppercase`
+  class reads back as "YOU PAY (…)", so case-sensitive assertions on rendered
+  copy fail for reasons that have nothing to do with the copy.
+- **Don't assert a tight slippage floor against a live market.** Blocks are
+  ~100ms; a 1% minimum computed at quote time is routinely stale by the time a
+  simulation runs. That is the protection working. Use a wide slippage to test
+  the *encoding*, and a deliberately unreachable minimum to test the *guard*.
+- **The node errors above 10,000 logs; it does not truncate.** A wide
+  `getLogs` window that "worked" may only have worked because the pool was
+  young. Start narrow and widen.

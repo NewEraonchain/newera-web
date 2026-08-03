@@ -32,6 +32,8 @@ export const CONTRACTS = {
   quoterV2: "0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7",
   v4Quoter: "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
   v4PoolManager: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  /** Read-only view onto PoolManager state — v4 pools expose nothing directly. */
+  v4StateView: "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
   v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
   permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
 } as const

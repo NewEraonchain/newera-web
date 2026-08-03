@@ -1,33 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { formatUnits } from "viem"
 import { explorerTx } from "@/lib/chain"
-import { quoteBuy, type Pool, type Quote } from "@/lib/swap"
-import { executeBuy, getEthBalance, type TradeState } from "@/lib/trade"
+import { needsApproval, quoteTrade, type Pool, type Quote, type Side } from "@/lib/swap"
+import { executeTrade, getEthBalance, getTokenBalance, type TradeState } from "@/lib/trade"
 import { currentAddress } from "@/lib/wallet"
 
-/* Buying, in our interface, against Uniswap's router.
+/* Trading, in our interface, against Uniswap's routers.
  *
  * The interface is ours; the execution is Uniswap's and the custody is the
  * user's. NewEra deploys no contract, so there is no contract of ours to audit
- * — but this file constructs the calldata a person signs, which makes it the
- * security-critical surface in its place. Two rules follow from that:
+ * — but this file drives the construction of calldata a person signs, which
+ * makes it the security-critical surface in its place. Two rules follow:
  *
- *   1. Never present a number we did not get from the chain. The quote is a
- *      live QuoterV2 read, the impact is measured in the same pool, and the
- *      amount reported after the trade is the actual balance change, not the
- *      quote we predicted.
- *   2. Never let a swap go out without a floor under it. minOut is computed in
- *      swap.ts, enforced by the router, and buildBuy throws rather than encode
- *      a zero.
+ *   1. Never present a number we did not get from the chain. Quotes are live
+ *      reads from QuoterV2 or the v4 quoter, impact is measured in the same pool
+ *      and direction, and the amount reported afterwards is the actual balance
+ *      change, not the quote we predicted.
+ *   2. Never let a swap out without a floor under it. minOut is computed in
+ *      swap.ts, enforced by the router, and the builders throw rather than
+ *      encode a zero.
  *
- * Only Uniswap v3 is routed here. v4 and flapsh markets fall through to the
- * external handoff, because a wrong route is worse than an honest one. */
+ * Buying needs no approval — ETH goes in as msg.value. Selling needs two
+ * one-time Permit2 grants per token before the first sell, which is why the
+ * action below can become a short sequence rather than a single button. */
 
 const SLIPPAGE_CHOICES = [0.5, 1, 3, 5]
-const PRESETS = ["0.01", "0.05", "0.1", "0.5"]
+const BUY_PRESETS = ["0.01", "0.05", "0.1", "0.5"]
+const SELL_FRACTIONS: Array<[string, number]> = [["25%", 0.25], ["50%", 0.5], ["Max", 1]]
 
-/* These pools are thin — the median is around $7k, and a $1,800 buy in the
-   deepest one measured moved the price 11.8%. Warn early and loudly. */
+/* These pools are thin — a $4.2k pool moves 3.5% on 0.05 ETH — so warn early. */
 const IMPACT_WARN = 0.03
 const IMPACT_SEVERE = 0.1
 
@@ -44,13 +45,16 @@ export default function SwapPanel({
   venueUrl?: string | null
   venueName?: string | null
 }) {
+  const [side, setSide] = useState<Side>("buy")
   const [amount, setAmount] = useState("0.05")
   const [slippage, setSlippage] = useState(1)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoting, setQuoting] = useState(false)
-  const [noPool, setNoPool] = useState(false)
+  const [noFill, setNoFill] = useState(false)
   const [state, setState] = useState<TradeState>({ phase: "idle" })
-  const [balance, setBalance] = useState<bigint | null>(null)
+  const [ethBalance, setEthBalance] = useState<bigint | null>(null)
+  const [tokenBalance, setTokenBalance] = useState<bigint | null>(null)
+  const [decimals, setDecimals] = useState(18)
   const [ack, setAck] = useState(false)
 
   const address = currentAddress()
@@ -58,27 +62,40 @@ export default function SwapPanel({
 
   useEffect(() => {
     if (!address) return
-    getEthBalance(address).then(setBalance).catch(() => setBalance(null))
-  }, [address, state.phase])
+    getEthBalance(address).then(setEthBalance).catch(() => setEthBalance(null))
+    getTokenBalance(token, address).then(setTokenBalance).catch(() => setTokenBalance(null))
+  }, [address, token, state.phase])
 
-  /* Re-quote on every input change, debounced. Each request carries a sequence
-     number so a slow early response cannot overwrite a fast later one — with
-     four fee tiers probed in order, response times differ by seconds. */
+  // Switching side changes what the amount means, so it cannot carry over.
+  const swapSide = useCallback((next: Side) => {
+    setSide(next)
+    setQuote(null)
+    setAck(false)
+    setState({ phase: "idle" })
+    setAmount(next === "buy" ? "0.05" : "")
+  }, [])
+
+  /* Re-quote on every change, debounced. Each request carries a sequence number
+     so a slow early response cannot overwrite a fast later one — quoting probes
+     several fee tiers and response times differ by seconds. */
   useEffect(() => {
     const n = ++seq.current
     const parsed = Number(amount)
     if (!amount || !isFinite(parsed) || parsed <= 0) {
       setQuote(null)
       setQuoting(false)
+      setNoFill(false)
       return
     }
     setQuoting(true)
     const t = setTimeout(async () => {
       try {
-        const q = await quoteBuy(token, amount, slippage, { fee: pool.fee })
+        const q = await quoteTrade({ pool, token, amount, side, slippagePct: slippage })
         if (seq.current !== n) return
         setQuote(q)
-        setNoPool(q === null)
+        setNoFill(q === null)
+        if (q && side === "buy") setDecimals(q.outDecimals)
+        if (q && side === "sell") setDecimals(q.inDecimals)
       } catch {
         if (seq.current === n) setQuote(null)
       } finally {
@@ -86,32 +103,29 @@ export default function SwapPanel({
       }
     }, 350)
     return () => clearTimeout(t)
-  }, [token, amount, slippage, pool.fee])
+  }, [pool, token, amount, side, slippage])
 
   const run = useCallback(
     (kind: "metamask" | "walletconnect") => {
       if (!quote) return
-      executeBuy({ kind, token, quote, decimals: quote.decimals }, setState)
+      executeTrade({ kind, token, pool, quote }, setState)
     },
-    [quote, token]
+    [quote, token, pool]
   )
 
   const impact = quote?.priceImpact ?? 0
   const severe = impact >= IMPACT_SEVERE
-  const needsAck = severe && !ack
   const busy = state.phase !== "idle" && state.phase !== "error" && state.phase !== "done"
+  const outSymbol = side === "buy" ? symbol || "tokens" : "ETH"
+  const inSymbol = side === "buy" ? "ETH" : symbol || "tokens"
 
   if (!pool.supported) {
     return (
       <section className="mt-[6vh] border border-edge p-6">
         <h2 className="text-lg font-semibold text-fg">Trading this one happens elsewhere</h2>
         <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
-          This market is on{" "}
-          <b className="font-mono text-fg">
-            {pool.protocol === "flapsh" ? "flapsh" : pool.protocol === "v4" ? "Uniswap v4" : "a venue"}
-          </b>
-          , which NewEra does not route yet. Rather than guess at a route and risk sending your
-          funds through the wrong pool, we hand you over to the venue itself.
+          {pool.reason ||
+            "NewEra cannot route this market, so we hand you over to the venue rather than guess at a route."}
         </p>
         {venueUrl && (
           <a
@@ -127,18 +141,39 @@ export default function SwapPanel({
     )
   }
 
+  const balance = side === "buy" ? ethBalance : tokenBalance
+  const balanceDecimals = side === "buy" ? 18 : decimals
+
   return (
     <section className="mt-[6vh] border border-edge">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-edge px-6 py-4">
-        <h2 className="text-lg font-semibold text-fg">Buy {symbol || "this token"}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge px-6 py-4">
+        <div className="flex" role="group" aria-label="Trade direction">
+          {(["buy", "sell"] as Side[]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={side === s}
+              onClick={() => swapSide(s)}
+              className={`border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                side === s
+                  ? "border-acid-500 text-acid-500"
+                  : "border-edge text-fg-dim hover:text-fg"
+              } ${s === "sell" ? "-ml-px" : ""}`}
+            >
+              {s === "buy" ? "Buy" : "Sell"} {symbol}
+            </button>
+          ))}
+        </div>
         <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-          Uniswap v3 · {pool.fee ? `${(pool.fee / 10000).toFixed(2)}% fee` : "—"}
+          {pool.protocol === "v4"
+            ? `Uniswap v4${pool.key?.hooks && !/^0x0+$/.test(pool.key.hooks) ? " · hooked pool" : ""}`
+            : `Uniswap v3${pool.fee !== undefined ? ` · ${(pool.fee / 10000).toFixed(2)}% fee` : ""}`}
         </span>
       </div>
 
       <div className="p-6">
         <label htmlFor="swap-amount" className="block font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-          You pay (ETH)
+          You pay ({inSymbol})
         </label>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <input
@@ -147,28 +182,52 @@ export default function SwapPanel({
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
             inputMode="decimal"
             autoComplete="off"
+            placeholder="0"
             /* 16px minimum or iOS Safari zooms the viewport on focus. */
-            className="w-40 border border-edge bg-transparent px-3 py-2 font-mono text-base text-fg outline-none focus-visible:border-acid-500"
+            className="w-48 border border-edge bg-transparent px-3 py-2 font-mono text-base text-fg outline-none focus-visible:border-acid-500"
           />
           <div className="flex flex-wrap gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setAmount(p)}
-                className={`border px-2.5 py-1.5 font-mono text-xs transition-colors ${
-                  amount === p ? "border-acid-500 text-acid-500" : "border-edge text-fg-dim hover:text-fg"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
+            {side === "buy"
+              ? BUY_PRESETS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setAmount(p)}
+                    className={`border px-2.5 py-1.5 font-mono text-xs transition-colors ${
+                      amount === p ? "border-acid-500 text-acid-500" : "border-edge text-fg-dim hover:text-fg"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))
+              : SELL_FRACTIONS.map(([label, f]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={!tokenBalance}
+                    onClick={() => {
+                      if (!tokenBalance) return
+                      /* Take the fraction in base units so "Max" is the exact
+                         balance — formatting first and re-parsing loses the
+                         tail and leaves dust behind. */
+                      const part = f === 1 ? tokenBalance : (tokenBalance * BigInt(Math.round(f * 1000))) / 1000n
+                      setAmount(formatUnits(part, decimals))
+                    }}
+                    className="border border-edge px-2.5 py-1.5 font-mono text-xs text-fg-dim transition-colors hover:text-fg disabled:opacity-40"
+                  >
+                    {label}
+                  </button>
+                ))}
           </div>
         </div>
         {balance !== null && (
           <p className="mt-2 font-mono text-xs text-fg-dim">
-            Wallet balance {Number(formatUnits(balance, 18)).toFixed(4)} ETH
+            You hold {Number(formatUnits(balance, balanceDecimals)).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 2 })}{" "}
+            {inSymbol}
           </p>
+        )}
+        {side === "sell" && tokenBalance === 0n && (
+          <p className="mt-2 text-sm text-fg-muted">You do not hold any {symbol} to sell.</p>
         )}
 
         <div className="mt-6 border-t border-edge pt-5">
@@ -199,10 +258,8 @@ export default function SwapPanel({
             {quoting && !quote
               ? "…"
               : quote
-                ? `${Number(quote.amountOut).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${symbol}`
-                : noPool
-                  ? "—"
-                  : "—"}
+                ? `${Number(quote.amountOut).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })} ${outSymbol}`
+                : "—"}
           </p>
 
           {quote && (
@@ -210,7 +267,8 @@ export default function SwapPanel({
               <div className="flex justify-between gap-4">
                 <dt className="text-fg-dim">Guaranteed minimum</dt>
                 <dd className="font-mono text-fg-muted">
-                  {Number(quote.minOut).toLocaleString("en-US", { maximumFractionDigits: 4 })} {symbol}
+                  {Number(quote.minOut).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })}{" "}
+                  {outSymbol}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
@@ -224,10 +282,9 @@ export default function SwapPanel({
             </dl>
           )}
 
-          {noPool && !quoting && (
+          {noFill && !quoting && (
             <p className="mt-3 text-sm text-warn">
-              No v3 pool answered a quote at this size. The pool may be too thin to fill it — try
-              less.
+              This pool cannot fill a trade that size right now. Try less.
             </p>
           )}
         </div>
@@ -241,8 +298,9 @@ export default function SwapPanel({
               <b className={`font-semibold ${severe ? "text-danger" : "text-warn"}`}>
                 This trade moves the price {(impact * 100).toFixed(1)}%.
               </b>{" "}
-              This pool is too thin to absorb {amount} ETH at the quoted rate, so you pay
-              meaningfully worse than the headline price — and selling back would cost you again.
+              This pool is too thin to absorb {amount} {inSymbol} at the quoted rate, so you get
+              meaningfully less than the headline price suggests
+              {side === "buy" ? " — and selling back would cost you again." : "."}
             </p>
             {severe && (
               <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-sm text-fg-muted">
@@ -252,7 +310,7 @@ export default function SwapPanel({
                   onChange={(e) => setAck(e.target.checked)}
                   className="mt-[3px] h-4 w-4 flex-none accent-[var(--acid-500,#c8ff00)]"
                 />
-                <span>I understand I am paying {(impact * 100).toFixed(1)}% above the market price.</span>
+                <span>I understand I am losing {(impact * 100).toFixed(1)}% to price impact.</span>
               </label>
             )}
           </div>
@@ -261,9 +319,11 @@ export default function SwapPanel({
         <Action
           state={state}
           busy={busy}
-          disabled={!quote || quoting || needsAck}
-          symbol={symbol}
-          onBuy={run}
+          disabled={!quote || quoting || (severe && !ack)}
+          outSymbol={outSymbol}
+          side={side}
+          approvalsLikely={needsApproval(pool, token, side)}
+          onGo={run}
           onReset={() => setState({ phase: "idle" })}
         />
 
@@ -272,9 +332,10 @@ export default function SwapPanel({
           by your wallet.{" "}
           <b className="font-semibold text-fg-muted">
             NewEra never holds your funds and cannot move them
-          </b>
-          {" "}— the tokens go straight to your address. Quotes come from the pool and change
-          between blocks. This is not advice, and nothing here says this token is a good buy.
+          </b>{" "}
+          — the proceeds go straight to your address, and we take no fee or spread. Quotes come
+          from the pool and change between blocks. This is not advice, and nothing here says this
+          token is worth buying or selling.
         </p>
       </div>
     </section>
@@ -285,20 +346,26 @@ function Action({
   state,
   busy,
   disabled,
-  symbol,
-  onBuy,
+  outSymbol,
+  side,
+  approvalsLikely,
+  onGo,
   onReset,
 }: {
   state: TradeState
   busy: boolean
   disabled: boolean
-  symbol: string
-  onBuy: (k: "metamask" | "walletconnect") => void
+  outSymbol: string
+  side: Side
+  approvalsLikely: boolean
+  onGo: (k: "metamask" | "walletconnect") => void
   onReset: () => void
 }) {
   const label: Record<string, string> = {
     connecting: "Check your wallet…",
     switching: "Confirm the network switch…",
+    checking: "Checking approvals…",
+    approving: "Approving…",
     signing: "Confirm in your wallet…",
     pending: "Swapping…",
   }
@@ -308,7 +375,7 @@ function Action({
       <div className="mt-6 border-l-2 border-acid-500 pl-4">
         <p className="text-base font-semibold text-fg">
           {state.received
-            ? `Bought ${Number(state.received).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${symbol}.`
+            ? `Received ${Number(state.received).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${outSymbol}.`
             : "Swap confirmed."}
         </p>
         <p className="mt-1 text-xs text-fg-dim">
@@ -321,7 +388,7 @@ function Action({
             View transaction ↗
           </a>
           <button type="button" onClick={onReset} className="text-xs text-fg-dim hover:text-fg">
-            Buy more
+            Trade again
           </button>
         </div>
       </div>
@@ -335,20 +402,33 @@ function Action({
           {state.message}
         </p>
       )}
+      {/* Say the approvals are coming BEFORE the wallet asks. An unexplained
+          second prompt after "Sell" reads like something has gone wrong. */}
+      {approvalsLikely && !busy && state.phase !== "error" && (
+        <p className="measure mb-4 text-xs leading-relaxed text-fg-dim">
+          The first {side} of this token needs up to two one-time approvals before the swap, so
+          your wallet may ask more than once. They are per-token and do not repeat.
+        </p>
+      )}
+      {state.phase === "approving" && state.label && (
+        <p className="measure mb-4 text-xs leading-relaxed text-fg-muted">
+          Step {state.step} of {state.total}: {state.label}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           disabled={disabled || busy}
-          onClick={() => onBuy("metamask")}
+          onClick={() => onGo("metamask")}
           className="block-btn bg-acid-500 font-semibold text-ink-950 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? label[state.phase] || "Working…" : "Buy"}
+          {busy ? label[state.phase] || "Working…" : side === "buy" ? "Buy" : "Sell"}
         </button>
         {!busy && (
           <button
             type="button"
             disabled={disabled}
-            onClick={() => onBuy("walletconnect")}
+            onClick={() => onGo("walletconnect")}
             className="py-2 text-sm text-fg-dim underline-offset-4 hover:text-fg hover:underline disabled:opacity-40"
           >
             Use WalletConnect

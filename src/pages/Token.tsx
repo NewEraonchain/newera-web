@@ -6,8 +6,8 @@ import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/component
 import { useMarkets, usd, type Market } from "@/lib/markets"
 import { Chart, Trades } from "@/components/market"
 import SwapPanel from "@/components/SwapPanel"
-import { findFeeTier, getDecimals, poolFromLabels, type Pool } from "@/lib/swap"
-import { getPoolAddress } from "@/lib/trades"
+import { getDecimals, poolFromLabels, resolveRoute, type Pool } from "@/lib/swap"
+import { getPoolAddress, v4Source, type TradeSource } from "@/lib/trades"
 
 /* One token: everything about it, the tape, and the trade.
  *
@@ -17,16 +17,17 @@ import { getPoolAddress } from "@/lib/trades"
  * ticker" is the most common way anyone arrives at a product like this, and it
  * terminated in a 404.
  *
- * WHAT THIS IS AND IS NOT. The interface is ours; the execution is not. A buy
+ * WHAT THIS IS AND IS NOT. The interface is ours; the execution is not. A trade
  * here is built as calldata and signed in the user's wallet against Uniswap's
  * router — NewEra deploys no contract, holds no keys, and never takes custody,
  * so we are not a venue and there is nothing of ours to audit. What we are is
  * the surface that constructs the transaction, which is a real responsibility
- * and is why the swap path is verified against the chain in
+ * and is why both swap paths are verified against the chain in
  * `tools/audit/swap.mjs` rather than trusted.
  *
- * Only Uniswap v3 markets route in-app. v4 and flapsh, together most of the
- * chain, fall through to the venue's own interface.
+ * Uniswap v3 and v4 both route in-app, in both directions. flapsh, and any v4
+ * pool whose key cannot be recovered from the chain, fall through to the venue's
+ * own interface — a wrong route is worse than an honest handoff.
  *
  * Three sources, degrading independently: our index (`/intel/token/:address`,
  * which 404s for anything older than the watcher), DexScreener (price, depth,
@@ -58,12 +59,12 @@ export default function Token() {
      tier and pool address then come from the chain, because only the chain
      knows them. */
   const [pool, setPool] = useState<Pool | null>(null)
-  const [poolAddress, setPoolAddress] = useState<string | null>(null)
+  const [tapeSource, setTapeSource] = useState<TradeSource | null>(null)
   const [decimals, setDecimals] = useState(18)
 
   useEffect(() => {
     setPool(null)
-    setPoolAddress(null)
+    setTapeSource(null)
     if (!market || !address) return
     let alive = true
 
@@ -73,17 +74,25 @@ export default function Token() {
       return
     }
     ;(async () => {
-      const [fee, dec] = await Promise.all([findFeeTier(address), getDecimals(address)])
+      /* DexScreener's `pairAddress` is a contract address for v3 and the poolId
+         itself for v4 — resolveRoute needs the latter to recover the pool key. */
+      const [resolved, dec] = await Promise.all([
+        resolveRoute(address, candidate, market.pairAddress),
+        getDecimals(address),
+      ])
       if (!alive) return
       setDecimals(dec)
-      if (fee === null) {
-        // Labelled v3 but no tier answers — treat as unroutable, not as broken.
-        setPool({ protocol: "v3", supported: false })
-        return
+      setPool(resolved)
+
+      /* The tape reads whichever record this protocol keeps: a v3 pool contract,
+         or the v4 PoolManager filtered by pool id. Both are the chain's own
+         account of who traded, not ours. */
+      if (resolved.protocol === "v4" && resolved.key) {
+        if (alive) setTapeSource(v4Source(resolved.key))
+      } else if (resolved.protocol === "v3" && resolved.fee !== undefined) {
+        const p = await getPoolAddress(address, resolved.fee)
+        if (alive && p) setTapeSource({ kind: "v3", pool: p })
       }
-      setPool({ protocol: "v3", fee, supported: true })
-      const p = await getPoolAddress(address, fee)
-      if (alive) setPoolAddress(p)
     })()
 
     return () => {
@@ -168,7 +177,7 @@ export default function Token() {
 
       {market?.url && market.liquidityUsd ? <Chart venueUrl={market.url} symbol={symbol} /> : null}
 
-      <Trades pool={poolAddress} symbol={symbol} decimals={decimals} />
+      <Trades source={tapeSource} symbol={symbol} decimals={decimals} />
 
       <WhatWeKnow data={data} state={indexState} />
       <Siblings data={data} />

@@ -1,5 +1,15 @@
 import { encodeAbiParameters, encodeFunctionData, formatUnits, parseAbi, parseUnits } from "viem"
 import { CONTRACTS, publicClient, V3_FEE_TIERS, WETH } from "./chain"
+import {
+  buildV4Swap,
+  buyIsZeroForOne,
+  buyPaysNative,
+  findV4Key,
+  NATIVE,
+  quoteV4,
+  v4Liquidity,
+  type V4Key,
+} from "./v4"
 
 /* Quoting and transaction building for in-app swaps.
  *
@@ -34,16 +44,27 @@ export type Pool = {
   protocol: Protocol
   /** v3 fee tier in hundredths of a bip. Undefined for other protocols. */
   fee?: number
+  /** v4 pool key, recovered from the poolId. Undefined for other protocols. */
+  key?: V4Key
   supported: boolean
+  /** Why it is not supported, when it is not. Shown to the user verbatim. */
+  reason?: string
 }
+
+/** Which way the trade goes. Selling needs approvals; buying never does. */
+export type Side = "buy" | "sell"
 
 export type Quote = {
   pool: Pool
+  side: Side
   amountInWei: bigint
   amountOutWei: bigint
-  /** Human-readable output, already scaled by the token's decimals. */
+  /** Human-readable output, already scaled by the OUTPUT token's decimals. */
   amountOut: string
-  decimals: number
+  /** Decimals of the token being received. */
+  outDecimals: number
+  /** Decimals of the token being spent. */
+  inDecimals: number
   /** Fraction lost versus a tiny reference trade in the SAME pool, 0–1. */
   priceImpact: number
   /** What the user is guaranteed at the chosen slippage. */
@@ -59,27 +80,104 @@ export type Quote = {
 const REFERENCE_WEI = 10n ** 12n // 0.000001 ETH
 
 /**
- * Which protocol holds this token's deepest pool, per the market lookup.
+ * Which protocol holds this token's market, per the market lookup. Cheap and
+ * synchronous — it decides only whether a route is worth resolving on-chain.
  *
- * `quoteToken` gates support alongside the protocol label: we buy by sending
- * ETH, so a token whose deepest pool is paired against something other than
- * WETH cannot be routed in one hop no matter which protocol it is on. Omitting
- * this check offered a swap panel on tokens that could never quote, which
- * degraded into "no pool answered" — technically true, and misleading, since
- * the pool was fine and the pairing was the problem.
+ * `quoteToken` gates v3 alongside the protocol label: a v3 buy pays in WETH, so
+ * a token paired against something else cannot be routed in one hop. Omitting
+ * that check offered a swap panel on tokens that could never quote, which
+ * degraded into "no pool answered" — true, and misleading, since the pool was
+ * fine and the pairing was the problem. v4 has no such restriction here: it
+ * takes native ETH directly, and its pairing is checked when the key resolves.
  */
 export function poolFromLabels(dexId?: string, labels?: string[], quoteToken?: string): Pool {
   const l = (labels || []).map((s) => s.toLowerCase())
-  if (dexId === "flapsh") return { protocol: "flapsh", supported: false }
-  if (l.includes("v4")) return { protocol: "v4", supported: false }
-  if (l.includes("v2")) return { protocol: "unknown", supported: false }
-  if (!l.includes("v3")) return { protocol: "unknown", supported: false }
+  if (dexId === "flapsh") {
+    return { protocol: "flapsh", supported: false, reason: "This market is on flapsh, which NewEra does not route." }
+  }
+  if (l.includes("v4")) return { protocol: "v4", supported: true }
+  if (l.includes("v2")) {
+    return { protocol: "unknown", supported: false, reason: "This market is on Uniswap v2, which NewEra does not route." }
+  }
+  if (!l.includes("v3")) {
+    return { protocol: "unknown", supported: false, reason: "We could not identify which venue holds this market." }
+  }
 
-  const pairedWithEth = !quoteToken || quoteToken.toLowerCase() === WETH.toLowerCase()
-  return { protocol: "v3", supported: pairedWithEth }
+  const eth = !quoteToken || quoteToken.toLowerCase() === WETH.toLowerCase()
+  return eth
+    ? { protocol: "v3", supported: true }
+    : { protocol: "v3", supported: false, reason: "This pool is not paired against ETH, so it cannot be traded in one hop." }
 }
 
-async function quoteRaw(tokenOut: string, amountInWei: bigint, fee: number): Promise<bigint | null> {
+/**
+ * Turn a candidate protocol into a route that can actually be quoted, by asking
+ * the chain for the part the market lookup cannot supply — a v3 fee tier, or a
+ * v4 pool key. Returns a Pool with `supported: false` and a plain-English
+ * `reason` when the market exists but we cannot reach it.
+ */
+export async function resolveRoute(
+  token: string,
+  candidate: Pool,
+  poolId?: string
+): Promise<Pool> {
+  if (!candidate.supported) return candidate
+
+  if (candidate.protocol === "v3") {
+    const fee = await findFeeTier(token)
+    if (fee === null) {
+      return { protocol: "v3", supported: false, reason: "No v3 pool answered a quote for this token." }
+    }
+    return { protocol: "v3", fee, supported: true }
+  }
+
+  if (candidate.protocol === "v4") {
+    if (!poolId) {
+      return { protocol: "v4", supported: false, reason: "We could not identify this v4 pool." }
+    }
+    const key = await findV4Key(token, poolId)
+    if (!key) {
+      /* Either the pool uses a hook and was created before the node's log
+         history begins, or its key is non-standard. Guessing at a key would
+         route funds into the wrong pool, so we decline instead. */
+      return {
+        protocol: "v4",
+        supported: false,
+        reason: "This v4 pool's configuration could not be read from the chain, so we will not guess at a route.",
+      }
+    }
+    /* Ask the quoter, not the liquidity reading.
+       `getLiquidity` reports depth AT THE CURRENT TICK, and zero there does not
+       mean untradeable — a swap simply crosses into whatever tick holds the next
+       position. Gating on it declined a pool that had been quoted and executed
+       successfully minutes earlier. The quoter walks the ticks and is the only
+       authority on whether a trade can actually fill; liquidity is kept solely
+       to tell a drained pool apart from one that is merely too thin right now. */
+    const buyZfo = buyIsZeroForOne(key, token)
+    const probe = await quoteV4(key, REFERENCE_WEI, buyZfo)
+    if (probe === null) {
+      const liquidity = await v4Liquidity(key)
+      return {
+        protocol: "v4",
+        key,
+        supported: false,
+        reason:
+          liquidity === 0n
+            ? "This pool has a price but nothing behind it — whoever supplied its liquidity has withdrawn, so nothing can be traded at any size."
+            : "This pool would not quote even a dust trade, so it cannot be traded right now.",
+      }
+    }
+    return { protocol: "v4", key, supported: true }
+  }
+
+  return candidate
+}
+
+async function quoteRaw(
+  tokenOut: string,
+  amountInWei: bigint,
+  fee: number,
+  reversed = false
+): Promise<bigint | null> {
   try {
     const { result } = await publicClient.simulateContract({
       address: CONTRACTS.quoterV2,
@@ -87,8 +185,8 @@ async function quoteRaw(tokenOut: string, amountInWei: bigint, fee: number): Pro
       functionName: "quoteExactInputSingle",
       args: [
         {
-          tokenIn: WETH as `0x${string}`,
-          tokenOut: tokenOut as `0x${string}`,
+          tokenIn: (reversed ? tokenOut : WETH) as `0x${string}`,
+          tokenOut: (reversed ? WETH : tokenOut) as `0x${string}`,
           amountIn: amountInWei,
           fee,
           sqrtPriceLimitX96: 0n,
@@ -147,38 +245,87 @@ export async function getDecimals(token: string): Promise<number> {
   }
 }
 
-/**
- * A quote for buying `token` with `ethAmount` of native ETH.
- * `slippagePct` is a percentage (1 = 1%), applied to produce `minOutWei`.
- */
-export async function quoteBuy(
+/** Raw output for a given route, size and direction. Null means "cannot fill". */
+async function routeQuote(
+  pool: Pool,
   token: string,
-  ethAmount: string,
-  slippagePct: number,
-  known?: { fee?: number; decimals?: number }
-): Promise<Quote | null> {
-  const amountInWei = parseUnits(ethAmount || "0", 18)
+  amountInWei: bigint,
+  side: Side
+): Promise<{ out: bigint; fee?: number } | null> {
+  if (pool.protocol === "v4") {
+    if (!pool.key) return null
+    /* zeroForOne describes currency order, not intent: buying moves currency0
+       into currency1 when the token IS currency1, and selling is the reverse. */
+    const buyZfo = buyIsZeroForOne(pool.key, token)
+    const out = await quoteV4(pool.key, amountInWei, side === "buy" ? buyZfo : !buyZfo)
+    return out === null ? null : { out }
+  }
+
+  if (side === "sell") {
+    if (pool.fee === undefined) return null
+    const out = await quoteRaw(token, amountInWei, pool.fee, true)
+    return out && out > 0n ? { out, fee: pool.fee } : null
+  }
+
+  /* Re-pick the v3 tier at this size on every quote rather than trusting the one
+     found at page load. Depth shifts between blocks on pools this small, and the
+     tier that was best for 0.01 ETH is not always best for 0.5. */
+  const best = await bestFeeTier(token, amountInWei)
+  return best ? { out: best.amountOut, fee: best.fee } : null
+}
+
+/**
+ * Quote a trade in either direction.
+ *
+ * `amount` is what the user types: ETH when buying, tokens when selling.
+ * `slippagePct` is a percentage (1 = 1%) and produces `minOutWei`, which is the
+ * only number here the chain will actually enforce.
+ */
+export async function quoteTrade(params: {
+  pool: Pool
+  token: string
+  amount: string
+  side: Side
+  slippagePct: number
+  tokenDecimals?: number
+}): Promise<Quote | null> {
+  const { pool, token, amount, side, slippagePct } = params
+  if (!pool.supported) return null
+
+  const tokenDecimals =
+    params.tokenDecimals !== undefined ? params.tokenDecimals : await getDecimals(token)
+  const inDecimals = side === "buy" ? 18 : tokenDecimals
+  const outDecimals = side === "buy" ? tokenDecimals : 18
+
+  let amountInWei: bigint
+  try {
+    amountInWei = parseUnits(amount || "0", inDecimals)
+  } catch {
+    return null
+  }
   if (amountInWei <= 0n) return null
 
-  /* Re-pick the tier at this size on every quote rather than trusting the one
-     discovered at page load. Depth shifts between blocks on pools this small,
-     and the tier that was best for 0.01 ETH is not always best for 0.5. */
-  const best = await bestFeeTier(token, amountInWei)
-  if (!best) return null
-  const fee = best.fee
-  const out = best.amountOut
+  const quoted = await routeQuote(pool, token, amountInWei, side)
+  if (!quoted || quoted.out <= 0n) return null
+  const out = quoted.out
+  const fee = quoted.fee ?? pool.fee
 
-  const [refOut, decimals] = await Promise.all([
-    quoteRaw(token, REFERENCE_WEI, fee),
-    known?.decimals !== undefined ? Promise.resolve(known.decimals) : getDecimals(token),
-  ])
+  /* Impact is the marginal rate at dust size against the average rate at the
+     requested size — same pool, same direction, so the only variable is depth,
+     which is the thing being measured. Never compared against a third party's
+     spot price: that compares two different pools and once produced a NEGATIVE
+     impact that improved with size, which is how the mistake was caught.
 
-  /* Impact from the marginal rate at dust size against the average rate at the
-     requested size. Both legs are the same pool and the same tier, so the only
-     variable is depth — which is the thing being measured. */
+     The reference is scaled to the input token so a sell quote is not measured
+     against a millionth of an ETH's worth of a token with 18 decimals. */
+  const referenceWei =
+    side === "buy" ? REFERENCE_WEI : amountInWei / 1000n > 0n ? amountInWei / 1000n : 1n
+  const refPool: Pool = fee !== undefined ? { ...pool, fee } : pool
+  const ref = await routeQuote(refPool, token, referenceWei, side)
+
   let priceImpact = 0
-  if (refOut && refOut > 0n) {
-    const refRate = Number(refOut) / Number(REFERENCE_WEI)
+  if (ref && ref.out > 0n) {
+    const refRate = Number(ref.out) / Number(referenceWei)
     const rate = Number(out) / Number(amountInWei)
     priceImpact = refRate > 0 ? Math.max(0, (refRate - rate) / refRate) : 0
   }
@@ -188,27 +335,32 @@ export async function quoteBuy(
   const minOutWei = (out * (10000n - bps)) / 10000n
 
   return {
-    pool: { protocol: "v3", fee, supported: true },
+    pool: refPool,
+    side,
     amountInWei,
     amountOutWei: out,
-    amountOut: formatUnits(out, decimals),
-    decimals,
+    amountOut: formatUnits(out, outDecimals),
+    outDecimals,
+    inDecimals,
     priceImpact,
     minOutWei,
-    minOut: formatUnits(minOutWei, decimals),
+    minOut: formatUnits(minOutWei, outDecimals),
   }
 }
 
 /* ── Transaction building ───────────────────────────────────────────────
  *
- * Universal Router, two commands: WRAP_ETH (0x0b) then V3_SWAP_EXACT_IN (0x00).
- * ETH arrives as msg.value, WRAP_ETH turns it into WETH held by the router, and
- * the swap spends the router's balance — so a buy needs no token approval and no
- * Permit2 signature, removing the largest source of user error and of stuck
- * funds in a first swap implementation. Selling does need Permit2 and is
- * deliberately not built yet.
+ * Buying on v3: WRAP_ETH (0x0b) then V3_SWAP_EXACT_IN (0x00). ETH arrives as
+ * msg.value, WRAP_ETH turns it into WETH held by the router, and the swap spends
+ * the router's own balance — so a buy needs no approval of any kind.
  *
- * The v3 path is packed: tokenIn (20) | fee (3) | tokenOut (20).
+ * Selling on v3: V3_SWAP_EXACT_IN (0x00) then UNWRAP_WETH (0x0c). The router
+ * pulls the token from the user through Permit2 (payerIsUser = true), swaps it
+ * to WETH held by the router, then unwraps and forwards plain ETH to the user.
+ * Both legs carry the minimum so neither can be skipped past.
+ *
+ * The v3 path is packed: tokenIn (20) | fee (3) | tokenOut (20), and it is
+ * reversed for a sell — the path always runs from what you pay to what you get.
  *
  * THE INPUT LAYOUT IS NOT THE ONE IN UNISWAP'S DOCS. This deployment's
  * V3_SWAP_EXACT_IN takes a SIXTH parameter — a trailing `bytes`, empty in every
@@ -218,8 +370,10 @@ export async function quoteBuy(
  * (tx 0xcc2157c2…d3832) byte for byte; `tools/audit/swap.mjs` asserts that
  * equality so a future edit cannot quietly regress it. */
 const CMD_WRAP_ETH_THEN_V3_IN = "0x0b00"
-/** UniversalRouter's magic recipient meaning "the router itself". */
+const CMD_V3_IN_THEN_UNWRAP = "0x000c"
+/** UniversalRouter's magic recipients: the router itself, and whoever called. */
 const ADDRESS_THIS = "0x0000000000000000000000000000000000000002"
+const MSG_SENDER = "0x0000000000000000000000000000000000000001"
 const ROUTER_ABI = parseAbi([
   "function execute(bytes commands, bytes[] inputs, uint256 deadline) payable",
 ])
@@ -295,4 +449,98 @@ export function buildBuy(params: {
     value: amountInWei,
     deadline,
   }
+}
+
+/**
+ * Build a v3 sell: token in, plain ETH out.
+ *
+ * The swap output goes to the router (ADDRESS_THIS) rather than the user,
+ * because what comes out of a v3 pool is WETH and almost nobody wants WETH.
+ * UNWRAP_WETH then converts the router's balance and forwards ETH to the caller.
+ * Requires a Permit2 grant — see permit2.ts — since payerIsUser pulls the token
+ * from the user's wallet.
+ */
+export function buildSell(params: {
+  token: string
+  amountInWei: bigint
+  minOutWei: bigint
+  fee: number
+  deadlineSeconds?: number
+}): BuiltSwap {
+  const { token, amountInWei, minOutWei, fee } = params
+  if (minOutWei <= 0n) throw new Error("refusing to build a sell with no minimum output")
+  if (amountInWei <= 0n) throw new Error("refusing to build a sell with no input")
+
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + (params.deadlineSeconds ?? 900))
+
+  const swapInput = encodeAbiParameters(V3_SWAP_IN_PARAMS, [
+    ADDRESS_THIS as `0x${string}`,
+    amountInWei,
+    minOutWei,
+    encodePath(token, fee, WETH),
+    true, // payerIsUser — pulled from the wallet via Permit2
+    "0x",
+  ])
+
+  /* The minimum is repeated here deliberately. The swap leg already enforces it,
+     but UNWRAP_WETH carries its own floor, and leaving that at zero would let a
+     swap that somehow produced less still forward whatever it produced. */
+  const unwrapInput = encodeAbiParameters(
+    [{ type: "address" }, { type: "uint256" }],
+    [MSG_SENDER as `0x${string}`, minOutWei]
+  )
+
+  return {
+    to: CONTRACTS.universalRouter as `0x${string}`,
+    data: encodeFunctionData({
+      abi: ROUTER_ABI,
+      functionName: "execute",
+      args: [CMD_V3_IN_THEN_UNWRAP, [swapInput, unwrapInput], deadline],
+    }),
+    value: 0n,
+    deadline,
+  }
+}
+
+/**
+ * Build a trade on whichever protocol the route names. The single entry point
+ * the UI uses, so a caller cannot accidentally send a v4 pool down the v3 path.
+ */
+export function buildTrade(params: {
+  pool: Pool
+  token: string
+  recipient: string
+  quote: Quote
+  deadlineSeconds?: number
+}): BuiltSwap {
+  const { pool, token, recipient, quote, deadlineSeconds } = params
+
+  if (pool.protocol === "v4") {
+    if (!pool.key) throw new Error("no v4 pool key on this route — refusing to send")
+    const buyZfo = buyIsZeroForOne(pool.key, token)
+    const zeroForOne = quote.side === "buy" ? buyZfo : !buyZfo
+    const payingCurrency = zeroForOne ? pool.key.currency0 : pool.key.currency1
+    return buildV4Swap({
+      key: pool.key,
+      zeroForOne,
+      amountInWei: quote.amountInWei,
+      minOutWei: quote.minOutWei,
+      nativeIn: payingCurrency.toLowerCase() === NATIVE,
+      deadlineSeconds,
+    })
+  }
+
+  if (pool.fee === undefined) throw new Error("no v3 fee tier on this route — refusing to send")
+  return quote.side === "buy"
+    ? buildBuy({ token, recipient, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds })
+    : buildSell({ token, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds })
+}
+
+/** Whether this trade needs Permit2 grants before it can be sent. */
+export const needsApproval = (pool: Pool, token: string, side: Side): boolean => {
+  if (side === "buy") {
+    // A v4 buy paid in WETH rather than native ETH still pulls an ERC-20.
+    return pool.protocol === "v4" && !!pool.key && !buyPaysNative(pool.key, token)
+  }
+  return true
 }

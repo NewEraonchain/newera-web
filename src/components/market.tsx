@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { formatUnits } from "viem"
 import { explorerTx } from "@/lib/chain"
-import { useTrades } from "@/lib/trades"
+import { useTrades, type TradeSource } from "@/lib/trades"
 import { shortAddr } from "@/lib/api"
 
 /* The chart and the tape.
@@ -103,17 +103,17 @@ function amount(wei: bigint, decimals: number, max = 4): string {
 }
 
 export function Trades({
-  pool,
+  source,
   symbol,
   decimals,
 }: {
-  pool: string | null
+  source: TradeSource | null
   symbol: string
   decimals: number
 }) {
-  const result = useTrades(pool)
+  const result = useTrades(source)
 
-  if (!pool) return null
+  if (!source) return null
 
   return (
     <section className="mt-[7vh]">
@@ -184,8 +184,9 @@ export function Trades({
             </table>
           </div>
           <p className="mt-3 text-xs text-fg-dim">
-            Read directly from the pool's swap events — the same record every other tool reads.
-            Roughly the last eight minutes; older fills are beyond what the public node keeps.
+            Read directly from the pool's own swap events — the same record every other tool
+            reads. The most recent fills only: the node refuses a query that would match more
+            than ten thousand, so the window narrows as a pool gets busier.
           </p>
         </>
       )}

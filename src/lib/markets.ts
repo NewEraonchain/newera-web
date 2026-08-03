@@ -46,6 +46,9 @@ export type Market = {
   /** What the token is paired against. Only a WETH pair can be bought with ETH
       in one hop, so this gates in-app routing alongside the protocol label. */
   quoteToken: string
+  /** The venue's own identifier for this market: a pool contract on v3, and the
+      poolId itself on v4 — which is the only way to recover a v4 pool key. */
+  pairAddress: string
 }
 
 const API = "https://api.dexscreener.com/latest/dex/tokens/"
@@ -110,6 +113,7 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         dex: String(pair?.dexId || ""),
         labels: Array.isArray(pair?.labels) ? pair.labels.map(String) : [],
         quoteToken: String(pair?.quoteToken?.address || "").toLowerCase(),
+        pairAddress: String(pair?.pairAddress || ""),
       })
     }
   }

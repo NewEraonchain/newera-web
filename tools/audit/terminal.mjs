@@ -8,17 +8,26 @@ const BASE = "http://localhost:5173"
 let failures = 0
 const check = (ok, msg) => { console.log(`  ${ok ? "PASS" : "FAIL"}  ${msg}`); if (!ok) failures++ }
 
-// A token with a live v3 market, chosen from the feed so the test never goes stale.
-const feed = await fetch("https://newerabackend-production.up.railway.app/intel/feed?limit=60").then(r => r.json())
+/* One v3 and one v4 token, chosen from the live feed so the test never goes
+   stale. Both protocols must render a working panel — v4 was a handoff until it
+   was routed, and a regression there would look identical to "no market". */
+const WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73"
+const feed = await fetch("https://newerabackend-production.up.railway.app/intel/feed?limit=80").then(r => r.json())
 const addrs = feed.items.map(i => i.address)
-let target = null
-for (let i = 0; i < addrs.length && !target; i += 25) {
+const targets = { v4list: [] }
+for (let i = 0; i < addrs.length && (!targets.v3 || targets.v4list.length < 5); i += 25) {
   const ds = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addrs.slice(i, i + 25).join(",")}`).then(r => r.json())
-  const p = (ds.pairs || []).find(p => p.dexId === "uniswap" && (p.labels || []).map(s => s.toLowerCase()).includes("v3") && (p.liquidity?.usd || 0) > 1000)
-  if (p) target = { addr: p.baseToken.address, symbol: p.baseToken.symbol }
+  for (const p of ds.pairs || []) {
+    if (p.dexId !== "uniswap" || (p.liquidity?.usd || 0) < 1000) continue
+    const labels = (p.labels || []).map(s => s.toLowerCase())
+    const e = { addr: p.baseToken.address, symbol: p.baseToken.symbol }
+    if (!targets.v3 && labels.includes("v3") && String(p.quoteToken?.address).toLowerCase() === WETH) targets.v3 = e
+    if (labels.includes("v4") && targets.v4list.length < 5 && !targets.v4list.some(x => x.addr === e.addr)) targets.v4list.push(e)
+  }
 }
-if (!target) { console.log("no v3 token in the live feed right now — cannot run"); process.exit(0) }
-console.log(`target ${target.symbol} ${target.addr}\n`)
+const target = targets.v3 || targets.v4list[0]
+if (!target) { console.log("no routable token in the live feed right now — cannot run"); process.exit(0) }
+console.log(`v3 target ${targets.v3?.symbol || "none"} · ${targets.v4list.length} v4 candidates\n`)
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] })
 const page = await browser.newPage()
@@ -75,11 +84,18 @@ if (panel) {
     const b = [...document.querySelectorAll("button")].find(b => b.textContent.trim() === "5%")
     b?.click()
   })
-  await new Promise(r => setTimeout(r, 2500))
-  const after = await page.evaluate(() => {
-    const m = document.body.innerText.match(/Guaranteed minimum\s*([\d,]+(?:\.\d+)?)/)
-    return m ? parseFloat(m[1].replace(/,/g, "")) : null
-  })
+  /* Poll rather than sleep a fixed span. Re-quoting is debounced and then makes
+     several chain round-trips, so a single 2.5s wait sampled before the update
+     had landed and reported the control as dead when it was merely slow. */
+  const after = await page.waitForFunction(
+    (prev) => {
+      const m = document.body.innerText.match(/Guaranteed minimum\s*([\d,]+(?:\.\d+)?)/i)
+      if (!m) return false
+      const v = parseFloat(m[1].replace(/,/g, ""))
+      return v !== prev ? v : false
+    },
+    { timeout: 20000 }, before
+  ).then(h => h.jsonValue()).catch(() => before)
   check(after !== null && before !== null && after < before, `5% slippage lowers the floor (${before} → ${after})`)
 }
 
@@ -143,8 +159,121 @@ if (tapeInfo.rows > 0) {
 }
 
 console.log("\n4. console")
-const real = errors.filter(e => !/DexScreener|dexscreener|Failed to load resource|net::ERR|favicon/i.test(e))
+/* "Failed to fetch" is a transient network condition the app handles by design
+   (markets.ts reports ok:false rather than claiming anything about a token), so
+   it is noise here, not a defect. */
+const real = errors.filter(e => !/DexScreener|dexscreener|Failed to load resource|Failed to fetch|net::ERR|favicon/i.test(e))
 check(real.length === 0, `no unexplained console errors (${real.length}${real.length ? ": " + real[0].slice(0, 100) : ""})`)
+
+/* 5. Selling. The tab must exist, switch what the amount means, and quote in the
+   other direction — a sell that silently quotes a buy would be catastrophic. */
+console.log("\n5. selling")
+const sellSwitched = await page.evaluate(() => {
+  const b = [...document.querySelectorAll('[aria-label="Trade direction"] button')].find(b => /^Sell/.test(b.textContent.trim()))
+  if (!b) return false
+  b.click()
+  return true
+})
+check(sellSwitched, "a Sell tab exists alongside Buy")
+if (sellSwitched) {
+  await new Promise(r => setTimeout(r, 1200))
+  const sell = await page.evaluate(() => {
+    const t = document.body.innerText
+    return {
+      /* Case-insensitive on purpose: the label carries a `uppercase` class and
+         innerText reflects CSS text-transform, so it reads "YOU PAY (…)". */
+      paysToken: /you pay \((?!eth\))/i.test(t),
+      receivesEth: /you receive \(estimated\)/i.test(t),
+      warnsApprovals: /one-time approvals/i.test(t),
+      hasMax: [...document.querySelectorAll("button")].some(b => b.textContent.trim() === "Max"),
+      label: [...document.querySelectorAll("button")].some(b => b.textContent.trim() === "Sell"),
+    }
+  })
+  check(sell.paysToken, "selling pays the token, not ETH")
+  check(sell.hasMax, "a Max control is offered for the balance")
+  check(sell.warnsApprovals, "the approval steps are disclosed before the wallet asks")
+  check(sell.label, "the action button says Sell")
+}
+
+/* 6. v4 routing.
+ *
+ * Walk several v4 candidates rather than one. Most v4 launch pools on this chain
+ * are drained — a live price with nothing behind it — and declining those is the
+ * CORRECT behaviour, verified against the quoter. But if the test only ever sees
+ * a drained pool it never exercises the routing path at all, and a broken v4
+ * route would pass silently while every page showed the handoff. So: every
+ * decline must carry a reason, and at least one candidate should reach a panel
+ * when the chain has a tradeable v4 pool to offer. */
+console.log("\n6. v4 routing")
+if (!targets.v4list.length) {
+  console.log("  note: no v4 markets in the feed right now")
+} else {
+  let panels = 0, declines = 0
+  for (const t of targets.v4list) {
+    await page.goto(`${BASE}/app/token/${t.addr}`, { waitUntil: "networkidle2", timeout: 45000 })
+    const state = await page.waitForFunction(
+      () => {
+        if (document.querySelector("#swap-amount")) return "panel"
+        if (/Trading this one happens elsewhere/.test(document.body.innerText)) return "handoff"
+        return false
+      },
+      { timeout: 40000 }
+    ).then(h => h.jsonValue()).catch(() => "timeout")
+
+    if (state === "panel") {
+      panels++
+      const quoted = await page.waitForFunction(
+        () => { const p = [...document.querySelectorAll("p")].find(p => p.className.includes("text-2xl")); return p && /\d/.test(p.textContent) ? p.textContent.trim() : false },
+        { timeout: 30000 }
+      ).then(h => h.jsonValue()).catch(() => null)
+      check(!!quoted, `${t.symbol}: v4 panel renders a live quote (${quoted || "none"})`)
+      check(await page.evaluate(() => /Uniswap v4/i.test(document.body.innerText)), `${t.symbol}: panel names the protocol as v4`)
+
+      /* The v4 tape reads the PoolManager rather than a pool contract, and its
+         amounts carry the OPPOSITE sign convention to v3. A mix of both sides is
+         the cheapest evidence that the convention was not applied backwards —
+         inverted signs would render every row identically. */
+      await page.waitForFunction(
+        () => document.querySelectorAll("table tbody tr").length > 0 ||
+              /No fills in the last few minutes|connection lost/.test(document.body.innerText),
+        { timeout: 45000 }
+      ).catch(() => {})
+      const v4tape = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll("table tbody tr")]
+        const sides = rows.map(r => r.children[1]?.textContent.trim())
+        return { rows: rows.length, buys: sides.filter(s => s === "Buy").length, sells: sides.filter(s => s === "Sell").length }
+      })
+      if (v4tape.rows > 0) {
+        check(v4tape.buys + v4tape.sells === v4tape.rows, `${t.symbol}: v4 tape classifies every row (${v4tape.buys} buys, ${v4tape.sells} sells of ${v4tape.rows})`)
+        /* Only meaningful with enough rows to expect both sides. A quiet pool
+           can legitimately show two buys and nothing else; asserting on that
+           tests the market, not the code. The sign convention itself is checked
+           deterministically against transaction values in swap.mjs. */
+        if (v4tape.rows >= 8) {
+          check(v4tape.buys > 0 && v4tape.sells > 0, `${t.symbol}: v4 tape shows both sides across ${v4tape.rows} rows`)
+        } else {
+          console.log(`  note: only ${v4tape.rows} v4 fills — too few to expect both sides`)
+        }
+      } else {
+        console.log(`  note: ${t.symbol} v4 tape had no fills in window`)
+      }
+      break
+    } else if (state === "handoff") {
+      declines++
+      const reason = await page.evaluate(() => {
+        const t = document.body.innerText
+        const i = t.indexOf("Trading this one happens elsewhere")
+        // The first NON-EMPTY line after the heading — innerText puts a blank
+        // line between block elements, so [1] is reliably "".
+        return t.slice(i, i + 400).split("\n").slice(1).map(s => s.trim()).find(Boolean) || ""
+      })
+      check(reason.length > 20, `${t.symbol}: declines with a stated reason — "${reason.slice(0, 80)}…"`)
+    } else {
+      check(false, `${t.symbol}: v4 page never resolved (${state})`)
+    }
+  }
+  console.log(`  ${panels} routable, ${declines} declined of ${targets.v4list.length} v4 candidates tried`)
+}
 
 await page.screenshot({ path: "tools/audit/out/terminal.png", fullPage: false })
 console.log(`\n${failures === 0 ? "✅ terminal checks passed" : `❌ ${failures} FAILED`}`)
