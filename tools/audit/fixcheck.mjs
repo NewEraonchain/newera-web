@@ -71,7 +71,16 @@ const b = await puppeteer.launch({ executablePath: CHROME, headless: "new" })
     text: document.body.innerText,
   }))
   ok("C1 unrenderable field -> page not blank", r.kids > 0, `root children=${r.kids}`)
-  ok("C2 unrenderable field -> boundary recovers", /broke on this page|moved on|Reload the page/i.test(r.text))
+  /* This used to assert the error boundary caught a crash. The feed no longer
+     crashes on this input — the figure strip validates every stat — so the
+     boundary is never reached, and asserting on its copy would fail for the
+     best possible reason. What matters now is that a field which is not a
+     number is never DRAWN as one: it rendered a literal "[object Object]%" on
+     the surface whose whole claim is that its figures are real. */
+  ok("C2 garbage stat is not rendered as a measurement",
+     !/\[object Object\]/.test(r.text) && !/NaN|undefined%/.test(r.text),
+     r.text.match(/[^ ]*(COPY OR IMPERSONATION)/)?.[0] || "no stat row found")
+  ok("C2b the page still works around it", /Getting traded|Everything launching/i.test(r.text))
   await p.close()
 }
 

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom"
+import { RouterProvider, createBrowserRouter, Outlet, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom"
 import { useEffect, useState, lazy, Suspense } from "react"
 import { useLenis } from "lenis/react"
 import SmoothScroll from "@/components/SmoothScroll"
@@ -7,7 +7,7 @@ import { ProgressRail } from "@/components/scroll"
 import { useApertureEngine } from "@/components/Aperture"
 import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
-import ErrorBoundary from "@/components/ErrorBoundary"
+import ErrorBoundary, { RouteError } from "@/components/ErrorBoundary"
 import { isOnboarded, wasDeclined, ONBOARD_EVENT, ONBOARD_DONE_EVENT } from "@/lib/onboarding"
 import Landing from "@/pages/Landing"
 
@@ -297,24 +297,7 @@ function Shell() {
             subsequent navigation and the site would stay broken until reload. */}
         <ErrorBoundary key={loc.pathname} scope="route">
         <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/app" element={<Feed />} />
-          <Route path="/app/theme/:slug" element={<ThemeDetail />} />
-          <Route path="/app/creator/:wallet" element={<Creator />} />
-          <Route path="/app/token/:address" element={<Token />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/themes" element={<Themes />} />
-          <Route path="/detection" element={<Detection />} />
-          <Route path="/docs" element={<Docs />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/risk" element={<Risk />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Outlet />
         </Suspense>
         </ErrorBoundary>
       </main>
@@ -335,17 +318,56 @@ function Shell() {
   )
 }
 
+/* A data router, for one reason: view transitions.
+ *
+ * DESIGN.md lists "a cluster row morphs into the page it opens" as a signature
+ * mechanic, and it had never once run. Measured: 14 elements carried a
+ * `view-transition-name`, the browser supported the API, and
+ * `document.startViewTransition` was called ZERO times on a navigation. React
+ * Router ignores `<Link viewTransition>` under a declarative `<BrowserRouter>`
+ * — the prop only reaches an implementation that can honour it when the router
+ * is a data router.
+ *
+ * Deliberately one splat route rather than a converted route table. `Shell`
+ * already owns the chrome, the scroll manager and the per-route error boundary,
+ * and its inner `<Routes>` keeps matching exactly as before; moving fifteen
+ * routes into loaders and layout routes would change scroll restoration and
+ * error handling, both of which took several attempts to get right. */
+const router = createBrowserRouter([
+  {
+    element: (
+      <SmoothScroll>
+        <Shell />
+      </SmoothScroll>
+    ),
+    children: [
+      { path: "/", element: <Landing /> , errorElement: <RouteError /> },
+      { path: "/app", element: <Feed /> , errorElement: <RouteError /> },
+      { path: "/app/theme/:slug", element: <ThemeDetail /> , errorElement: <RouteError /> },
+      { path: "/app/creator/:wallet", element: <Creator /> , errorElement: <RouteError /> },
+      { path: "/app/token/:address", element: <Token /> , errorElement: <RouteError /> },
+      { path: "/how-it-works", element: <HowItWorks /> , errorElement: <RouteError /> },
+      { path: "/themes", element: <Themes /> , errorElement: <RouteError /> },
+      { path: "/detection", element: <Detection /> , errorElement: <RouteError /> },
+      { path: "/docs", element: <Docs /> , errorElement: <RouteError /> },
+      { path: "/about", element: <About /> , errorElement: <RouteError /> },
+      { path: "/contact", element: <Contact /> , errorElement: <RouteError /> },
+      { path: "/account", element: <Account /> , errorElement: <RouteError /> },
+      { path: "/terms", element: <Terms /> , errorElement: <RouteError /> },
+      { path: "/privacy", element: <Privacy /> , errorElement: <RouteError /> },
+      { path: "/risk", element: <Risk /> , errorElement: <RouteError /> },
+      { path: "*", element: <NotFound /> , errorElement: <RouteError /> },
+    ],
+  },
+])
+
 export default function App() {
   return (
     /* The outer boundary catches anything the per-route one cannot — the
        header, the footer, the scroll engine — so a failure there still leaves
        a page with an explanation and a way out rather than an empty document. */
     <ErrorBoundary scope="app">
-      <BrowserRouter>
-        <SmoothScroll>
-          <Shell />
-        </SmoothScroll>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   )
 }

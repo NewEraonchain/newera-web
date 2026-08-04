@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
+import { useRouteError } from "react-router-dom"
 
 /* The thing that makes a wrong guess survivable.
  *
@@ -36,7 +37,19 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     const { error } = this.state
     if (!error) return this.props.children
+    return <ErrorPage error={error} />
+  }
+}
 
+/* One fallback, two callers.
+ *
+ * A data router catches an error thrown by a route element BEFORE any React
+ * boundary above it, and renders its own default page instead — which is how
+ * migrating the router silently replaced this copy with React Router's stock
+ * "Unexpected Application Error". So the router gets an `errorElement` that
+ * renders exactly this, and the two cannot drift because there is only one. */
+export function ErrorPage({ error }: { error: Error }) {
+  {
     const stale = isStaleChunk(error)
     return (
       <section className="mx-auto max-w-[42rem] px-[4vw] py-[18vh]">
@@ -65,4 +78,13 @@ export default class ErrorBoundary extends Component<Props, State> {
       </section>
     )
   }
+}
+
+/** What the data router renders when a route element throws. */
+export function RouteError() {
+  const err = useRouteError()
+  const error =
+    err instanceof Error ? err : new Error(typeof err === "string" ? err : "Unknown error")
+  console.error("[boundary:route]", err)
+  return <ErrorPage error={error} />
 }

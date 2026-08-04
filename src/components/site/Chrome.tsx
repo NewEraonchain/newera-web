@@ -304,8 +304,11 @@ export function Footer() {
 
         {/* py-1.5 on each link, with the row's gap reduced to match, so every
             target clears 24px without opening the footer up. Nine 17px-tall
-            links in a wrapping row is the hardest thing on the site to hit. */}
-        <nav className="-my-1.5 flex flex-wrap gap-x-10">
+            links in a wrapping row is the hardest thing on the site to hit.
+            px-1.5 too, because that only fixed the height: "API" is three
+            glyphs of 11px mono and measured 23px wide — one pixel under the
+            floor, and the only target on the site still failing it. */}
+        <nav className="-my-1.5 flex flex-wrap gap-x-8">
           {[
             ["/app", "Live feed"],
             ["/how-it-works", "How it works"],
@@ -320,7 +323,7 @@ export function Footer() {
             <Link
               key={to}
               to={to}
-              className="py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-fg-dim transition-colors hover:text-acid-500"
+              className="px-1.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-fg-dim transition-colors hover:text-acid-500"
             >
               {label}
             </Link>
@@ -329,7 +332,7 @@ export function Footer() {
             href="https://x.com/New_EraAI"
             target="_blank"
             rel="noopener"
-            className="py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-fg-dim transition-colors hover:text-acid-500"
+            className="px-1.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-fg-dim transition-colors hover:text-acid-500"
           >
             X ↗
           </a>

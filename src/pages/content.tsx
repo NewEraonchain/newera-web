@@ -392,11 +392,13 @@ export function Contact() {
           ]}
         />
         <p>
+          {/* Alone in its own paragraph, so the inline-link exemption in WCAG
+              2.2 does not apply — nothing constrains its height but itself. */}
           <a
             href="https://x.com/New_EraAI"
             target="_blank"
             rel="noopener noreferrer"
-            className="scan-link text-acid-500"
+            className="scan-link -my-1.5 inline-block py-1.5 text-acid-500"
           >
             @New_EraAI ↗
           </a>
@@ -444,7 +446,7 @@ function LiveClusters() {
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-edge pb-3">
         <h2 className="text-xl font-semibold text-fg">Forming right now</h2>
-        <Link to="/app" className="scan-link font-mono text-micro uppercase tracking-[0.12em] text-acid-500">
+        <Link to="/app" className="scan-link -my-1.5 py-1.5 font-mono text-micro uppercase tracking-[0.12em] text-acid-500">
           All of them, live →
         </Link>
       </div>

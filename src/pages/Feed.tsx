@@ -471,19 +471,28 @@ function TheRead({
      is that it shows you a live tape. The figures are what carry the reading;
      the sentence around them was costing a screenful to say what the labels
      say. Nothing measured has been dropped. */
+  /* Every figure is validated before it is shown. A field that arrives as
+     something other than a finite number is not a measurement, and printing it
+     anyway rendered a literal "[object Object]%" as though it were one — on the
+     surface whose entire claim is that its numbers are real. A dash says "we do
+     not have this" and is the only honest thing to draw. */
+  const n = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null)
+  const count = (v: unknown) => (n(v) === null ? "—" : n(v)!.toLocaleString("en-US"))
+  const pct = (v: unknown) => (n(v) === null ? "—" : `${n(v)}%`)
+
   const cells: { v: string; l: string; tone?: "warn" }[] = [
-    { v: stats.launchesLastHour.toLocaleString("en-US"), l: "launched this hour" },
+    { v: count(stats.launchesLastHour), l: "launched this hour" },
     {
-      v: `${stats.duplicatePct}%`,
+      v: pct(stats.duplicatePct),
       l: "copy or impersonation",
-      tone: stats.duplicatePct > 30 ? "warn" : undefined,
+      tone: (n(stats.duplicatePct) ?? 0) > 30 ? "warn" : undefined,
     },
     {
-      v: `${stats.highRiskPct}%`,
+      v: pct(stats.highRiskPct),
       l: "score as noise",
-      tone: stats.highRiskPct > 10 ? "warn" : undefined,
+      tone: (n(stats.highRiskPct) ?? 0) > 10 ? "warn" : undefined,
     },
-    { v: stats.distinctCreators24h.toLocaleString("en-US"), l: "creators, 24h" },
+    { v: count(stats.distinctCreators24h), l: "creators, 24h" },
   ]
 
   return (

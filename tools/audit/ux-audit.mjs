@@ -71,9 +71,21 @@ for (const route of ROUTES) {
       if (tag !== "input" && tag !== "select" && tag !== "textarea" && !label)
         out.namelessControls.push(`${tag}${el.className ? "." + String(el.className).split(" ")[0] : ""}`)
 
-      // Touch target size — 44px is the usual floor; 24px is the WCAG 2.2 minimum.
-      if ((rect.width < 24 || rect.height < 24) && label)
-        out.smallTargets.push(`${label.slice(0, 24)} (${Math.round(rect.width)}x${Math.round(rect.height)})`)
+      /* Touch target size — 44px is the usual floor; 24px is the WCAG 2.2
+         minimum. That success criterion exempts a target that is INLINE in a
+         sentence, because its size is constrained by the surrounding
+         line-height and padding it out would break the paragraph. Reporting
+         those anyway produced 30 findings of which 28 were prose links, which
+         is how the two real ones sat unfixed for weeks: a suite that cries
+         wolf gets skimmed. A link alone in its own block has no such excuse
+         and is still reported. */
+      if ((rect.width < 24 || rect.height < 24) && label) {
+        const block = el.closest("p,li,td,th,dd,dt,h1,h2,h3,figcaption")
+        const blockText = block ? block.innerText.trim().replace(/\s+/g, " ") : ""
+        const inlineInSentence = !!block && blockText.length > label.trim().length + 3
+        if (!inlineInSentence)
+          out.smallTargets.push(`${label.slice(0, 24)} (${Math.round(rect.width)}x${Math.round(rect.height)})`)
+      }
 
       if (tag === "a") {
         const href = el.getAttribute("href") || ""
