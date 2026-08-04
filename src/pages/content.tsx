@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { Article, Section, Step, Callout, Bullets, Mono, Terms, FootNote } from "@/components/site/Article"
 import { useSeparation } from "@/components/figures"
 import { useStats } from "@/lib/useStats"
+import { getJSON, ago } from "@/lib/api"
+import type { Theme } from "@/lib/api"
 
 /* A percentage read from the live index, never typed into the page.
  *
@@ -168,6 +172,15 @@ export function Themes() {
       title="A hundred tokens, one idea."
       standfirst="Tokens don't launch alone. Something happens in the world, and within minutes dozens of wallets deploy their own version of it. Read individually those launches look like noise. Grouped by meaning, they show you the narrative while it is still forming."
     >
+      {/* The nav calls this "Clusters", so it opens with clusters.
+          Clicking a menu item labelled with a noun and landing on an essay
+          about that noun is the same fault as the feed opening with prose: the
+          page answers a question the visitor did not ask yet. The explanation
+          below is worth reading — it is just not what "Clusters" promises. */}
+      <Section>
+        <LiveClusters />
+      </Section>
+
       <Section>
         <Callout label="Observed live — four launches, two seconds apart">
           <div className="flex flex-col gap-1 font-mono text-sm text-fg-muted">
@@ -395,5 +408,75 @@ export function Contact() {
       </Section>
       <FootNote />
     </Article>
+  )
+}
+
+
+/* The clusters forming right now, at the top of the page named after them.
+ *
+ * Deliberately a short list rather than the whole set: this is a Read surface
+ * and the full, filterable list lives on the feed. It exists so that clicking
+ * "Clusters" answers with clusters, and so a reader who is convinced by the
+ * explanation below has somewhere to go that is not the back button. */
+function LiveClusters() {
+  const [themes, setThemes] = useState<Theme[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    getJSON<{ items: Theme[] }>("/intel/themes?limit=6&organicOnly=1")
+      .then((r) => alive && setThemes(r.items))
+      .catch(() => alive && setFailed(true))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  if (failed) {
+    return (
+      <p className="text-sm text-warn">
+        The index is not answering, so there is nothing live to show here right now.
+      </p>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-edge pb-3">
+        <h2 className="text-xl font-semibold text-fg">Forming right now</h2>
+        <Link to="/app" className="scan-link font-mono text-micro uppercase tracking-[0.12em] text-acid-500">
+          All of them, live →
+        </Link>
+      </div>
+
+      {themes === null ? (
+        <div className="mt-4 flex flex-col gap-2" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 animate-pulse bg-[color-mix(in_srgb,var(--fg)_6%,transparent)]" />
+          ))}
+        </div>
+      ) : themes.length === 0 ? (
+        <p className="mt-4 text-sm text-fg-muted">
+          No cluster right now has independent wallets launching into it. That is a real state of the
+          chain, not an error — it is what a quiet hour looks like.
+        </p>
+      ) : (
+        <div className="mt-1 grid sm:grid-cols-2 sm:gap-x-10">
+          {themes.map((t) => (
+            <Link
+              key={t.id}
+              to={`/app/theme/${t.slug}`}
+              className="scan-row border-b border-edge py-3.5 pl-3"
+            >
+              <span className="block truncate text-base font-semibold text-fg">{t.label}</span>
+              <span className="mt-1 block text-sm text-fg-muted">
+                <b className="font-semibold text-acid-500">{t.creatorCount} wallets</b>,{" "}
+                {t.launchCount} launches, {ago(t.ageMinutes * 60)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
