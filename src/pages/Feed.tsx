@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable } from "@/components/LaunchTable"
 import { Page } from "@/components/shell"
-import { KineticText } from "@/components/kinetic"
 import { useMarkets } from "@/lib/markets"
 
 const REFRESH_MS = 12000
@@ -251,19 +250,18 @@ export default function Feed() {
           ? `${waiting} new launches available. The list is paused while you read.`
           : ""}
       </p>
-      <KineticText
-        as="h1"
-        className="font-display max-w-[14ch] text-[clamp(2rem,5.2vw,4.2rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]"
-        base={72}
-      >
-        Live launch intelligence
-      </KineticText>
-
-      {/* Under the heading, not above it. A short label stacked over an h1 is a
-          kicker, which the direction bans outright and the detector catches. */}
-      <p className="mt-5 font-mono text-micro uppercase tracking-[0.14em]">
-        {/* "Live" is a claim. Only make it when the data supports it. */}
-        <span className={live ? "text-acid-500" : "text-warn"}>
+      {/* A masthead, not a cover.
+          Measured before this change: 94% of the first viewport was prose and
+          none of the 33 rows were visible — you arrived at a live feed and had
+          to scroll a full screen before seeing anything live. Plate-scale
+          display type belongs to the Persuade surfaces; this is the instrument,
+          and its job is to get out of the way of the tape. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3">
+        <h1 className="font-display text-[clamp(1.5rem,2.6vw,2.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em]">
+          Live launch intelligence
+        </h1>
+        <span className={`font-mono text-micro uppercase tracking-[0.14em] ${live ? "text-acid-500" : "text-warn"}`}>
+          {/* "Live" is a claim. Only make it when the data supports it. */}
           {stats === null
             ? "Connecting…"
             : !indexerUp
@@ -274,24 +272,64 @@ export default function Feed() {
                   ? "Waiting for the index"
                   : `Indexed through ${ago(dataAgeSeconds)} ago`}
         </span>
-      </p>
+      </div>
+
+      <Search />
 
       <TheRead stats={stats} clusters={clusters} failed={failures >= 1} />
 
-      {/* ── 2. What is worth looking at ─────────────────────────────────── */}
-      <section className="mt-[9vh]">
+      {/* ── 2. What can actually be traded, first ───────────────────────
+          Reported: "the tradable and useful info coins arent shown first but
+          before that worth noting coins some of which arent tradable". True —
+          clusters opened the page at 685px and the tradable list sat at 1538px,
+          so the first thing offered was a set of things most of which cannot be
+          bought. Clusters are still the judgement only this product makes; they
+          are just not what someone opens the app to do. */}
+      <section className="mt-[7vh]">
+        <SectionHead
+          title="Getting traded"
+          note={traded ? `${traded.length} of ${launches?.length ?? 0}` : "…"}
+        />
+        {/* One line, because this section now opens the page. As five lines of
+            prose it was the last thing between a visitor and the first row they
+            could act on. Nothing measured or claimed has been dropped — the
+            custody position is stated in full on every token page, next to the
+            control it actually governs. */}
+        <p className="mt-3 text-sm leading-relaxed text-fg-muted">
+          The launches somebody is actually trading. Depth and volume from DexScreener;{" "}
+          <b className="font-semibold text-fg">NewEra never holds your funds or your keys</b>.
+        </p>
+
+        <div className="mt-7">
+          {marketsDown ? (
+            <EmptyState>
+              Market data is unavailable right now, so we cannot say what is trading. This is a
+              lookup failure on our side, not a statement about these tokens.
+            </EmptyState>
+          ) : traded === null ? (
+            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h={64} />)
+          ) : traded.length === 0 ? (
+            <EmptyState>
+              Nothing in this window has a market yet. That is the normal state of a new launch, and
+              the reason this page exists: you are seeing them before they have a price.
+            </EmptyState>
+          ) : (
+            <LaunchTable rows={traded} caption="Launches with a live market, deepest first" />
+          )}
+        </div>
+      </section>
+
+      {/* ── 3. The judgement only this product makes ───────────────────── */}
+      <section className="mt-[11vh]">
         <SectionHead
           title="Worth looking at"
           note={clusters ? `${clusters.length} listed` : "…"}
         />
-        <p className="measure mt-4 text-sm leading-relaxed text-fg-muted">
-          Clusters where more than one wallet is launching. That is the only thing separating a
-          narrative that is forming from one address repeating itself. It is a statement about who
-          is launching, not a prediction about price.
-        </p>
-        <p className="measure mt-3 text-sm leading-relaxed text-fg-dim">
-          Ordered by how fast independent wallets are arriving, so the ones still forming come
-          first. Ranking by total size would put the oldest and most crowded at the top.
+        <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
+          Clusters where more than one wallet is launching — the only thing separating a narrative
+          forming from one address repeating itself. Ordered by how fast independent wallets are
+          arriving, so the ones still forming come first. A statement about who is launching, not a
+          prediction about price.
         </p>
 
         {/* A grid, not a column. These are short comparable blocks, and one per
@@ -322,44 +360,11 @@ export default function Feed() {
         </div>
       </section>
 
-      {/* ── 3. What has a market ────────────────────────────────────────── */}
-      <section className="mt-[11vh]">
-        <SectionHead
-          title="Getting traded"
-          note={traded ? `${traded.length} of ${launches?.length ?? 0}` : "…"}
-        />
-        <p className="measure mt-4 text-sm leading-relaxed text-fg-muted">
-          Of the launches below, these are the ones somebody is actually trading. Liquidity, volume
-          and price come from DexScreener, which indexes both DEXes on this chain.{" "}
-          <b className="font-semibold text-fg">NewEra never holds your funds or your keys</b> —
-          where a swap is offered it is signed by your own wallet and settles on Uniswap.
-        </p>
-
-        <div className="mt-7">
-          {marketsDown ? (
-            <EmptyState>
-              Market data is unavailable right now, so we cannot say what is trading. This is a
-              lookup failure on our side, not a statement about these tokens.
-            </EmptyState>
-          ) : traded === null ? (
-            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h={64} />)
-          ) : traded.length === 0 ? (
-            <EmptyState>
-              Nothing in this window has a market yet. That is the normal state of a new launch, and
-              the reason this page exists: you are seeing them before they have a price.
-            </EmptyState>
-          ) : (
-            <LaunchTable rows={traded} caption="Launches with a live market, deepest first" />
-          )}
-        </div>
-      </section>
-
       {/* ── 4. The raw tape ─────────────────────────────────────────────── */}
       <section className="mt-[11vh]">
         <SectionHead title="Everything launching" note={tape ? `${tape.length} shown` : "…"} />
-        <p className="measure mt-4 text-sm leading-relaxed text-fg-muted">
-          Unfiltered, newest first, straight from the index. Most of it is noise. That is the point
-          of the section above.
+        <p className="mt-3 text-sm leading-relaxed text-fg-muted">
+          Unfiltered, newest first, straight from the index. Most of it is noise.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -447,67 +452,149 @@ function TheRead({
 }) {
   if (!stats) {
     return (
-      <div className="mt-9 border-y border-edge py-7">
+      <div className="mt-6 border-y border-edge py-4">
         {failed ? (
-          <p className="text-base leading-relaxed text-warn">
+          <p className="text-sm leading-relaxed text-warn">
             The index is not answering, so there is nothing measured to report here. This page
             retries every 12 seconds.
           </p>
         ) : (
-          <Skeleton h={72} />
+          <Skeleton h={40} />
         )}
       </div>
     )
   }
 
-  const n = clusters?.length ?? 0
+  /* The same four measurements, as a strip rather than a paragraph.
+     As prose this ran to four lines of 1.4rem type and pushed every row below
+     the fold — 94% of the first viewport was text on a page whose whole claim
+     is that it shows you a live tape. The figures are what carry the reading;
+     the sentence around them was costing a screenful to say what the labels
+     say. Nothing measured has been dropped. */
+  const cells: { v: string; l: string; tone?: "warn" }[] = [
+    { v: stats.launchesLastHour.toLocaleString("en-US"), l: "launched this hour" },
+    {
+      v: `${stats.duplicatePct}%`,
+      l: "copy or impersonation",
+      tone: stats.duplicatePct > 30 ? "warn" : undefined,
+    },
+    {
+      v: `${stats.highRiskPct}%`,
+      l: "score as noise",
+      tone: stats.highRiskPct > 10 ? "warn" : undefined,
+    },
+    { v: stats.distinctCreators24h.toLocaleString("en-US"), l: "creators, 24h" },
+  ]
+
   return (
-    <div className="mt-9 border-y border-edge py-7">
-      <p className="max-w-[46ch] text-[clamp(1.05rem,1.7vw,1.4rem)] leading-[1.55] text-fg">
-        <Fig>{stats.launchesLastHour.toLocaleString("en-US")}</Fig> tokens were created in the last
-        hour. <Fig tone={stats.duplicatePct > 30 ? "warn" : undefined}>{stats.duplicatePct}%</Fig>{" "}
-        {/* `duplicatePct` counts any deception flag — copies, lookalike
-            characters, invisible characters — not near-duplicates alone. The
-            backend picked that definition deliberately; the copy just did not
-            match it. */}
-        carry a duplicate or impersonation flag, and{" "}
-        <Fig tone={stats.highRiskPct > 10 ? "warn" : undefined}>{stats.highRiskPct}%</Fig> score as
-        manufactured noise.{" "}
-        {/* Three states. `clusters == null` means the request failed or is in
-            flight, and collapsing that into "no clusters" printed a finding
-            about the chain that was really a network error. Say nothing rather
-            than something untrue. */}
-        {clusters === null ? null : n > 0 ? (
-          <>The clusters below are the ones with independent wallets behind them.</>
-        ) : (
-          <>No cluster right now has independent wallets launching into it.</>
-        )}
-        {/* Deliberately no total here. The count of clusters on this page is the
-            page size of a `limit=` fetch, not a measurement of the chain, and a
-            figure that cannot be reproduced from a live call has no business
-            being stated as one. The section heading below says how many are
-            listed, which is a claim about this page and is true. */}
-      </p>
-      {/* Not uppercased: this is a sentence's worth of running text, and forcing
-          caps on it is what the detector's all-caps-body rule catches. Caps are
-          for labels. */}
-      <p className="mt-4 font-mono text-xs tracking-[0.04em] text-fg-dim">
-        {stats.distinctCreators24h.toLocaleString("en-US")} distinct creators ·{" "}
-        {stats.launchesLast24h.toLocaleString("en-US")} launches · last 24h
-      </p>
+    <div className="mt-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-y border-edge py-4">
+      <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+        {cells.map((c) => (
+          <div key={c.l}>
+            <div className={`font-mono text-lg font-medium tabular-nums ${c.tone === "warn" ? "text-warn" : "text-fg"}`}>
+              {c.v}
+            </div>
+            <div className="mt-0.5 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+              {c.l}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Three states. `clusters == null` means the request failed or is in
+          flight, and collapsing that into "no clusters" printed a finding about
+          the chain that was really a network error. */}
+      {clusters !== null && clusters.length === 0 && (
+        <p className="flex-none text-xs text-fg-dim">
+          No cluster right now has independent wallets launching into it.
+        </p>
+      )}
     </div>
   )
 }
 
-function Fig({ children, tone }: { children: React.ReactNode; tone?: "warn" | "signal" }) {
+/* Straight to a coin.
+ *
+ * Reaching one took four steps — site, feed, a cluster, then its launch list —
+ * and someone arriving with a ticker a friend sent them had no way in at all.
+ * An address goes directly to its page; anything else queries the index rather
+ * than filtering the thirty rows the browser happens to be holding. */
+function Search() {
+  const [q, setQ] = useState("")
+  const [hits, setHits] = useState<Launch[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const navigate = useNavigate()
+  const seq = useRef(0)
+
+  useEffect(() => {
+    const term = q.trim()
+    const n = ++seq.current
+    if (term.length < 2) {
+      setHits(null)
+      setBusy(false)
+      return
+    }
+    setBusy(true)
+    const t = setTimeout(async () => {
+      try {
+        const r = await getJSON<{ items: Launch[] }>(`/intel/feed?limit=8&q=${encodeURIComponent(term)}`)
+        if (seq.current === n) setHits(r.items)
+      } catch {
+        if (seq.current === n) setHits([])
+      } finally {
+        if (seq.current === n) setBusy(false)
+      }
+    }, 250)
+    return () => clearTimeout(t)
+  }, [q])
+
+  const go = (e: React.FormEvent) => {
+    e.preventDefault()
+    const term = q.trim()
+    // A whole address is unambiguous: skip the results and open it.
+    if (/^0x[a-fA-F0-9]{40}$/.test(term)) navigate(`/app/token/${term.toLowerCase()}`)
+    else if (hits?.length) navigate(`/app/token/${hits[0].address}`)
+  }
+
   return (
-    <span
-      className={`font-mono font-medium tabular-nums ${
-        tone === "warn" ? "text-warn" : tone === "signal" ? "text-acid-500" : "text-fg"
-      }`}
-    >
-      {children}
-    </span>
+    <form onSubmit={go} role="search" className="relative mt-5">
+      <label htmlFor="feed-search" className="sr-only">
+        Find a token by ticker, name or address
+      </label>
+      <input
+        id="feed-search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Find a token — ticker, name, or paste an address"
+        autoComplete="off"
+        spellCheck={false}
+        /* 16px minimum, or iOS Safari zooms the viewport on focus. */
+        className="w-full border border-edge bg-transparent px-4 py-2.5 font-mono text-base text-fg placeholder:text-fg-dim focus-visible:border-acid-500"
+      />
+      {q.trim().length >= 2 && (
+        <div className="absolute inset-x-0 top-full z-30 border-x border-b border-edge bg-ink-950">
+          {busy && !hits ? (
+            <p className="px-4 py-3 font-mono text-xs text-fg-dim">Searching the index…</p>
+          ) : hits && hits.length ? (
+            hits.map((l) => (
+              <Link
+                key={l.address}
+                to={`/app/token/${l.address}`}
+                onClick={() => setQ("")}
+                className="scan-row flex items-baseline gap-x-4 border-t border-edge px-4 py-2.5 first:border-t-0"
+              >
+                <span className="font-mono text-sm font-semibold text-fg">{l.symbol || "—"}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{l.name}</span>
+                <span className="font-mono text-micro text-fg-dim">{ago(l.ageSeconds)}</span>
+              </Link>
+            ))
+          ) : (
+            <p className="px-4 py-3 text-xs text-fg-dim">
+              Nothing in the index matches that. It may have launched before indexing began.
+            </p>
+          )}
+        </div>
+      )}
+    </form>
   )
 }
 

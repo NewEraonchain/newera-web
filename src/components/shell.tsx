@@ -22,10 +22,13 @@ import type { ReactNode } from "react"
  * the exact thing the feed was already being criticised for.
  */
 
+/* Width and the top entrance travel together. A Read surface earns the drop —
+   it is a page you settle into. An Operate surface is a tool, and 13vh of empty
+   plate above the masthead is one more row of the tape you cannot see. */
 const WIDTHS = {
-  prose: "max-w-[62rem]",
-  app: "max-w-[104rem]",
-  narrow: "max-w-[46rem]",
+  prose: "max-w-[62rem] pt-[13vh]",
+  app: "max-w-[104rem] pt-[8vh]",
+  narrow: "max-w-[46rem] pt-[13vh]",
 } as const
 
 export function Page({
@@ -38,7 +41,7 @@ export function Page({
   children: ReactNode
 }) {
   return (
-    <div className={`mx-auto w-full ${WIDTHS[width]} px-[max(1.25rem,4vw)] pb-[14vh] pt-[13vh] ${className}`}>
+    <div className={`mx-auto w-full ${WIDTHS[width]} px-[max(1.25rem,4vw)] pb-[14vh] ${className}`}>
       {children}
     </div>
   )

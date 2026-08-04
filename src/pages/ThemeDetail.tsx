@@ -76,11 +76,18 @@ export default function ThemeDetail() {
         <StatusBadge status={theme.status} />
       </div>
 
+      {/* The coins first.
+          Reported: opening a topic showed "who's launching first rather than
+          the coins available to trade". Measured, the deployer table sat at
+          781px and the launches at 886px — you arrived at a cluster and were
+          handed a list of wallets before a list of tokens. The verdict still
+          leads because it is one sentence and it is the answer; everything
+          after the launches is the working behind it. */}
       <Verdict theme={theme} launches={launches} />
+      <Launches launches={launches} />
       <Metrics theme={theme} launches={launches} />
       <Velocity series={series} />
       <Creators launches={launches} />
-      <Launches launches={launches} />
     </Shell>
   )
 }

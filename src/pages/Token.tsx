@@ -297,10 +297,12 @@ function TheMarket({
       {/* This paragraph used to say NewEra "does not execute trades", which
           stopped being true the moment the swap panel shipped. What survives is
           the part that still holds and matters more: no custody, no keys. */}
-      <p className="measure mt-5 text-xs leading-relaxed text-fg-dim">
-        Price, depth and the candles come from DexScreener, which indexes this chain.{" "}
-        <b className="font-semibold text-fg-muted">NewEra never holds your funds or your keys</b> —
-        trades you make below are signed by your own wallet and settle on Uniswap.
+      {/* One line. The full custody position is stated inside the trade panel,
+          beside the control it actually governs, so saying it twice at length
+          only pushed the chart and the panel further down the page. */}
+      <p className="mt-4 text-xs leading-relaxed text-fg-dim">
+        Depth, price and candles from DexScreener.{" "}
+        <b className="font-semibold text-fg-muted">NewEra never holds your funds or your keys.</b>
       </p>
     </section>
   )

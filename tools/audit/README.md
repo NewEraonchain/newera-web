@@ -45,6 +45,8 @@ observations — a FAIL means a behaviour regressed.
 | `ux-audit.mjs` | Dead links, unnamed controls, unlabelled inputs, heading order, focus rings, tap-target sizes, console errors, mobile overflow — across every route |
 | `swap.mjs` | **The money one.** Imports `src/lib/swap.ts`, `v4.ts` and `trades.ts` themselves (bundled on the fly with esbuild, so it tests the shipped code, not copies) and checks them against the live chain: both the v3 and v4 encodings reproduce real successful on-chain swaps byte for byte, well-formed buys simulate cleanly on each protocol, an unreachable minimum reverts, a sell without a Permit2 grant fails rather than sending, the builders refuse a zero minimum or zero input, unroutable pools decline with a stated reason instead of guessing a key, and the tape's buy/sell labels agree with the transactions' own ETH values |
 | `terminal.mjs` | The token terminal in a browser: a live quote renders, the guaranteed minimum sits below it, raising slippage actually lowers the floor, timeframe buttons drive the embed's `interval`, the tape resolves to real rows or an *explained* empty state, no router address is ever shown as a trader, the Sell tab flips what the amount means and discloses its approvals, and v4 pages either route or decline with a reason |
+| `firstscreen.mjs` | What a visitor actually sees first, per route: the prose share of the first viewport, how many data rows are visible in it, the order of section headings down the page, and how far down the first control that advances the task sits. Written after "when I go to the live feed the first thing I see is a lot of texts, rather than the feed" — it turns that into a number (the feed was 94% prose with 0 of 33 rows visible) so the fix can be checked rather than argued about |
+| `search.mjs` | The one-step route to a coin: the field is on the first screen, a ticker returns results, one click lands on a token page, a pasted address opens that exact token without a list to pick from, and a miss is explained rather than left blank |
 | `detect-all.ps1` | `npx impeccable detect --json` on all 13 routes. **Always `--json`** — in plain mode a clean run and a crashed run are both silent |
 
 ## Diagnostics
@@ -100,6 +102,10 @@ behind a detector finding), `crop.mjs` / `shot-at.mjs` / `film.mjs` (screenshots
   ~100ms; a 1% minimum computed at quote time is routinely stale by the time a
   simulation runs. That is the protection working. Use a wide slippage to test
   the *encoding*, and a deliberately unreachable minimum to test the *guard*.
+- **The slowest search is the one that matches nothing.** Postgres cannot stop
+  early on `LIMIT` when nothing matches, so it scans the table: ~1.4s against
+  ~0.7s for a hit. A fixed wait tuned to the happy path races the empty-result
+  state and reads the spinner instead. Wait on the condition.
 - **The node errors above 10,000 logs; it does not truncate.** A wide
   `getLogs` window that "worked" may only have worked because the pool was
   young. Start narrow and widen.
