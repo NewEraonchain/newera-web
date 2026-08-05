@@ -41,6 +41,13 @@ export default function Feed() {
   const [hideRisky, setHideRisky] = useState(false)
   const [byRisk, setByRisk] = useState(false)
   const [failures, setFailures] = useState(0)
+  /* Tracked separately from `failures`. That counter only increments when ALL
+     THREE requests reject, so a stats-only outage left the masthead on
+     "Connecting…" and the figure strip pulsing a skeleton forever — above a
+     fully populated tape. A working page telling the reader it is still
+     connecting is the same defect this file's own comments were written to
+     prevent, one endpoint over. */
+  const [statsFailed, setStatsFailed] = useState(false)
 
   /* Updates wait for the reader.
    *
@@ -79,7 +86,12 @@ export default function Feed() {
 
     // Figures are safe to update live: they occupy a fixed box and nobody is
     // mid-click on a percentage.
-    if (s.status === "fulfilled") setStats(s.value)
+    if (s.status === "fulfilled") {
+      setStats(s.value)
+      setStatsFailed(false)
+    } else {
+      setStatsFailed(true)
+    }
 
     const nextThemes = t.status === "fulfilled" ? t.value.items : null
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
@@ -130,11 +142,22 @@ export default function Feed() {
 
   useEffect(() => {
     load()
-    const id = setInterval(load, REFRESH_MS)
-    // Don't poll a tab nobody is looking at.
+    let id = setInterval(load, REFRESH_MS)
+
+    /* Don't poll a tab nobody is looking at — but DO start again on return.
+       The previous version cleared the interval when the tab went hidden and,
+       on return, only called load() once. Nothing ever recreated the timer, so
+       after a single tab switch the live feed silently became "refreshes once
+       when you look at it" for the rest of the session — under a masthead whose
+       whole job is to claim freshness. Measured: 0 polls in the 40s after
+       returning to the tab, where three were due. Switching tabs is the most
+       ordinary thing anyone does with a live feed. */
     const onVis = () => {
-      if (document.hidden) clearInterval(id)
-      else load()
+      clearInterval(id)
+      if (!document.hidden) {
+        load()
+        id = setInterval(load, REFRESH_MS)
+      }
     }
     document.addEventListener("visibilitychange", onVis)
     return () => {
@@ -263,7 +286,9 @@ export default function Feed() {
         <span className={`font-mono text-micro uppercase tracking-[0.14em] ${live ? "text-acid-500" : "text-warn"}`}>
           {/* "Live" is a claim. Only make it when the data supports it. */}
           {stats === null
-            ? "Connecting…"
+            ? statsFailed
+              ? "Figures unavailable"
+              : "Connecting…"
             : !indexerUp
               ? "Indexer offline"
               : live
@@ -276,7 +301,7 @@ export default function Feed() {
 
       <Search />
 
-      <TheRead stats={stats} clusters={clusters} failed={failures >= 1} />
+      <TheRead stats={stats} clusters={clusters} failed={failures >= 1 || statsFailed} />
 
       {/* ── 2. What can actually be traded, first ───────────────────────
           Reported: "the tradable and useful info coins arent shown first but
@@ -531,6 +556,11 @@ function Search() {
   const [q, setQ] = useState("")
   const [hits, setHits] = useState<Launch[] | null>(null)
   const [busy, setBusy] = useState(false)
+  /* A failed request is not an empty result. Collapsing the two rendered
+     "Nothing in the index matches that" — a claim about the chain — whenever the
+     network hiccuped or the API 500'd. Same class of bug the market layer
+     already guards with its `ok` flag. */
+  const [failed, setFailed] = useState(false)
   const navigate = useNavigate()
   const seq = useRef(0)
 
@@ -539,6 +569,7 @@ function Search() {
     const n = ++seq.current
     if (term.length < 2) {
       setHits(null)
+      setFailed(false)
       setBusy(false)
       return
     }
@@ -546,9 +577,15 @@ function Search() {
     const t = setTimeout(async () => {
       try {
         const r = await getJSON<{ items: Launch[] }>(`/intel/feed?limit=8&q=${encodeURIComponent(term)}`)
-        if (seq.current === n) setHits(r.items)
+        if (seq.current === n) {
+          setHits(Array.isArray(r.items) ? r.items : [])
+          setFailed(false)
+        }
       } catch {
-        if (seq.current === n) setHits([])
+        if (seq.current === n) {
+          setHits(null)
+          setFailed(true)
+        }
       } finally {
         if (seq.current === n) setBusy(false)
       }
@@ -596,6 +633,11 @@ function Search() {
                 <span className="font-mono text-micro text-fg-dim">{ago(l.ageSeconds)}</span>
               </Link>
             ))
+          ) : failed ? (
+            <p className="px-4 py-3 text-xs text-warn">
+              The index did not answer. This is a lookup failure on our side, not a statement about
+              what exists — try again in a moment.
+            </p>
           ) : (
             <p className="px-4 py-3 text-xs text-fg-dim">
               Nothing in the index matches that. It may have launched before indexing began.

@@ -151,7 +151,16 @@ if (tapeInfo.rows > 0) {
   )
   const routerRows = traders.filter((t) => ROUTERS.some((r) => t?.startsWith(r)))
   check(routerRows.length === 0, `no router addresses shown as traders (${routerRows.length} of ${traders.length})`)
-  check(new Set(traders).size > 1, `traders are distinct addresses (${new Set(traders).size} unique)`)
+  /* Only meaningful with enough rows. One address making every recent fill is a
+     real market state on a thin new pool — asserting on it tests the market, not
+     the code. What must always hold is that no ROUTER address appears, which the
+     check above covers unconditionally. */
+  const uniq = new Set(traders).size
+  if (traders.length >= 8) {
+    check(uniq > 1, `traders are distinct addresses (${uniq} unique of ${traders.length})`)
+  } else {
+    console.log(`  note: only ${traders.length} fills — too few to expect distinct traders (${uniq} unique)`)
+  }
 } else {
   const why = await page.evaluate(() => /connection lost/.test(document.body.innerText) ? "RPC read failed" : "pool genuinely quiet")
   console.log(`  note: no rows — ${why}`)

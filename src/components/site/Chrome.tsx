@@ -100,7 +100,12 @@ export function Header() {
             NewEra
             <span className="mx-2 opacity-40">/</span>
             <span className="opacity-70">Robinhood Chain</span>
-            {stats && (
+            {/* The field itself, not just the object. `indexedThroughBlock` is
+                `string | null`, and `Number(null)` is 0 — so a null height
+                rendered a confident "0" as the chain's block number, in the
+                header, on every route. Reticle.tsx already guards this field
+                correctly; the header did not. */}
+            {stats?.indexedThroughBlock && (
               <>
                 <span className="mx-2 opacity-40">/</span>
                 <RollingNumber value={Number(stats.indexedThroughBlock)} />

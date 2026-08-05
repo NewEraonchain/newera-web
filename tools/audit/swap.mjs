@@ -90,8 +90,28 @@ if (!refV4) {
   })
   const decoded = decodeFunctionData({ abi: EXEC_ABI, data: rebuilt.data })
   check(decoded.args[0] === "0x10", "command is V4_SWAP")
-  check(decoded.args[1][0].toLowerCase() === refArgs[1][0].toLowerCase(),
-    `v4 input byte-identical (${(decoded.args[1][0].length - 2) / 2}B vs ${(refArgs[1][0].length - 2) / 2}B)`)
+
+  /* Compare the SWAP PARAMS, not the whole input blob.
+     What the reference transaction proves is the word layout of
+     ExactInputSingleParams — specifically that this deployment still carries
+     sqrtPriceLimitX96, which the docs say was removed. It does NOT prove that
+     the reference's other arguments are the ones we should send: its SETTLE_ALL
+     cap is MAX_U256, i.e. no cap at all on what the pool may take from the user,
+     and we deliberately send `amountIn` instead. Asserting byte-identity across
+     the whole blob pinned a parameter that ought to differ. */
+  const [ours, theirs] = [decoded.args[1][0], refArgs[1][0]].map(
+    (blob) => decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], blob)
+  )
+  check(ours[0] === theirs[0], `actions identical (${ours[0]})`)
+  check(ours[1][0].toLowerCase() === theirs[1][0].toLowerCase(),
+    `swap params byte-identical — the layout the reference proves (${(ours[1][0].length - 2) / 2}B)`)
+  check(ours[1][2].toLowerCase() === theirs[1][2].toLowerCase(), "TAKE_ALL identical")
+
+  // And the deliberate divergence: our settle is capped, theirs is not.
+  const [, refCap] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], theirs[1][1])
+  const [, ourCap] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], ours[1][1])
+  check(ourCap === p0.amountIn && refCap > p0.amountIn,
+    `SETTLE_ALL is capped at amountIn, not unbounded (ours ${ourCap}, reference ${refCap === (1n << 256n) - 1n ? "MAX_U256" : refCap})`)
   check(v4.poolIdOf(p0.poolKey).length === 66, "poolId derives from the key")
 }
 

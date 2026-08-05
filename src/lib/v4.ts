@@ -90,7 +90,6 @@ const INITIALIZE_EVENT = parseAbiItem(
    output lands in the user's wallet and never passes through us. */
 const ACTIONS = "0x060c0f" as const
 const CMD_V4_SWAP = "0x10" as const
-const MAX_U256 = (1n << 256n) - 1n
 
 export const poolIdOf = (key: V4Key): `0x${string}` =>
   keccak256(encodeAbiParameters([POOL_KEY_TUPLE], [key]))
@@ -276,8 +275,21 @@ function encodeSwap(key: V4Key, zeroForOne: boolean, amountIn: bigint, minOut: b
           hookData: "0x",
         },
       ] as never),
-      // SETTLE_ALL: pay what the swap owes, capped at everything provided.
-      encodeAbiParameters(CURRENCY_AMOUNT, [inCurrency, MAX_U256]),
+      /* SETTLE_ALL: pay what the swap owes, capped at what the user agreed to.
+         This was MAX_U256, described as "capped at everything provided" — which
+         is not a cap, it is the absence of one. `minOutWei` floors the OUTPUT
+         only; the input is whatever the PoolManager says is owed after the hook
+         has run, and a v4 hook can add to that debt or take the input currency
+         as its own fee. On a buy the input is bounded by msg.value, but on a
+         SELL the input is an ERC-20 pulled through a MAX_UINT160 Permit2 grant,
+         so the ceiling was the user's entire balance of that token — while they
+         still received only minOut.
+
+         Verified on a live hooked pool: a cap of `amountIn` succeeds, and
+         `amountIn - 1` reverts 0x12bacdd3 (V4TooMuchRequested). The tight cap
+         is enforced, costs nothing, and changes nothing on a well-behaved
+         pool. */
+      encodeAbiParameters(CURRENCY_AMOUNT, [inCurrency, amountIn]),
       // TAKE_ALL: collect the output, reverting below the minimum.
       encodeAbiParameters(CURRENCY_AMOUNT, [outCurrency, minOut]),
     ],

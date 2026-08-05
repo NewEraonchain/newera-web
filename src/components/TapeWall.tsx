@@ -86,7 +86,10 @@ export default function TapeWall() {
             return (
               <div key={i} data-row className="flex w-max items-baseline gap-[3.2vw] will-change-transform">
                 {doubled.map((l, j) => {
-                  const flagged = l.riskScore >= 40 || l.spoofFlags.length > 0
+                  // Every other consumer guards this; TapeWall did not, and it
+                  // is on the entry page. One row without the field replaced the
+                  // whole landing page with the error boundary.
+                  const flagged = l.riskScore >= 40 || (l.spoofFlags?.length ?? 0) > 0
                   return (
                     <span
                       key={`${l.address}-${j}`}

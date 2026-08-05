@@ -61,7 +61,20 @@ export default function ThemeDetail() {
     )
   }
 
-  const { theme, launches, series } = data
+  /* Destructured defensively. `Creator.tsx` guards the identical shape and
+     `Token.tsx` guards everything through `data?.`; this was the outlier, so any
+     200 whose shape drifted replaced the entire cluster page with the error
+     boundary rather than degrading. */
+  const theme = data.theme
+  const launches = Array.isArray(data.launches) ? data.launches : []
+  const series = Array.isArray(data.series) ? data.series : []
+  if (!theme) {
+    return (
+      <Shell>
+        <EmptyState>That cluster is not in the index.</EmptyState>
+      </Shell>
+    )
+  }
   return (
     <Shell>
       <div className="mb-3 flex flex-wrap items-center gap-3">

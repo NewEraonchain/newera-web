@@ -82,11 +82,14 @@ async function sendAndWait(
   from: string,
   tx: { to: `0x${string}`; data: `0x${string}`; value?: bigint }
 ): Promise<string> {
+  // Re-checked here, not just once at the start — see the note on the swap send.
+  await ensureChain(provider)
   const hash = (await provider.request({
     method: "eth_sendTransaction",
     params: [
       {
         from,
+        chainId: hexChainId,
         to: tx.to,
         data: tx.data,
         ...(tx.value !== undefined && tx.value > 0n ? { value: `0x${tx.value.toString(16)}` } : {}),
@@ -178,12 +181,27 @@ export async function executeTrade(
       ? await getEthBalance(address)
       : await getTokenBalance(token, address)
 
+    /* The chain is checked again, immediately before signing.
+       Checking once at the start was not enough: this flow sends up to three
+       transactions, each separated by a human confirming a wallet prompt, and a
+       wallet can change network in between — from its own UI, or from a phone
+       over WalletConnect, which the page is never told about. The pre-sign
+       simulation cannot catch it either, because it runs against our own
+       publicClient, which is hardwired to this chain and so always passes.
+       A sell on the wrong chain costs gas. A BUY carries value, so it would
+       send real ETH to the router's address on a chain where that address may
+       hold no contract at all. `chainId` in the params makes a mismatched
+       wallet refuse rather than sign. */
+    onState({ phase: "switching" })
+    await ensureChain(provider)
+
     onState({ phase: "signing" })
     const hash = (await provider.request({
       method: "eth_sendTransaction",
       params: [
         {
           from: address,
+          chainId: hexChainId,
           to: tx.to,
           data: tx.data,
           value: `0x${tx.value.toString(16)}`,
