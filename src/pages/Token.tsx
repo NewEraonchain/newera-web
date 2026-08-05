@@ -35,13 +35,33 @@ import { getPoolAddress, v4Source, type TradeSource } from "@/lib/trades"
  * candles), and the chain itself (quotes, fills, execution). Any one can be
  * down without blanking the others. */
 
+/* A token page is only ever about a real address.
+ *
+ * Anything at all in the URL used to become a confident token identity: `0xnope`
+ * and an emoji string both rendered a titled page asserting "No market yet.
+ * Nobody can trade this. That is the normal state of a new launch" — a claim
+ * that the thing IS a launch, about a string that is not even an address. The
+ * zero address was worse: DexScreener answers for it, so `/app/token/0x0…0`
+ * rendered as ETH with a $35M market and a Trade button. The creator page
+ * already refuses this ("That does not look like a wallet address"); the token
+ * page did not. */
+const IS_ADDRESS = /^0x[a-fA-F0-9]{40}$/
+/* Not a token. DexScreener returns real ETH market data for it and every zero
+   address in a malformed link lands here. */
+const ZERO = "0x0000000000000000000000000000000000000000"
+
 export default function Token() {
   const { address = "" } = useParams()
+  const usable = IS_ADDRESS.test(address) && address.toLowerCase() !== ZERO
   const [data, setData] = useState<TokenDetail | null>(null)
   const [indexState, setIndexState] = useState<"loading" | "ok" | "missing" | "down">("loading")
 
   useEffect(() => {
     setData(null)
+    if (!usable) {
+      setIndexState("missing")
+      return
+    }
     setIndexState("loading")
     getJSON<TokenDetail>(`/intel/token/${encodeURIComponent(address)}`)
       .then((d) => {
@@ -49,9 +69,9 @@ export default function Token() {
         setIndexState("ok")
       })
       .catch((e: Error) => setIndexState(e.message.includes("404") ? "missing" : "down"))
-  }, [address])
+  }, [address, usable])
 
-  const markets = useMarkets(useMemo(() => (address ? [address] : []), [address]))
+  const markets = useMarkets(useMemo(() => (usable ? [address] : []), [address, usable]))
   const market = markets?.markets.get(address.toLowerCase())
   const marketState = markets === null ? "loading" : markets.ok ? "ok" : "down"
 
@@ -110,10 +130,35 @@ export default function Token() {
   const name = launch?.name || market?.name || ""
 
   useEffect(() => {
-    document.title = symbol
-      ? `${symbol} · Token · NewEra`
-      : `${shortAddr(address)} · Token · NewEra`
-  }, [symbol, address])
+    document.title = !usable
+      ? "Not a token address · NewEra"
+      : symbol
+        ? `${symbol} · Token · NewEra`
+        : `${shortAddr(address)} · Token · NewEra`
+  }, [symbol, address, usable])
+
+  if (!usable) {
+    return (
+      <Page>
+        <Link
+          to="/app"
+          className="mb-4 inline-flex items-center gap-2 py-1.5 text-sm text-fg-dim transition-colors hover:text-acid-500"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Back to live feed
+        </Link>
+        <h1 className="mt-4 text-[clamp(1.4rem,3vw,2.2rem)] font-semibold text-fg">
+          That is not a token address
+        </h1>
+        <p className="measure mt-4 text-base leading-relaxed text-fg-muted">
+          A token address is 42 characters beginning <code className="font-mono text-fg">0x</code>.
+          Check the link you followed, or find the token by ticker on the live feed.
+        </p>
+      </Page>
+    )
+  }
 
   return (
     <Page>

@@ -80,7 +80,7 @@ export default function Feed() {
     // stats query must not blank a perfectly good feed.
     const [s, t, f] = await Promise.allSettled([
       getJSON<Stats>("/intel/stats"),
-      getJSON<{ items: Theme[] }>(`/intel/themes?limit=24${includeSolo ? "" : "&organicOnly=1"}`),
+      getJSON<{ items: Theme[] }>("/intel/themes?limit=24&organicOnly=1"),
       getJSON<{ items: Launch[] }>(`/intel/feed?limit=30${hideRisky ? "&maxRisk=25" : ""}`),
     ])
 
@@ -93,7 +93,22 @@ export default function Feed() {
       setStatsFailed(true)
     }
 
-    const nextThemes = t.status === "fulfilled" ? t.value.items : null
+    /* "Include one-wallet clusters" has to ADD, which meant a second request.
+       It used to drop `organicOnly` from the same limit=24 query, so one-wallet
+       clusters consumed the page budget and evicted the multi-wallet ones
+       already on screen — measured 19 clusters before the toggle and 10 after,
+       losing 14 to gain 8, under a control labelled "Include". Raising the limit
+       does not fix it either: the server sorts and slices AFTER filtering, so
+       the organic ones can still fall outside the window. Fetching both sets and
+       merging is the only shape that matches the label. */
+    let nextThemes = t.status === "fulfilled" ? t.value.items : null
+    if (includeSolo && nextThemes) {
+      const solo = await getJSON<{ items: Theme[] }>("/intel/themes?limit=100").catch(() => null)
+      if (solo?.items) {
+        const seen = new Set(nextThemes.map((x) => x.slug))
+        nextThemes = [...nextThemes, ...solo.items.filter((x) => !seen.has(x.slug))]
+      }
+    }
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
 
     /* Decided out here, not inside a state updater. Queueing `setPending` from
@@ -313,7 +328,17 @@ export default function Feed() {
       <section className="mt-[7vh]">
         <SectionHead
           title="Getting traded"
-          note={traded ? `${traded.length} of ${launches?.length ?? 0}` : "…"}
+          /* Never a count during an outage. `traded.length` is 0 whenever the
+             market map is empty — including when the lookup FAILED — so the
+             heading asserted "0 of 30" directly above a body saying we cannot
+             say what is trading. */
+          note={
+            marketsDown
+              ? "unavailable"
+              : traded
+                ? `${traded.length} of ${launches?.length ?? 0}`
+                : "…"
+          }
         />
         {/* One line, because this section now opens the page. As five lines of
             prose it was the last thing between a visitor and the first row they
@@ -326,7 +351,20 @@ export default function Feed() {
         </p>
 
         <div className="mt-7">
-          {marketsDown ? (
+          {/* The intel-outage branch comes FIRST, before the skeleton.
+              `marketsDown` only covers a DexScreener failure. `traded` derives
+              from `launches`, which is null while the intel API is down, so an
+              intel outage fell through to the skeleton and pulsed forever — in
+              the one section that was moved to the top of the page, while its
+              three neighbours all explained themselves honestly. Measured still
+              pulsing at 70 seconds. This is the guarantee fixcheck.mjs asserts;
+              the section escaped it by being moved after that suite was written. */}
+          {failures >= 1 && traded === null ? (
+            <EmptyState>
+              The intelligence API is not responding, so we cannot say what is trading. This page
+              retries every 12 seconds.
+            </EmptyState>
+          ) : marketsDown ? (
             <EmptyState>
               Market data is unavailable right now, so we cannot say what is trading. This is a
               lookup failure on our side, not a statement about these tokens.

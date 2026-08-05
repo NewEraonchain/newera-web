@@ -85,7 +85,13 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
     chunks.map((c) => fetch(API + c.join(",")).then((r) => (r.ok ? r.json() : Promise.reject(r.status))))
   )
 
-  const ok = responses.some((r) => r.status === "fulfilled")
+  /* EVERY chunk, not some.
+     The feed asks for 30 addresses and CHUNK is 25, so there are always two
+     requests. With `some`, one succeeding chunk marked the whole lookup healthy
+     — and the addresses in the failed chunk then rendered "no market yet", a
+     claim about the chain produced by our own failed request. The comment on
+     that very line says a failed lookup must never render as that claim. */
+  const ok = responses.length > 0 && responses.every((r) => r.status === "fulfilled")
 
   for (const r of responses) {
     if (r.status !== "fulfilled") continue

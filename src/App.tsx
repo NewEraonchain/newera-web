@@ -75,14 +75,20 @@ const TITLES: Record<string, string> = {
 
 function useDocumentTitle(pathname: string) {
   useEffect(() => {
+    /* Normalised before the lookup. React Router matches case-insensitively and
+       tolerates a trailing slash, so `/APP` and `/app/` both rendered the full
+       live feed under the browser tab title "Not found · NewEra" — the map was
+       keyed on the raw pathname and neither form was in it. */
+    const key = pathname.toLowerCase().replace(/\/+$/, "") || "/"
+
     // The detail routes title themselves from their own data.
     if (
-      pathname.startsWith("/app/theme/") ||
-      pathname.startsWith("/app/creator/") ||
-      pathname.startsWith("/app/token/")
+      key.startsWith("/app/theme/") ||
+      key.startsWith("/app/creator/") ||
+      key.startsWith("/app/token/")
     )
       return
-    document.title = TITLES[pathname] ?? "Not found · NewEra"
+    document.title = TITLES[key] ?? "Not found · NewEra"
   }, [pathname])
 }
 
