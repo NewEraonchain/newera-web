@@ -151,6 +151,38 @@ export async function disconnect() {
   window.dispatchEvent(new CustomEvent("newera:disconnected"))
 }
 
+/**
+ * The account the injected wallet is on RIGHT NOW, or null.
+ *
+ * `currentAddress()` is the address that signed in — it is written once and
+ * never revisited, so it goes stale the moment somebody switches accounts in
+ * MetaMask. Anything that shows a BALANCE has to use this instead: the trade
+ * executes from whatever account the wallet is on, so sizing a sell against the
+ * signed-in account's balance can offer a "Max" the signer does not hold.
+ *
+ * `eth_accounts`, not `eth_requestAccounts` — this must never raise a prompt.
+ */
+export async function connectedAddress(): Promise<string | null> {
+  try {
+    if (!window.ethereum) return currentAddress()
+    const accounts = (await window.ethereum.request({ method: "eth_accounts" })) as string[]
+    return accounts?.[0]?.toLowerCase() || currentAddress()
+  } catch {
+    return currentAddress()
+  }
+}
+
+/** Subscribe to account switches. Returns an unsubscribe function. */
+export function onAccountsChanged(cb: (address: string | null) => void): () => void {
+  const eth = window.ethereum as
+    | (Eip1193 & { on?: (e: string, h: (a: string[]) => void) => void; removeListener?: (e: string, h: (a: string[]) => void) => void })
+    | undefined
+  if (!eth?.on) return () => {}
+  const handler = (accounts: string[]) => cb(accounts?.[0]?.toLowerCase() || null)
+  eth.on("accountsChanged", handler)
+  return () => eth.removeListener?.("accountsChanged", handler)
+}
+
 export function currentAddress(): string | null {
   return localStorage.getItem("newera_address")
 }

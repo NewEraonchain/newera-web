@@ -55,7 +55,11 @@ if (panel) {
   check(!!quoted, `live quote renders (${quoted || "none"})`)
 
   const body = await page.evaluate(() => document.body.innerText)
-  check(/Guaranteed minimum/.test(body), "guaranteed minimum is shown before any signature")
+  /* "Minimum the router will accept", not "Guaranteed minimum". The router does
+     enforce the figure on the swap's output, but a fee-on-transfer token skims
+     its cut after that check passes — so the old label promised something the
+     contract cannot deliver. The assertion follows the honest wording. */
+  check(/Minimum the router will accept/.test(body), "the enforced minimum is shown before any signature")
   check(/Price impact/.test(body), "price impact is shown")
   check(/never holds your funds/i.test(body), "custody claim present and accurate")
   check(!/does not execute trades/i.test(body), "no stale 'does not execute trades' claim")
@@ -68,7 +72,7 @@ if (panel) {
     const estEl = [...document.querySelectorAll("p")].find(
       (p) => p.className.includes("text-2xl") && /[\d,]/.test(p.textContent)
     )
-    const min = document.body.innerText.match(/Guaranteed minimum\s*([\d,]+(?:\.\d+)?)/)
+    const min = document.body.innerText.match(/Minimum the router will accept\s*([\d,]+(?:\.\d+)?)/)
     const f = (s) => (s ? parseFloat(s.replace(/,/g, "")) : null)
     return {
       est: f(estEl?.textContent.trim().match(/^([\d,]+(?:\.\d+)?)/)?.[1]),
@@ -77,7 +81,7 @@ if (panel) {
   })
   check(nums.est && nums.min && nums.min < nums.est, `minimum (${nums.min}) sits below estimate (${nums.est})`)
 
-  // Raising slippage must lower the guaranteed minimum. If it does not, the
+  // Raising slippage must lower the enforced minimum. If it does not, the
   // control is decorative and the user is not protected by what it claims.
   const before = nums.min
   await page.evaluate(() => {
@@ -89,7 +93,7 @@ if (panel) {
      had landed and reported the control as dead when it was merely slow. */
   const after = await page.waitForFunction(
     (prev) => {
-      const m = document.body.innerText.match(/Guaranteed minimum\s*([\d,]+(?:\.\d+)?)/i)
+      const m = document.body.innerText.match(/Minimum the router will accept\s*([\d,]+(?:\.\d+)?)/i)
       if (!m) return false
       const v = parseFloat(m[1].replace(/,/g, ""))
       return v !== prev ? v : false

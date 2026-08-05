@@ -354,8 +354,13 @@ export async function quoteTrade(params: {
     priceImpact = refRate > 0 ? Math.max(0, (refRate - rate) / refRate) : 0
   }
 
-  // Floor at 0.1% so a fat-fingered zero cannot produce a zero-protection swap.
-  const bps = BigInt(Math.round(Math.max(0.1, slippagePct) * 100))
+  /* Floor at 0.1% so a fat-fingered zero cannot produce a zero-protection swap,
+     and ceiling at 50% so a bad number cannot produce a negative one. Above
+     100% the arithmetic below goes negative and the builders throw — which is
+     the right outcome, but it arrives as "refusing to build a swap with no
+     minimum output" long after the user chose the value. The UI offers 0.5–5;
+     this is the guard for anything that reaches the function another way. */
+  const bps = BigInt(Math.round(Math.min(50, Math.max(0.1, slippagePct)) * 100))
   const minOutWei = (out * (10000n - bps)) / 10000n
 
   return {
@@ -437,12 +442,22 @@ export function buildBuy(params: {
   minOutWei: bigint
   fee: number
   deadlineSeconds?: number
+  /** Chain time in seconds. Falls back to the browser clock when absent. */
+  nowSeconds?: bigint
 }): BuiltSwap {
   const { token, recipient, amountInWei, minOutWei, fee } = params
   if (minOutWei <= 0n) throw new Error("refusing to build a swap with no minimum output")
   if (amountInWei <= 0n) throw new Error("refusing to build a swap with no input")
 
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + (params.deadlineSeconds ?? 900))
+  /* The chain's clock, not the browser's, when we have it.
+   *
+   * The router compares this deadline against `block.timestamp`. A machine
+   * whose clock is fifteen minutes slow builds a deadline already in the past
+   * and every swap reverts with an error about the transaction being too old —
+   * which reads as our bug and is unfixable from the user's side. A machine
+   * running fast silently grants a longer window than the one we promised.
+   * `nowSeconds` is the latest block's timestamp, read just before sending. */
+  const deadline = (params.nowSeconds ?? BigInt(Math.floor(Date.now() / 1000))) + BigInt(params.deadlineSeconds ?? 900)
 
   // WRAP_ETH(ADDRESS_THIS, amountIn) — without this the router holds raw ETH
   // and the v3 pool, which only knows about WETH, reverts.
@@ -490,12 +505,22 @@ export function buildSell(params: {
   minOutWei: bigint
   fee: number
   deadlineSeconds?: number
+  /** Chain time in seconds. Falls back to the browser clock when absent. */
+  nowSeconds?: bigint
 }): BuiltSwap {
   const { token, amountInWei, minOutWei, fee } = params
   if (minOutWei <= 0n) throw new Error("refusing to build a sell with no minimum output")
   if (amountInWei <= 0n) throw new Error("refusing to build a sell with no input")
 
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + (params.deadlineSeconds ?? 900))
+  /* The chain's clock, not the browser's, when we have it.
+   *
+   * The router compares this deadline against `block.timestamp`. A machine
+   * whose clock is fifteen minutes slow builds a deadline already in the past
+   * and every swap reverts with an error about the transaction being too old —
+   * which reads as our bug and is unfixable from the user's side. A machine
+   * running fast silently grants a longer window than the one we promised.
+   * `nowSeconds` is the latest block's timestamp, read just before sending. */
+  const deadline = (params.nowSeconds ?? BigInt(Math.floor(Date.now() / 1000))) + BigInt(params.deadlineSeconds ?? 900)
 
   const swapInput = encodeAbiParameters(V3_SWAP_IN_PARAMS, [
     ADDRESS_THIS as `0x${string}`,
@@ -536,8 +561,22 @@ export function buildTrade(params: {
   recipient: string
   quote: Quote
   deadlineSeconds?: number
+  /** Chain time in seconds. Falls back to the browser clock when absent. */
+  nowSeconds?: bigint
 }): BuiltSwap {
-  const { pool, token, recipient, quote, deadlineSeconds } = params
+  const { token, recipient, quote, deadlineSeconds, nowSeconds } = params
+
+  /* The quote's pool, not the caller's.
+   *
+   * `quoteTrade` returns the route it actually priced — including a fee tier it
+   * resolved on-chain that the caller's copy may not carry. The panel re-runs
+   * route resolution on its own schedule, so the prop can also be a NEWER
+   * object than the one the number on screen came from. Building calldata from
+   * a different pool than the one that produced the quote is the one way this
+   * file can lie: the user reads a number priced in pool A and signs a swap
+   * against pool B. The caller's `pool` stays in the signature only as a
+   * fallback for a hand-built quote in the tests. */
+  const pool = quote.pool ?? params.pool
 
   if (pool.protocol === "v4") {
     if (!pool.key) throw new Error("no v4 pool key on this route — refusing to send")
@@ -551,20 +590,37 @@ export function buildTrade(params: {
       minOutWei: quote.minOutWei,
       nativeIn: payingCurrency.toLowerCase() === NATIVE,
       deadlineSeconds,
+      nowSeconds,
     })
   }
 
   if (pool.fee === undefined) throw new Error("no v3 fee tier on this route — refusing to send")
   return quote.side === "buy"
-    ? buildBuy({ token, recipient, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds })
-    : buildSell({ token, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds })
+    ? buildBuy({ token, recipient, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds, nowSeconds })
+    : buildSell({ token, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds, nowSeconds })
 }
 
 /** Whether this trade needs Permit2 grants before it can be sent. */
-export const needsApproval = (pool: Pool, token: string, side: Side): boolean => {
-  if (side === "buy") {
-    // A v4 buy paid in WETH rather than native ETH still pulls an ERC-20.
-    return pool.protocol === "v4" && !!pool.key && !buyPaysNative(pool.key, token)
+export const needsApproval = (pool: Pool, token: string, side: Side): boolean =>
+  approvalAsset(pool, token, side) !== null
+
+/**
+ * The ERC-20 the router will pull, or null when it spends ETH it was sent.
+ *
+ * This is not always the token on the page. A v4 pool whose other side is WETH
+ * rather than native ETH pulls WETH on a BUY — `needsApproval` already knew
+ * that, but the caller then went and approved the token being bought, so the
+ * user signed a grant for the wrong asset and the swap failed at the pull.
+ * Naming the asset here means the approval and the reason for it cannot drift
+ * apart again.
+ */
+export const approvalAsset = (pool: Pool, token: string, side: Side): string | null => {
+  if (side === "sell") return token
+  if (pool.protocol === "v4" && pool.key && !buyPaysNative(pool.key, token)) {
+    // Whichever side of the key is not the token is what the buy pays with.
+    const a = pool.key.currency0.toLowerCase()
+    const b = pool.key.currency1.toLowerCase()
+    return a === token.toLowerCase() ? b : a
   }
-  return true
+  return null
 }

@@ -1,7 +1,7 @@
 import { formatUnits } from "viem"
 import { CHAIN_ID, publicClient, robinhoodChain } from "./chain"
 import { connectForTrading, type ConnectKind, type Eip1193 } from "./wallet"
-import { buildTrade, ERC20_ABI, needsApproval, type Pool, type Quote } from "./swap"
+import { approvalAsset, buildTrade, ERC20_ABI, type Pool, type Quote } from "./swap"
 import { buildApproval, missingApprovals } from "./permit2"
 
 /* Sending the trade.
@@ -113,7 +113,10 @@ export async function executeTrade(
   opts: { kind: ConnectKind; token: string; pool: Pool; quote: Quote },
   onState: (s: TradeState) => void
 ): Promise<void> {
-  const { kind, token, pool, quote } = opts
+  const { kind, token, quote } = opts
+  /* The pool the quote was priced in. See the note in buildTrade: the caller's
+     copy can be stale or missing a fee tier the quoter resolved. */
+  const pool = quote.pool ?? opts.pool
   const selling = quote.side === "sell"
 
   try {
@@ -144,17 +147,31 @@ export async function executeTrade(
 
     /* Approvals, when the router has to pull a token rather than spend ETH it
        was sent. Each is a real transaction and is announced before it appears. */
-    if (needsApproval(pool, token, quote.side)) {
+    /* Approve what the router will actually pull. This was always `token`,
+       which is right for a sell and wrong for a v4 buy against a WETH-sided
+       pool: that pulls WETH, so the user signed two grants for the token they
+       were trying to BUY and the swap then failed at the pull with nothing on
+       screen to explain why. */
+    const pulls = approvalAsset(pool, token, quote.side)
+    if (pulls) {
       onState({ phase: "checking" })
-      const steps = await missingApprovals(token, address, quote.amountInWei)
+      const steps = await missingApprovals(pulls, address, quote.amountInWei)
       for (let i = 0; i < steps.length; i++) {
-        const approval = buildApproval(steps[i], token)
+        const approval = buildApproval(steps[i], pulls)
         onState({ phase: "approving", step: i + 1, total: steps.length, label: approval.label })
         await sendAndWait(provider, address, approval)
       }
     }
 
-    const tx = buildTrade({ pool, token, recipient: address, quote })
+    /* The chain's clock. A deadline built from a browser clock that is even a
+       few minutes slow is already expired when it arrives, and the router's
+       revert for that reads as our bug. One extra read, on the send path only. */
+    const nowSeconds = await publicClient
+      .getBlock({ blockTag: "latest" })
+      .then((b) => b.timestamp)
+      .catch(() => undefined)
+
+    const tx = buildTrade({ pool, token, recipient: address, quote, nowSeconds })
 
     /* Simulate before asking anyone to sign. A revert caught here costs nothing;
        the same revert after signing costs the gas and reads as our bug. This

@@ -308,12 +308,22 @@ export function buildV4Swap(params: {
   minOutWei: bigint
   nativeIn: boolean
   deadlineSeconds?: number
+  /** Chain time in seconds. Falls back to the browser clock when absent. */
+  nowSeconds?: bigint
 }): BuiltV4 {
   const { key, zeroForOne, amountInWei, minOutWei, nativeIn } = params
   if (minOutWei <= 0n) throw new Error("refusing to build a v4 swap with no minimum output")
   if (amountInWei <= 0n) throw new Error("refusing to build a v4 swap with no input")
 
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + (params.deadlineSeconds ?? 900))
+  /* The chain's clock, not the browser's, when we have it.
+   *
+   * The router compares this deadline against `block.timestamp`. A machine
+   * whose clock is fifteen minutes slow builds a deadline already in the past
+   * and every swap reverts with an error about the transaction being too old —
+   * which reads as our bug and is unfixable from the user's side. A machine
+   * running fast silently grants a longer window than the one we promised.
+   * `nowSeconds` is the latest block's timestamp, read just before sending. */
+  const deadline = (params.nowSeconds ?? BigInt(Math.floor(Date.now() / 1000))) + BigInt(params.deadlineSeconds ?? 900)
   return {
     to: CONTRACTS.universalRouter as `0x${string}`,
     data: encodeFunctionData({

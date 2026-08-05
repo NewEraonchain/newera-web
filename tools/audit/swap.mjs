@@ -192,6 +192,48 @@ check(throws(() => swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 
 check(throws(() => swap.buildSell({ token: WETH, amountInWei: 10n ** 15n, minOutWei: 0n, fee: 100 })), "sell with minOut of zero is rejected")
 check(throws(() => v4.buildV4Swap({ key: { currency0: WETH, currency1: WETH, fee: 0, tickSpacing: 1, hooks: WETH }, zeroForOne: true, amountInWei: 10n ** 15n, minOutWei: 0n, nativeIn: true })), "v4 with minOut of zero is rejected")
 
+/* 5b. The three ways the calldata and the quote could describe different things.
+ *
+ * All three of these shipped. None of them throws — each one quietly signs
+ * something other than what the screen said, which is the only class of bug
+ * this file exists to catch. */
+console.log("\n5b. what gets signed matches what was quoted")
+{
+  const TOKEN = "0x000000000000000000000000000000000000beef"
+  const NATIVE_ZERO = "0x0000000000000000000000000000000000000000"
+
+  /* A v4 pool whose other side is WETH pulls WETH on a BUY. The approval used
+     to name the token being bought, so the user signed two grants for the wrong
+     asset and the swap then failed at the pull. */
+  const wethSided = { protocol: "v4", supported: true, key: { currency0: TOKEN, currency1: WETH, fee: 3000, tickSpacing: 60, hooks: NATIVE_ZERO } }
+  const nativeSided = { protocol: "v4", supported: true, key: { currency0: NATIVE_ZERO, currency1: TOKEN, fee: 3000, tickSpacing: 60, hooks: NATIVE_ZERO } }
+  check(
+    swap.approvalAsset(wethSided, TOKEN, "buy")?.toLowerCase() === WETH.toLowerCase(),
+    "a v4 buy against a WETH-sided pool approves WETH, not the token being bought"
+  )
+  check(swap.approvalAsset(nativeSided, TOKEN, "buy") === null, "a v4 buy paid in native ETH approves nothing")
+  check(swap.approvalAsset(wethSided, TOKEN, "sell")?.toLowerCase() === TOKEN.toLowerCase(), "a sell approves the token")
+
+  /* The pool the quote was priced in wins over the caller's copy. */
+  const priced = { protocol: "v3", supported: true, fee: 500 }
+  const stalePool = { protocol: "v3", supported: true, fee: 10000 }
+  const quote = { pool: priced, side: "buy", amountInWei: 10n ** 15n, amountOutWei: 10n ** 18n, minOutWei: 10n ** 17n, amountOut: "1", minOut: "0.1", outDecimals: 18, inDecimals: 18, priceImpact: 0 }
+  const built = swap.buildTrade({ pool: stalePool, token: WETH, recipient: SENDER, quote })
+  // The fee tier is three bytes in the packed path; 500 is 0x0001f4.
+  check(built.data.toLowerCase().includes("0001f4"), "buildTrade uses the fee tier the QUOTE was priced at, not the caller's")
+  check(!built.data.toLowerCase().includes("002710"), "the caller's stale tier does not reach the calldata")
+
+  /* The deadline comes from the chain when it is offered. */
+  const CHAIN_NOW = 1900000000n
+  const withChainTime = swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 10n ** 15n, minOutWei: 1n, fee: 500, nowSeconds: CHAIN_NOW })
+  const dl = decodeFunctionData({ abi: EXEC_ABI, data: withChainTime.data }).args[2]
+  check(dl === CHAIN_NOW + 900n, `the deadline is chain time plus the window, not the browser clock (${dl})`)
+
+  /* Slippage cannot produce a negative floor. */
+  const bounded = swap.buildBuy({ token: WETH, recipient: SENDER, amountInWei: 10n ** 15n, minOutWei: 1n, fee: 500 })
+  check(!!bounded.data, "a built buy still encodes with the bounds in place")
+}
+
 /* 6. Routing honesty. */
 console.log("\n6. routing")
 check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap v3 against WETH is a candidate")

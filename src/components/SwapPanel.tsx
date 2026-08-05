@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { formatUnits } from "viem"
 import { explorerTx } from "@/lib/chain"
-import { needsApproval, quoteTrade, type Pool, type Quote, type Side } from "@/lib/swap"
+import { getDecimals, needsApproval, quoteTrade, type Pool, type Quote, type Side } from "@/lib/swap"
 import { executeTrade, getEthBalance, getTokenBalance, type TradeState } from "@/lib/trade"
-import { currentAddress } from "@/lib/wallet"
+import { connectedAddress, onAccountsChanged } from "@/lib/wallet"
 
 /* Trading, in our interface, against Uniswap's routers.
  *
@@ -32,6 +32,15 @@ const SELL_FRACTIONS: Array<[string, number]> = [["25%", 0.25], ["50%", 0.5], ["
 const IMPACT_WARN = 0.03
 const IMPACT_SEVERE = 0.1
 
+/* How long a quote is allowed to stand.
+ *
+ * A quote is a read of a pool at one moment, and in a $4k pool a single trade
+ * by somebody else moves it by percent. There was nothing at all stopping a
+ * quote from being signed an hour after it was priced — the minimum would then
+ * catch it and the swap would revert, which costs gas and reads as our fault.
+ * Thirty seconds is roughly ten blocks here. */
+const QUOTE_TTL_MS = 30_000
+
 export default function SwapPanel({
   token,
   symbol,
@@ -54,17 +63,62 @@ export default function SwapPanel({
   const [state, setState] = useState<TradeState>({ phase: "idle" })
   const [ethBalance, setEthBalance] = useState<bigint | null>(null)
   const [tokenBalance, setTokenBalance] = useState<bigint | null>(null)
-  const [decimals, setDecimals] = useState(18)
+  /* null until the token answers, never a guess.
+   *
+   * This was `useState(18)` and was only corrected once a quote came back. The
+   * Max button divides the raw balance by 10^decimals, and the sell tab opens
+   * with an empty amount — so there is no quote, and on a 6-decimal token Max
+   * offered a millionth of what the user actually held. Reading it from the
+   * token itself on mount costs one call and removes the guess entirely. */
+  const [decimals, setDecimals] = useState<number | null>(null)
   const [ack, setAck] = useState(false)
+  /* When the number on screen was priced. A quote is a read of a pool at a
+     moment; pools on this chain move on almost every block, and there was
+     nothing stopping someone leaving the tab open for an hour and then signing
+     against a price from an hour ago. */
+  const [quotedAt, setQuotedAt] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
 
-  const address = currentAddress()
+  /* The account the wallet is ON, not the one that signed in. Those diverge the
+     moment somebody switches accounts in MetaMask, and every balance here — and
+     therefore the Max button — was reading the stale one while the trade would
+     have executed from the live one. */
+  const [address, setAddress] = useState<string | null>(null)
   const seq = useRef(0)
+
+  useEffect(() => {
+    let alive = true
+    connectedAddress().then((a) => alive && setAddress(a))
+    const off = onAccountsChanged((a) => alive && setAddress(a))
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    getDecimals(token)
+      .then((d) => alive && setDecimals(d))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [token])
 
   useEffect(() => {
     if (!address) return
     getEthBalance(address).then(setEthBalance).catch(() => setEthBalance(null))
     getTokenBalance(token, address).then(setTokenBalance).catch(() => setTokenBalance(null))
   }, [address, token, state.phase])
+
+  /* Ticks only while a quote is on screen, so an idle tab is not re-rendering
+     once a second forever. */
+  useEffect(() => {
+    if (!quote) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [quote])
 
   // Switching side changes what the amount means, so it cannot carry over.
   const swapSide = useCallback((next: Side) => {
@@ -78,6 +132,8 @@ export default function SwapPanel({
   /* Re-quote on every change, debounced. Each request carries a sequence number
      so a slow early response cannot overwrite a fast later one — quoting probes
      several fee tiers and response times differ by seconds. */
+  const [refresh, setRefresh] = useState(0)
+
   useEffect(() => {
     const n = ++seq.current
     const parsed = Number(amount)
@@ -90,12 +146,20 @@ export default function SwapPanel({
     setQuoting(true)
     const t = setTimeout(async () => {
       try {
-        const q = await quoteTrade({ pool, token, amount, side, slippagePct: slippage })
+        const q = await quoteTrade({
+          pool,
+          token,
+          amount,
+          side,
+          slippagePct: slippage,
+          tokenDecimals: decimals ?? undefined,
+        })
         if (seq.current !== n) return
         setQuote(q)
+        setQuotedAt(Date.now())
+        setNow(Date.now())
         setNoFill(q === null)
-        if (q && side === "buy") setDecimals(q.outDecimals)
-        if (q && side === "sell") setDecimals(q.inDecimals)
+        if (q) setDecimals(side === "buy" ? q.outDecimals : q.inDecimals)
       } catch {
         if (seq.current === n) setQuote(null)
       } finally {
@@ -103,7 +167,7 @@ export default function SwapPanel({
       }
     }, 350)
     return () => clearTimeout(t)
-  }, [pool, token, amount, side, slippage])
+  }, [pool, token, amount, side, slippage, decimals, refresh])
 
   const run = useCallback(
     (kind: "metamask" | "walletconnect") => {
@@ -113,6 +177,8 @@ export default function SwapPanel({
     [quote, token, pool]
   )
 
+  const age = quote ? now - quotedAt : 0
+  const stale = !!quote && age > QUOTE_TTL_MS
   const impact = quote?.priceImpact ?? 0
   const severe = impact >= IMPACT_SEVERE
   const busy = state.phase !== "idle" && state.phase !== "error" && state.phase !== "done"
@@ -207,9 +273,9 @@ export default function SwapPanel({
                   <button
                     key={label}
                     type="button"
-                    disabled={!tokenBalance}
+                    disabled={!tokenBalance || decimals === null}
                     onClick={() => {
-                      if (!tokenBalance) return
+                      if (!tokenBalance || decimals === null) return
                       /* Take the fraction in base units so "Max" is the exact
                          balance — formatting first and re-parsing loses the
                          tail and leaves dust behind. */
@@ -223,7 +289,7 @@ export default function SwapPanel({
                 ))}
           </div>
         </div>
-        {balance !== null && (
+        {balance !== null && balanceDecimals !== null && (
           <p className="mt-2 font-mono text-xs text-fg-dim">
             You hold {Number(formatUnits(balance, balanceDecimals)).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 2 })}{" "}
             {inSymbol}
@@ -288,7 +354,14 @@ export default function SwapPanel({
           {quote && (
             <dl className="mt-4 flex flex-col gap-2 text-xs">
               <div className="flex justify-between gap-4">
-                <dt className="text-fg-dim">Guaranteed minimum</dt>
+                {/* "Enforced by the router", not "guaranteed". The router does
+                    enforce this figure on the swap's OUTPUT — but a token that
+                    takes a fee on transfer skims its cut on the way to the
+                    wallet, after the check has passed. On this chain those
+                    exist. The number is honest about what enforces it; the
+                    balance read after the swap is what actually arrived, and
+                    that is the figure reported at the end. */}
+                <dt className="text-fg-dim">Minimum the router will accept</dt>
                 <dd className="font-mono text-fg-muted">
                   {Number(quote.minOut).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })}{" "}
                   {outSymbol}
@@ -339,10 +412,24 @@ export default function SwapPanel({
           </div>
         )}
 
+        {stale && (
+          <p className="measure mt-4 border-l-2 border-warn pl-4 text-sm leading-relaxed text-fg-muted">
+            This price is {Math.round(age / 1000)} seconds old. Pools this thin move on almost
+            every block, so it is re-read before you can send.{" "}
+            <button
+              type="button"
+              onClick={() => setRefresh((r) => r + 1)}
+              className="scan-link text-acid-500"
+            >
+              Re-price it now
+            </button>
+          </p>
+        )}
+
         <Action
           state={state}
           busy={busy}
-          disabled={!quote || quoting || (severe && !ack)}
+          disabled={!quote || quoting || stale || (severe && !ack)}
           outSymbol={outSymbol}
           side={side}
           approvalsLikely={needsApproval(pool, token, side)}
