@@ -307,8 +307,30 @@ function Velocity({ series }: { series: Detail["series"] }) {
            rendered a flat line stretched to full width: maximum visual weight,
            zero variance. `preserveAspectRatio="none"` went with it, so slope
            now means something. */
-        <svg viewBox={`0 0 ${path.W} ${path.H}`} className="block h-20 w-full" role="img" aria-label="Launch velocity over time">
-          <path d={path.line} fill="none" stroke="#cdff4d" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        /* `currentColor`, not #cdff4d. A literal hex bypasses the token system
+           and, more to the point, survives Windows High Contrast unchanged —
+           lime on a forced white Canvas is close to unreadable, and forced
+           colours exist for the readers who need that mode. Inherited colour is
+           rewritten to the system text colour like everything else.
+
+           The label carries the numbers. "Launch velocity over time" describes
+           the axes and states nothing; a reader who cannot see the line needs
+           the peak and the shape, and both are already computed. */
+        <svg
+          viewBox={`0 0 ${path.W} ${path.H}`}
+          className="block h-20 w-full text-fg"
+          role="img"
+          aria-label={`Launch velocity over time: peak ${Math.round(path.peak)} launches per hour across ${path.n} samples.`}
+        >
+          <path
+            d={path.line}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
         </svg>
       )}
     </div>

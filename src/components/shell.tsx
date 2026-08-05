@@ -63,17 +63,27 @@ export function Page({
 export function SectionHead({
   title,
   note,
+  noteLive = false,
   as: Tag = "h2",
 }: {
   title: string
   note?: string
+  /** Announce the note when it changes. For sections whose note reports the
+      state of a read in flight — "reading the pool…" becoming "live · from the
+      pool" or "connection lost" — which otherwise changes in silence. */
+  noteLive?: boolean
   as?: "h2" | "h3"
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-edge pb-3">
       <Tag className="text-[clamp(1.15rem,1.6vw,1.4rem)] font-semibold text-fg">{title}</Tag>
       {note && (
-        <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">{note}</span>
+        <span
+          aria-live={noteLive ? "polite" : undefined}
+          className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim"
+        >
+          {note}
+        </span>
       )}
     </div>
   )

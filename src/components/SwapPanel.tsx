@@ -121,7 +121,10 @@ export default function SwapPanel({
 
   if (!pool.supported) {
     return (
-      <section className="border border-edge p-6">
+      /* `status`, because this replaces a panel that was still deciding. The
+         routing probe takes a second or two of RPC calls, and the verdict —
+         you cannot trade this here — arrived as a silent DOM swap. */
+      <section role="status" className="border border-edge p-6">
         <h2 className="text-lg font-semibold text-fg">Trading this one happens elsewhere</h2>
         <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
           {pool.reason ||
@@ -236,14 +239,28 @@ export default function SwapPanel({
               You receive (estimated)
             </span>
             <span className="font-mono text-micro text-fg-dim">
-              max slippage
-              <span className="ml-2 inline-flex gap-1">
+              <span id="slippage-label">max slippage</span>
+              {/* A labelled group, and each button says whether it is the one
+                  in force. Three unlabelled buttons reading "1% 2% 5%" in a row
+                  tell a screen reader nothing about what they set or which is
+                  selected — and the selection is the difference between a trade
+                  that fills and one that reverts.
+
+                  py-1.5, not py-0.5: these measured 31x21 on a phone, under the
+                  24px floor, and they sit directly above the button that spends
+                  the money. `-my-1` keeps the row's height where it was. */}
+              <span
+                role="group"
+                aria-labelledby="slippage-label"
+                className="ml-2 -my-1 inline-flex gap-1"
+              >
                 {SLIPPAGE_CHOICES.map((s) => (
                   <button
                     key={s}
                     type="button"
+                    aria-pressed={slippage === s}
                     onClick={() => setSlippage(s)}
-                    className={`border px-2 py-0.5 transition-colors ${
+                    className={`border px-2.5 py-1.5 transition-colors ${
                       slippage === s ? "border-acid-500 text-acid-500" : "border-edge hover:text-fg"
                     }`}
                   >
@@ -254,7 +271,13 @@ export default function SwapPanel({
             </span>
           </div>
 
-          <p className="mt-3 font-mono text-2xl font-medium text-fg">
+          {/* aria-live on the figure itself. The quote arrives from an RPC call
+              a second or two after the amount is typed and replaces this number
+              in place; without it, a reader who cannot see the change has no way
+              to know the estimate landed, let alone what it says. `polite` and
+              on the figure only — the whole panel as a live region would re-read
+              itself on every keystroke. */}
+          <p className="mt-3 font-mono text-2xl font-medium text-fg" aria-live="polite">
             {quoting && !quote
               ? "…"
               : quote
@@ -372,7 +395,12 @@ function Action({
 
   if (state.phase === "done") {
     return (
-      <div className="mt-6 border-l-2 border-acid-500 pl-4">
+      /* Announced. Everything on this page below the button is rendered into
+         static markup: a swap that failed, a swap that succeeded and a swap
+         waiting on a wallet prompt all changed the page silently, so a screen
+         reader user pressed Buy and was told nothing at all — on the one screen
+         where the outcome is somebody's money. */
+      <div role="status" className="mt-6 border-l-2 border-acid-500 pl-4">
         <p className="text-base font-semibold text-fg">
           {state.received
             ? `Received ${Number(state.received).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${outSymbol}.`
@@ -397,8 +425,18 @@ function Action({
 
   return (
     <div className="mt-6">
+      {/* The running commentary, for a reader who cannot see the button change
+          its own label. `polite` so it waits for a gap rather than cutting
+          across what the wallet extension is saying. The error takes `alert`
+          instead — it interrupts, because it means the attempt is over. */}
+      <p className="sr-only" aria-live="polite">
+        {busy ? label[state.phase] || "Working…" : ""}
+      </p>
       {state.phase === "error" && (
-        <p className="measure mb-4 border-l-2 border-danger pl-4 text-sm leading-relaxed text-fg-muted">
+        <p
+          role="alert"
+          className="measure mb-4 border-l-2 border-danger pl-4 text-sm leading-relaxed text-fg-muted"
+        >
           {state.message}
         </p>
       )}

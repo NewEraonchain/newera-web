@@ -156,7 +156,18 @@ export function Bullets({ items }: { items: React.ReactNode[] }) {
 
 export function Mono({ children }: { children: React.ReactNode }) {
   return (
-    <code className="border-b border-edge-strong px-0.5 font-mono text-sm text-fg">{children}</code>
+    /* `break-words`: these hold endpoint URLs, and a URL has no break
+       opportunity a browser will take on its own. One of them — the curl
+       example on /docs — measured 313px inside a 280px column and pushed the
+       whole page 17px sideways at 320px, which is a 1280 window at 400% zoom.
+       WCAG 1.4.10 is about that window, not about phones.
+
+       `anywhere`, not `break-word`. Both break the line, but only `anywhere`
+       lowers the element's min-content width — with `break-word` the column
+       still reserves the full unbroken URL and the page still scrolls. */
+    <code className="border-b border-edge-strong px-0.5 font-mono text-sm text-fg [overflow-wrap:anywhere]">
+      {children}
+    </code>
   )
 }
 

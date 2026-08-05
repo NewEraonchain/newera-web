@@ -296,8 +296,25 @@ function Shell() {
       <ScrollManager />
       <ProgressRail />
       <Reticle />
+      {/* First stop for the keyboard.
+       *
+       * The nav carries the wordmark, six numbered routes, an account entry and
+       * the menu control before `main` begins: measured, the first control on
+       * the feed — the search field — was 41 tabs from the top of the document,
+       * and every route change put a reader back at tab 1. This is the standard
+       * escape hatch and it is the first focusable node on the page. It stays
+       * off-screen until focused, and `focus:` is enough because it can only be
+       * reached by keyboard. */}
+      <a
+        href="#main"
+        className="sr-only z-[60] focus:not-sr-only focus:fixed focus:left-[var(--gutter)] focus:top-4 focus:border focus:border-acid-500 focus:bg-ink-950 focus:px-4 focus:py-3 focus:font-mono focus:text-xs focus:uppercase focus:tracking-[0.12em] focus:text-acid-500"
+      >
+        Skip to content
+      </a>
       <Header />
-      <main className="pt-16">
+      {/* tabIndex -1 so the skip link's target can actually take focus; without
+          it the browser scrolls but the next Tab resumes from the nav. */}
+      <main id="main" tabIndex={-1} className="pt-16 outline-none">
         {/* Keyed on the path so navigating away from a broken route clears the
             error — without the key a single bad page would poison every
             subsequent navigation and the site would stay broken until reload. */}

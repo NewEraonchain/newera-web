@@ -92,7 +92,18 @@ export default function OnboardingModal({
   // Open: restore any earlier answer, pick the right starting step, and record it.
   useEffect(() => {
     if (!open) return
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    /* `<body>` is not somewhere to come back to. This dialog opens two ways:
+       from a control the visitor pressed, and from the gate, which fires on its
+       own while nothing is focused. In the second case `activeElement` is the
+       body, and handing focus back to it on close puts a keyboard user at the
+       top of the document with the whole nav ahead of them — the exact fault
+       this ref was added to fix, just on the path nobody tested. `main` is
+       focusable (tabIndex -1) and is where the reading was. */
+    const a = document.activeElement
+    opener.current =
+      a instanceof HTMLElement && a !== document.body
+        ? a
+        : (document.getElementById("main") as HTMLElement | null)
     // A reopened dialog must not greet the visitor with the last session's error.
     setMsg(null)
     setBusy(false)

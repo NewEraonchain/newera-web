@@ -296,7 +296,12 @@ function Row({
       <span className="w-32 shrink-0 font-mono text-micro uppercase tracking-[0.08em] text-fg-dim">
         {label}
       </span>
-      <span className="min-w-0 flex-1 text-sm">{children}</span>
+      {/* `min-w-0` lets the BOX shrink; it does nothing for text inside that has
+          no break opportunity. These values are tickers and addresses, and one
+          of them pushed the landing page 11px sideways at 320px — a 1280 window
+          at 400% zoom. `anywhere` is the property that lowers min-content width;
+          `break-word` does not. */}
+      <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">{children}</span>
     </div>
   )
 }

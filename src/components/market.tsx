@@ -120,6 +120,7 @@ export function Trades({
     <section className="mt-[7vh]">
       <SectionHead
         title="Trades happening"
+        noteLive
         note={
           result === null
             ? "reading the pool…"
@@ -145,6 +146,13 @@ export function Trades({
               of reading a wall of unlabelled numbers. */}
           <div className="mt-2 overflow-x-auto">
             <table className="w-full table-fixed border-collapse text-sm sm:min-w-[30rem] lg:min-w-[34rem]">
+              {/* Every other table on the site carries one. A screen reader
+                  announcing "table with 6 columns, 30 rows" and nothing else
+                  gives a reader no way to know what they have landed in. */}
+              <caption className="sr-only">
+                The most recent fills in this pool, newest first — age, side, ETH, tokens, trader
+                and a link to each transaction.
+              </caption>
               <thead>
                 <tr className="text-left font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
                   <th scope="col" className="w-[10%] py-2 pr-4 font-normal">Age</th>
@@ -176,7 +184,12 @@ export function Trades({
                         rel="noopener noreferrer"
                         className="font-mono text-xs text-acid-500 underline-offset-4 hover:underline"
                       >
-                        ↗
+                        {/* The glyph was the whole accessible name: a screen
+                            reader listing this table's links read "north east
+                            arrow" thirty times with nothing to tell them apart.
+                            The hash is what distinguishes one from the next. */}
+                        <span aria-hidden>↗</span>
+                        <span className="sr-only">Transaction {shortAddr(t.txHash)} on the explorer</span>
                       </a>
                     </td>
                   </tr>

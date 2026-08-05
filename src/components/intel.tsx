@@ -58,15 +58,23 @@ export function StatusBadge({ status }: { status: ThemeStatus }) {
    announced by NVDA or JAWS when the element already has text. */
 const riskTier = (score: number) => (score >= 40 ? "high" : score >= 15 ? "medium" : "low")
 
+/* The tier travels as text, not as an `aria-label`.
+ *
+ * A bare `<span>` maps to the generic role, and `aria-label` on a generic
+ * element is ignored outright by NVDA and JAWS and dropped from the accessible
+ * name computation in Chrome's own tree. So the label written here reached
+ * nobody: a screen reader read "63" and the tier — the part that says whether
+ * 63 is bad — never arrived. An `sr-only` sibling is announced because it is
+ * text, needs no role, and cannot be dropped. */
 export function RiskPill({ score }: { score: number }) {
   const tone = score >= 40 ? "text-danger" : score >= 15 ? "text-warn" : "text-acid-500"
   return (
     <span
       className={`min-w-[2.2rem] text-right font-mono text-sm font-semibold ${tone}`}
-      aria-label={`Spam risk ${score} out of 100, ${riskTier(score)}`}
       title={`Spam risk ${score}/100 — how much this looks like machine-generated noise, not a price prediction`}
     >
       {score}
+      <span className="sr-only"> out of 100 spam risk, {riskTier(score)}</span>
     </span>
   )
 }
@@ -76,11 +84,13 @@ export function FlagPill({ flag }: { flag: string }) {
     <span
       className="font-mono text-micro font-semibold tracking-[0.06em] text-danger"
       /* The plain-language explanations in FLAG_TEXT existed only as a `title`,
-         so the work of writing them reached mouse users and nobody else. */
-      aria-label={FLAG_TEXT[flag] || flag}
+         so the work of writing them reached mouse users and nobody else. They
+         then existed as an `aria-label` on a generic span, which reaches nobody
+         at all — see the note on RiskPill. As text they reach everyone. */
       title={FLAG_TEXT[flag] || flag}
     >
       {FLAG_SHORT[flag] || flag}
+      <span className="sr-only"> — {FLAG_TEXT[flag] || flag}</span>
     </span>
   )
 }

@@ -639,13 +639,28 @@ function Search() {
     else if (hits?.length) navigate(`/app/token/${hits[0].address}`)
   }
 
+  const open = q.trim().length >= 2
+
   return (
     <form onSubmit={go} role="search" className="relative mt-5">
       <label htmlFor="feed-search" className="sr-only">
         Find a token by ticker, name or address
       </label>
+      {/* Combobox semantics, because this is one.
+       *
+       * A plain text input with a div of links appearing under it is invisible
+       * to a screen reader: results arrived, the count changed, the first hit
+       * became what Enter would open, and none of that was announced. The
+       * `aria-expanded`/`aria-controls` pair tells a reader a list is there and
+       * the status line below counts it. Not a full ARIA 1.2 combobox with
+       * `aria-activedescendant` — arrow-key traversal is not implemented, and
+       * claiming it in the markup would be worse than not claiming it. */}
       <input
         id="feed-search"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="feed-search-results"
+        aria-autocomplete="list"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         /* Short enough to survive 375px. The long form — "Find a token —
@@ -659,8 +674,24 @@ function Search() {
         /* 16px minimum, or iOS Safari zooms the viewport on focus. */
         className="w-full border border-edge bg-transparent px-4 py-2.5 font-mono text-base text-fg placeholder:text-fg-dim focus-visible:border-acid-500"
       />
-      {q.trim().length >= 2 && (
-        <div className="absolute inset-x-0 top-full z-30 border-x border-b border-edge bg-ink-950">
+      {/* Counted out loud. Announced on a delay by the browser's own polite
+          queue, which is right for a field somebody is still typing into. */}
+      <p className="sr-only" aria-live="polite">
+        {!open
+          ? ""
+          : busy && !hits
+            ? "Searching"
+            : failed
+              ? "The index did not answer"
+              : hits && hits.length
+                ? `${hits.length} match${hits.length === 1 ? "" : "es"}, first is ${hits[0].symbol || hits[0].name}`
+                : "No matches"}
+      </p>
+      {open && (
+        <div
+          id="feed-search-results"
+          className="absolute inset-x-0 top-full z-30 border-x border-b border-edge bg-ink-950"
+        >
           {busy && !hits ? (
             <p className="px-4 py-3 font-mono text-xs text-fg-dim">Searching the index…</p>
           ) : hits && hits.length ? (
