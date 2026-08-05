@@ -47,6 +47,7 @@ observations — a FAIL means a behaviour regressed.
 | `terminal.mjs` | The token terminal in a browser: a live quote renders, the guaranteed minimum sits below it, raising slippage actually lowers the floor, timeframe buttons drive the embed's `interval`, the tape resolves to real rows or an *explained* empty state, no router address is ever shown as a trader, the Sell tab flips what the amount means and discloses its approvals, and v4 pages either route or decline with a reason |
 | `firstscreen.mjs` | What a visitor actually sees first, per route: the prose share of the first viewport, how many data rows are visible in it, the order of section headings down the page, and how far down the first control that advances the task sits. Written after "when I go to the live feed the first thing I see is a lot of texts, rather than the feed" — it turns that into a number (the feed was 94% prose with 0 of 33 rows visible) so the fix can be checked rather than argued about |
 | `search.mjs` | The one-step route to a coin: the field is on the first screen, a ticker returns results, one click lands on a token page, a pasted address opens that exact token without a list to pick from, and a miss is explained rather than left blank |
+| `transitions.mjs` | The cluster-row morph actually runs: `view-transition-name` styles exist, navigating a row calls `document.startViewTransition`, and the destination is not left transparent by a transition that never finished |
 | `detect-all.ps1` | `npx impeccable detect --json` on all 13 routes. **Always `--json`** — in plain mode a clean run and a crashed run are both silent |
 
 ## Diagnostics
@@ -102,6 +103,15 @@ behind a detector finding), `crop.mjs` / `shot-at.mjs` / `film.mjs` (screenshots
   ~100ms; a 1% minimum computed at quote time is routinely stale by the time a
   simulation runs. That is the protection working. Use a wide slippage to test
   the *encoding*, and a deliberately unreachable minimum to test the *guard*.
+- **A styling mechanic can die silently.** `<Link viewTransition>` was accepted
+  and ignored for an unknown length of time because React Router only honours it
+  from a DATA router; under `<BrowserRouter>` there is no warning and the page
+  still looks fine. Assert the API call, not the CSS.
+- **WCAG 2.2 exempts a target that is inline in a sentence.** Reporting those
+  anyway produced 30 small-target findings of which 28 were prose links, and the
+  two real ones sat unfixed underneath. A suite that cries wolf gets skimmed.
+- **`sr-only` looks exactly like clipped text** to a naive overflow check —
+  `clientWidth: 1` with `overflow: hidden` is the pattern working, not failing.
 - **The slowest search is the one that matches nothing.** Postgres cannot stop
   early on `LIMIT` when nothing matches, so it scans the table: ~1.4s against
   ~0.7s for a hit. A fixed wait tuned to the happy path races the empty-result
