@@ -70,7 +70,18 @@ export function ClusterField() {
       if (r >= 0) cells[r][c]++
     }
     const max = Math.max(1, ...cells.flat())
-    return { cells, maxC, max }
+    /* Counted from what is PLOTTED, not from what was fetched.
+       `solo` summed the grid's first column while `shared` was
+       `themes.length - solo` — a numerator restricted to the rows the chart has
+       and a denominator that is the whole response. Every theme the rows do not
+       cover (a single launch, which the index used to return in bulk) fell
+       silently into "had independent wallets arrive". Measured at the time: the
+       caption read 3 solo and 97 shared where the plotted truth was 79 and 21.
+       A chart's own description of itself is the last thing that should be
+       computed from a different set. */
+    const plotted = cells.flat().reduce((a, b) => a + b, 0)
+    const solo = cells.reduce((t, row) => t + row[0], 0)
+    return { cells, maxC, max, plotted, solo, shared: plotted - solo }
   }, [themes])
 
   useEffect(() => {
@@ -95,16 +106,13 @@ export function ClusterField() {
 
   if (!themes || !grid) return null
 
-  const solo = grid.cells.reduce((t, row) => t + row[0], 0)
-  const shared = themes.length - solo
-
   return (
     <figure ref={root} className="m-0">
       {/* The cells are presentational. They used to be 28 buttons with no click
           handler — a fake affordance, and 21 empty focus stops in front of a
           keyboard user. The figure states its own finding instead. */}
       <figcaption className="sr-only">
-        {`${themes.length} live clusters plotted by launch count against distinct creators. ${solo} come from a single wallet; ${shared} had independent wallets launch into them.`}
+        {`${grid.plotted} live clusters plotted by launch count against distinct creators. ${grid.solo} come from a single wallet; ${grid.shared} had independent wallets launch into them.`}
       </figcaption>
       <div className="flex items-start justify-between gap-8">
         <span className="font-mono text-xs text-fg-dim">

@@ -442,7 +442,11 @@ function WhatWeKnow({
           <span className="mt-1 block text-sm text-fg-muted">
             {creator
               ? `${creator.totalLaunches.toLocaleString("en-US")} launches, ${creator.duplicateRate}% duplicates →`
-              : "See their record →"}
+              : /* Only reachable when the index holds no launches at all for
+                   this wallet, which cannot happen for a token it indexed —
+                   but the old text promised a record either way, and for most
+                   of last month it led to a page with none on it. */
+                "No other launches from this wallet in the index →"}
           </span>
         </Link>
       </div>

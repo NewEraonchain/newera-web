@@ -22,9 +22,18 @@ type Me = {
   walletProfile?: { walletAgeDays?: number | null; txCount?: number | null } | null
 }
 
-/* Lists every field stored against the wallet rather than a curated subset.
-   We collect onboarding answers and derive a profile from public chain history;
-   a person should be able to see all of it without having to ask. */
+/* What this page shows, and what it does not.
+ *
+ * The rows below are the fields `/onboarding/me` returns — the ones a person
+ * gave us or that we derived about them. They are NOT every column stored
+ * against the wallet: the User row also carries a referral code, reward flags,
+ * timestamps, and rows in tables left over from a retired product. This file
+ * used to claim it listed all of it, which was 13 fields of roughly 30.
+ *
+ * "Download my data" is the complete record — `exportUserData` returns the
+ * whole User row plus every related table — so the honest arrangement is that
+ * this page summarises and the export is exhaustive, with the page saying which
+ * is which rather than overstating itself. */
 export default function Account() {
   const [me, setMe] = useState<Me | null>(null)
   const [loading, setLoading] = useState(true)
@@ -187,8 +196,15 @@ export default function Account() {
         <EmptyState>
           <p className="mb-2 text-base font-semibold text-fg">Your data has been deleted.</p>
           <p className="measure mb-5">
-            Nothing is left on our side. Anything recorded on the public blockchain is not ours and
-            remains there.
+            {/* "Nothing is left on our side" is stronger than what the delete
+                actually does — it removes the account and its related rows, and
+                operational traces (request logs, backups on their own rotation)
+                are not a table we can drop in a transaction. Claiming total
+                erasure on a page about honesty is the wrong place to round up. */}
+            Your account and everything linked to it has been deleted from our database. Ordinary
+            operational records — request logs, and backups until they rotate — are not part of
+            that and expire on their own schedule. Anything recorded on the public blockchain is
+            not ours and remains there.
           </p>
           <Link to="/app" className="block-btn bg-acid-500 text-ink-950">
             Back to the feed
@@ -321,8 +337,11 @@ export default function Account() {
       <Section title="What we hold against this wallet" note={`${set} of ${rows.length} fields set`}>
         <Fields rows={rows} />
         <p className="mt-3 text-xs leading-relaxed text-fg-dim">
-          On-chain activity shown throughout the feed comes from the public blockchain and exists
-          whether or not you use NewEra. The rows above are only what this site stores.
+          These are the fields you gave us or that we derived about you. They are a summary, not
+          the whole record — internal columns like a referral code and timestamps are held too, and
+          <b className="font-semibold text-fg-muted"> Download my data</b> below returns every one
+          of them, from every table. On-chain activity shown throughout the feed comes from the
+          public blockchain and exists whether or not you use NewEra.
         </p>
       </Section>
 

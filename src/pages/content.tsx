@@ -36,19 +36,32 @@ function LivePct({
  * frozen measurement presented in the present tense stops being evidence the
  * moment the data moves, which for a live index is immediately.
  *
- * When the measurement cannot be had, the recorded pair is still shown, but
- * labelled as recorded — losing the argument entirely would be worse, and
- * pretending the number is current would be dishonest. */
-const RECORDED = {
-  low: { pct: 56.0, n: 134 },
-  high: { pct: 13.3, n: 98 },
-}
-
+ * The recorded pair was then kept as a FALLBACK, on the reasoning that losing
+ * the argument entirely would be worse. It is worse. Their ratio is 4.2x; the
+ * live measurement is 3.08x over n=20,892. So the page's strongest claim was
+ * the one figure on it that appeared when the index could not be reached, at a
+ * value 37% above the truth, rendered in exactly the type the live reading uses
+ * with a caveat in 12px mono underneath — on the page whose entire argument is
+ * that a frozen number stops being evidence. It is gone. When we cannot
+ * measure it, we say so and show nothing. */
 function SurvivalSplit() {
   const sep = useSeparation()
-  const low = sep ? { pct: sep.lowRisk!.survivalPct!, n: sep.lowRisk!.n } : RECORDED.low
-  const high = sep ? { pct: sep.highRisk!.survivalPct!, n: sep.highRisk!.n } : RECORDED.high
-  const lift = sep ? sep.lift! : RECORDED.low.pct / RECORDED.high.pct
+
+  if (!sep) {
+    return (
+      <p className="text-sm leading-relaxed text-warn">
+        The measurement is not available right now — the index is not returning one, or the sample
+        at the current checkpoint is too thin to be conclusive. Rather than quote an older run, this
+        section shows nothing until it can be measured again. The endpoint is{" "}
+        <Mono>/intel/separation</Mono>; it is public, and it returns the same figures this page
+        draws.
+      </p>
+    )
+  }
+
+  const low = { pct: sep.lowRisk!.survivalPct!, n: sep.lowRisk!.n }
+  const high = { pct: sep.highRisk!.survivalPct!, n: sep.highRisk!.n }
+  const lift = sep.lift!
 
   return (
     <>
@@ -77,9 +90,8 @@ function SurvivalSplit() {
             is the standard this very page is arguing for. */}
       </p>
       <p className="font-mono text-xs text-fg-dim">
-        {sep
-          ? `Measured now, over ${sep.sampleSize.toLocaleString("en-US")} launches at the ${sep.checkpoint}-minute checkpoint.`
-          : "Recorded sample, not a live reading — the index is not currently returning a measurement."}
+        Measured now, over {sep.sampleSize.toLocaleString("en-US")} launches at the{" "}
+        {sep.checkpoint}-minute checkpoint.
       </p>
     </>
   )
@@ -201,8 +213,18 @@ export function Themes() {
           throughout the product.
         </p>
         <p>
-          A cluster is only marked <Mono>EMERGING</Mono> when enough distinct wallets are behind it.
-          One-wallet floods are pushed down and labelled.
+          A cluster is marked <Mono>EMERGING</Mono> only when at least two distinct wallets are
+          behind it, and — past three launches — only when creators account for at least 30% of
+          them. One-wallet floods take a state that says what they are instead.
+        </p>
+        <p>
+          {/* This sentence was here before the rule matched it. Measured against
+              the live index at the time: 100 of 100 clusters were EMERGING and
+              77 of those were a single wallet, because the gate only ran at
+              five launches or more. The gate runs at every size now, which is
+              what this paragraph always said. */}
+          A cluster of one launch is not shown as a cluster at all. A single token is a launch, and
+          the live feed is the surface for those.
         </p>
       </Section>
 
@@ -269,8 +291,15 @@ export function Detection() {
 
       <Section title="Does any of it predict anything?">
         <p>
-          Every launch is measured again thirty minutes later to see whether anyone traded it.
-          Comparing launches the score rated low-risk against those it rated high-risk:
+          {/* "Every launch is measured again" was not true. The sampler takes a
+              bounded batch per checkpoint, so what feeds the comparison is a
+              sample of the index and not the whole of it — and the sample size
+              is right there in the reading below, which is the honest way to
+              say how much it is built on. */}
+          Launches are re-measured at fixed checkpoints after they appear, to see whether anyone
+          traded them. Sampling is bounded rather than exhaustive; the reading below states how many
+          launches it covers. Comparing launches the score rated low-risk against those it rated
+          high-risk:
         </p>
         <SurvivalSplit />
       </Section>
@@ -293,9 +322,20 @@ export function Detection() {
                frozen transcription of what /intel/stats reports live. */
             { term: "0 – 14 · low", body: "No spoof flags, no burst, often a real creator stake." },
             { term: "15 – 39 · medium", body: "Usually a name collision — a copy of something recent, without deliberate impersonation." },
-            { term: "40 – 100 · high", body: "Impersonation characters, dense bursts, or a serial creator with nothing staked. This is the band the live feed hides when you switch on “Hide likely spam”." },
+            { term: "40 – 100 · high", body: "Impersonation characters, dense bursts, or a serial creator with nothing staked." },
           ]}
         />
+        <p>
+          {/* The note above this list already caught "the default filter on the
+              live feed" being untrue; the third band then went and said the
+              toggle hides exactly this band, which is the same error one line
+              down. The feed itself states the real threshold. Two surfaces
+              describing one control have to agree, so this defers to the one
+              next to the control. */}
+          <Mono>Hide likely spam</Mono> on the live feed is stricter than the high band: it removes
+          anything scoring above 25, so it takes the upper half of the medium band with it. The
+          feed says so next to the switch.
+        </p>
       </Section>
 
       <FootNote />
@@ -447,7 +487,11 @@ function LiveClusters() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-edge pb-3">
         <h2 className="text-xl font-semibold text-fg">Forming right now</h2>
         <Link to="/app" className="scan-link -my-1.5 py-1.5 font-mono text-micro uppercase tracking-[0.12em] text-acid-500">
-          All of them, live →
+          {/* "All of them" was a claim, and a wrong one — this links to the
+              feed, which shows a bounded page of the index, not the whole of
+              it. A navigation label should not be the least accurate sentence
+              on the page. */}
+          The full list, live →
         </Link>
       </div>
 

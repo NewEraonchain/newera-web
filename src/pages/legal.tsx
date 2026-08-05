@@ -65,16 +65,25 @@ export function Docs() {
         </p>
         <Bullets
           items={[
-            <><Mono>GET /intel/feed</Mono>: the live tape. Query: <Mono>limit</Mono>, <Mono>maxRisk</Mono>, <Mono>organicOnly=1</Mono>, <Mono>themeId</Mono>, <Mono>since</Mono>.</>,
-            <><Mono>GET /intel/themes</Mono>: themes forming now, EMERGING first. Query: <Mono>limit</Mono>, <Mono>status</Mono>, <Mono>organicOnly=1</Mono>.</>,
+            <><Mono>GET /intel/feed</Mono>: the live tape. Query: <Mono>limit</Mono>, <Mono>maxRisk</Mono>, <Mono>organicOnly=1</Mono>, <Mono>themeId</Mono>, <Mono>since</Mono>, <Mono>q</Mono> (ticker, name or address — this is what the search box on the app calls).</>,
+            <><Mono>GET /intel/themes</Mono>: clusters forming now, EMERGING first. Query: <Mono>limit</Mono> (max 100), <Mono>status</Mono>, <Mono>organicOnly=1</Mono>. Themes holding a single launch are not returned here; a cluster of one is not a cluster.</>,
             <><Mono>GET /intel/themes/:slug</Mono>: one theme in full, with its launch list and a velocity series.</>,
-            <><Mono>GET /intel/creators/:wallet</Mono>: a deployer&apos;s history: launches, distinct themes, densest burst, duplicate rate, spam score, total staked.</>,
+            /* Three endpoints the app itself calls were missing from the one
+               page written for people calling them. The token endpoint is the
+               one anybody integrating would reach for first. */
+            <><Mono>GET /intel/token/:address</Mono>: everything the index holds on one launch — the launch itself, its cluster, its deployer&apos;s record, and its siblings in the same cluster.</>,
+            <><Mono>GET /intel/creators/:wallet</Mono>: a deployer&apos;s history: launches, distinct themes, densest burst, duplicate rate, spam score, total staked. <Mono>derived: true</Mono> means the record was folded from their launches on request rather than read from a stored profile; the figures are the same either way.</>,
+            <><Mono>GET /intel/separation</Mono>: the measured risk separation — survival rates for the low-risk and high-risk populations at a checkpoint, their ratio, the sample size, and whether the sample is conclusive. This is the endpoint behind the figures on /detection.</>,
             <><Mono>GET /intel/stats</Mono>: headline counters, plus the block indexing has reached.</>,
           ]}
         />
         <Callout label="Rate limits">
-          None enforced today. If you are pulling continuously, cache the feed rather than polling
-          faster than the chain produces launches.
+          {/* "None enforced today" stopped being true when the global limiter
+              shipped. A developer reading this and building against no limit
+              finds out at 240. */}
+          240 requests a minute per IP, across all endpoints. Over that you get a 429. If you are
+          pulling continuously, cache the feed rather than polling faster than the chain produces
+          launches.
         </Callout>
       </Section>
 
@@ -84,7 +93,8 @@ export function Docs() {
             <><b>&ldquo;Active&rdquo; is not &ldquo;profitable&rdquo;.</b> Survival means someone traded the token. We do not measure price, and nothing here is a return.</>,
             <><b>Unverified launchpads show as an address.</b> Where a factory publishes no readable contract, it is labelled by its address rather than guessed at.</>,
             <><b>Themes are short-lived by design.</b> Clustering only matches against the last six hours.</>,
-            <><b>Indexing has a lag.</b> The feed header shows how recently the indexer ran, and says so plainly when it falls behind.</>,
+            <><b>Indexing has a lag.</b> The site header prints the block indexing has reached, and the feed says plainly when it falls behind.</>,
+            <><b>Outcome sampling is bounded, not exhaustive.</b> Launches are re-measured at fixed checkpoints in batches, so <Mono>/intel/separation</Mono> is computed over a sample of the index rather than all of it. The sample size comes back with the reading.</>,
           ]}
         />
         <Callout tone="warn" label="Not advice">

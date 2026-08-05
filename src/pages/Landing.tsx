@@ -66,7 +66,7 @@ const STEPS: {
   {
     n: "03",
     stat: (s) => `${s.duplicatePct}%`,
-    statLabel: "of launches duplicate something minutes old",
+    statLabel: "of the last 24 hours duplicate something minutes old",
     title: "Flag the copies at block zero",
     body:
       "Most launches copy something minutes old. Some go further: a ticker padded with an invisible character, or Latin letters swapped for Cyrillic lookalikes, renders identically to the token it imitates.",
@@ -129,7 +129,11 @@ const FAQ = [
   },
   {
     q: "What does it cost?",
-    a: "Nothing. The feed, cluster pages and API are free and public. Connecting a wallet is optional and only needed to save a watchlist or set alerts.",
+    /* Watchlists and alerts do not exist. /account says so in as many words —
+       "Watchlists and alerts don't exist yet" — so the landing page was selling
+       a feature the account page apologises for. A wallet is for trading, which
+       is the thing it is actually for. */
+    a: "Nothing. The feed, cluster pages and API are free and public, with no account. Connecting a wallet is only needed to trade from inside the app; you sign every transaction yourself and we never take custody.",
   },
   {
     q: "What does the risk score actually measure?",
@@ -194,7 +198,13 @@ function Hero() {
               last hour
             </span>
             <span>
-              <b className="font-medium text-fg">{live.duplicatePct}%</b> of them are copies
+              {/* "of them" attached a 24-hour percentage to an hourly count.
+                  `duplicatePct` is duplicatesLast24h over launchesLast24h; the
+                  line above it counts the last HOUR, so the two numbers were
+                  describing different populations and the pronoun tied them
+                  together. The percentage names its own window now. */}
+              <b className="font-medium text-fg">{live.duplicatePct}%</b> of the last 24 hours are
+              copies
             </span>
           </>
         )}
@@ -615,8 +625,8 @@ function Close() {
           Open the live feed →
         </Link>
         <span className="measure-tight leading-relaxed">
-          No account, no wallet, no gate. Connecting a wallet is optional and only saves a
-          watchlist.
+          No account, no wallet, no gate. Connect one only when you want to trade from inside the
+          app — you sign it yourself, and we hold no keys.
         </span>
         {live && (
           <span>
