@@ -4,6 +4,7 @@ import {
   buildV4Swap,
   buyIsZeroForOne,
   buyPaysNative,
+  canSwapV4,
   findV4Key,
   NATIVE,
   quoteV4,
@@ -166,6 +167,29 @@ export async function resolveRoute(
             : "This pool would not quote even a dust trade, so it cannot be traded right now.",
       }
     }
+    /* A hooked pool can quote and still refuse to swap.
+       A v4 hook runs arbitrary code on every swap, and launch hooks routinely
+       gate who may trade — whitelists, timelocks, per-address caps. The quoter
+       does not run that gate, so it answered happily for a pool whose hook then
+       reverted the real swap with its own error. A user would have typed an
+       amount, watched a quote appear, pressed Buy and only then been told no.
+       Simulating a dust swap runs the hook, which is the only way to ask it.
+
+       Only for hooked pools: it costs a call, and a pool with no hook has
+       nothing extra to consult. */
+    if (!/^0x0+$/i.test(key.hooks)) {
+      const swappable = await canSwapV4(key, buyZfo)
+      if (!swappable) {
+        return {
+          protocol: "v4",
+          key,
+          supported: false,
+          reason:
+            "This pool runs a hook that refuses the trade. The pool has liquidity and will quote a price, but its own code rejects the swap — so we will not offer a control that cannot work.",
+        }
+      }
+    }
+
     return { protocol: "v4", key, supported: true }
   }
 

@@ -11,7 +11,7 @@
  * "slippage enforced" while every swap was broken, because a reverting swap
  * satisfies a test that only looks for reverts. */
 import { build } from "esbuild"
-import { createPublicClient, defineChain, http, decodeFunctionData, decodeAbiParameters, parseAbi, parseAbiItem, parseUnits } from "viem"
+import { createPublicClient, defineChain, http, decodeFunctionData, decodeAbiParameters, parseAbi, parseAbiItem, parseUnits, toEventSelector } from "viem"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 import { mkdirSync, rmSync } from "node:fs"
@@ -137,6 +137,10 @@ for (const kind of ["v3", "v4"]) {
 
     const good = swap.buildTrade({ pool, token: t.addr, recipient: SENDER, quote: q })
     const goodErr = await simulate(good)
+    /* A route that resolveRoute called supported must actually swap. The one
+       legitimate exception is a v4 hook that gates who may trade — it runs
+       arbitrary code the quoter never executes — and resolveRoute now probes
+       for exactly that, so a hooked pool reaching here and failing IS a bug. */
     check(goodErr === null, `${t.symbol}: buy executes${goodErr ? ` (${String(goodErr).slice(0, 12)})` : ""}`)
 
     const greedy = swap.buildTrade({ pool, token: t.addr, recipient: SENDER, quote: { ...q, minOutWei: q.amountOutWei * 100n } })
@@ -184,50 +188,57 @@ check(!!(await swap.resolveRoute("not-an-address", swap.poolFromLabels("uniswap"
  *
  * v3 emits amounts from the POOL's perspective and v4 from the SWAPPER's, so the
  * same "ETH leg is positive" test means opposite things. Getting it backwards
- * labels every buy a sell and raises no error at all — the table just lies. The
- * only independent witness is the transaction itself: sending ETH means buying.
- * Checked here rather than in the browser suite, where a quiet pool can yield
- * two rows of one side and prove nothing. */
-console.log("\n7. tape sign convention vs transaction values")
+ * labels every buy a sell and raises no error at all — the table just lies.
+ *
+ * The oracle is the TOKEN'S OWN Transfer log: if the signer received the token,
+ * they bought it. An earlier version used `tx.value > 0`, which is not sound —
+ * a buy funded from WETH, or routed through a contract that already holds ETH,
+ * carries no value on the transaction and was scored as a sell. That reported
+ * "3 agreed, 5 disagreed" against code that was in fact correct. Fills routed
+ * through a contract never touch the signer's balance either way and are
+ * counted as inconclusive rather than guessed at. */
+console.log("\n7. tape sign convention vs the token's own transfers")
 {
   const trades = await load("trades.ts", "trades.mjs")
   const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951"
+  const TRANSFER_TOPIC = toEventSelector("Transfer(address,address,uint256)")
   const V4_SWAP = parseAbiItem("event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)")
+  const INIT = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)")
   const tip = await client.getBlockNumber()
   const logs = await client.getLogs({ address: PM, event: V4_SWAP, fromBlock: tip - 400n, toBlock: tip }).catch(() => [])
 
-  // Group by pool, take the busiest so there is something to compare.
   const byPool = new Map()
   for (const l of logs) byPool.set(l.args.id, [...(byPool.get(l.args.id) || []), l])
-  const [poolId, sample] = [...byPool.entries()].sort((a, b) => b[1].length - a[1].length)[0] || []
+  let agreed = 0, disagreed = 0, inconclusive = 0, checked = 0
 
-  if (!sample || sample.length < 3) {
-    console.log(`  note: only ${sample?.length ?? 0} v4 fills in range — skipping`)
-  } else {
-    /* Which currency is ETH comes from the pool's own Initialize event, not an
-       assumption — a pool with the token as currency0 would invert everything. */
-    const INIT = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)")
+  for (const [poolId] of [...byPool.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 3)) {
     const init = await client.getLogs({ address: PM, event: INIT, args: { id: poolId }, fromBlock: tip - 1_000_000n, toBlock: tip }).catch(() => [])
-    const c0 = init[0]?.args?.currency0?.toLowerCase()
-    const ethIsCurrency0 = c0 === "0x0000000000000000000000000000000000000000" || c0 === WETH.toLowerCase()
+    const a = init[0]?.args
+    if (!a) continue
+    const nativeIsC0 = /^0x0+$/i.test(a.currency0)
+    const token = nativeIsC0 ? a.currency1 : a.currency0
+    const ethIsCurrency0 = nativeIsC0 || a.currency0.toLowerCase() === WETH.toLowerCase()
 
-    if (!c0) {
-      console.log("  note: pool predates the log window — cannot confirm currency order, skipping")
-    } else {
-      // Run OUR code, then check its verdicts against the transactions themselves.
-      const ours = await trades.fetchTrades({ kind: "v4", poolId, ethIsCurrency0 }, 8)
-      let agreed = 0, disagreed = 0
-      for (const t of ours) {
-        const tx = await client.getTransaction({ hash: t.txHash }).catch(() => null)
-        if (!tx) continue
-        // Sending ETH with the transaction means buying. Nothing else can be it.
-        const truth = tx.value > 0n ? "buy" : "sell"
-        t.kind === truth ? agreed++ : disagreed++
-      }
-      check(ours.length > 0, `fetchTrades returned v4 fills (${ours.length})`)
-      check(disagreed === 0, `v4 buy/sell matches transaction values (${agreed} agreed, ${disagreed} disagreed)`)
+    const ours = await trades.fetchTrades({ kind: "v4", poolId, ethIsCurrency0 }, 6)
+    for (const t of ours) {
+      const [tx, rc] = await Promise.all([
+        client.getTransaction({ hash: t.txHash }).catch(() => null),
+        client.getTransactionReceipt({ hash: t.txHash }).catch(() => null),
+      ])
+      if (!tx || !rc) continue
+      checked++
+      const moves = rc.logs.filter((x) => x.address.toLowerCase() === token.toLowerCase() && x.topics[0] === TRANSFER_TOPIC)
+      const signer = tx.from.toLowerCase()
+      const got = moves.some((m) => `0x${m.topics[2].slice(26)}`.toLowerCase() === signer)
+      const gave = moves.some((m) => `0x${m.topics[1].slice(26)}`.toLowerCase() === signer)
+      const truth = got && !gave ? "buy" : gave && !got ? "sell" : null
+      if (!truth) inconclusive++
+      else if (truth === t.kind) agreed++
+      else disagreed++
     }
   }
+  check(checked > 0, `read live v4 fills to check against (${checked})`)
+  check(disagreed === 0, `every conclusive fill matches the token's own transfer direction (${agreed} agreed, ${disagreed} disagreed, ${inconclusive} routed via a contract)`)
 }
 
 rmSync(outDir, { recursive: true, force: true })

@@ -219,6 +219,45 @@ export async function quoteV4(
   }
 }
 
+/**
+ * Will this pool actually let us swap, as opposed to merely quote one?
+ *
+ * The quoter does not run the pool's hook. A hook runs arbitrary code on every
+ * swap and launch hooks routinely gate who may trade, so a hooked pool can
+ * return a clean quote and then revert the real swap with an error of its own
+ * devising — observed live, selector 0xd81b2f2e from a hook at 0x4e3468…a544.
+ * The only way to ask the hook is to run it, so this simulates a dust swap
+ * against a funded phantom address. Costs one eth_call, and only hooked pools
+ * pay it.
+ */
+export async function canSwapV4(key: V4Key, zeroForOne: boolean): Promise<boolean> {
+  try {
+    const amountIn = 10n ** 12n
+    const tx = buildV4Swap({
+      key,
+      zeroForOne,
+      amountInWei: amountIn,
+      minOutWei: 1n,
+      nativeIn: (zeroForOne ? key.currency0 : key.currency1).toLowerCase() === NATIVE,
+    })
+    await publicClient.call({
+      account: PROBE_ACCOUNT,
+      to: tx.to,
+      data: tx.data,
+      value: tx.value,
+      // A balance the probe does not have, so the call tests the pool rather
+      // than the emptiness of an address nobody owns.
+      stateOverride: [{ address: PROBE_ACCOUNT, balance: 10n ** 18n }],
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Not a real account. Only ever used as the sender of a simulated call. */
+const PROBE_ACCOUNT = "0x1111111111111111111111111111111111111111" as const
+
 export type BuiltV4 = { to: `0x${string}`; data: `0x${string}`; value: bigint; deadline: bigint }
 
 function encodeSwap(key: V4Key, zeroForOne: boolean, amountIn: bigint, minOut: bigint) {
