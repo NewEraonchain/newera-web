@@ -98,7 +98,13 @@ function TapeRow({
   const risky = launch.riskScore >= 40
   const traded = !!market?.liquidityUsd
   const chg = market?.priceChange24h ?? null
-  const tone = chg === null ? "text-fg-dim" : chg >= 0 ? "text-acid-500" : "text-danger"
+  /* Monochrome on purpose. This was acid for a rise and danger for a fall, which
+     spends the two colours the product reserves for its own judgement — acid
+     means "this looks organic", danger means "this looks manufactured" — on a
+     price a venue reported. A reader scanning the table saw green and read it as
+     our verdict on the token. The sign is already printed, so direction survives
+     the colour going away, and it now survives colour-blindness too. */
+  const tone = chg === null ? "text-fg-dim" : "text-fg-muted"
 
   /* "No market" is the product's central claim about most of these rows, so it
      is written out once across the market columns rather than repeated as four

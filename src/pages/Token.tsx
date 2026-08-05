@@ -291,7 +291,8 @@ function TheMarket({
   }
 
   const chg = market.priceChange24h
-  const tone = chg === null ? "text-fg" : chg >= 0 ? "text-acid-500" : "text-danger"
+  // Monochrome — see the note in LaunchTable. Acid and danger are verdicts.
+  const tone = "text-fg"
   const cells: { v: string; l: string }[] = [
     { v: market.priceUsd !== null ? `$${market.priceUsd.toPrecision(4)}` : "—", l: "price" },
     { v: usd(market.liquidityUsd), l: "liquidity" },

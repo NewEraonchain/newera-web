@@ -78,6 +78,29 @@
 
 html { color-scheme: dark; }
 
+/* ── The gutter ─────────────────────────────────────────────────────────
+   One number for where content starts, shared by every surface: the nav, the
+   footer, the landing, the articles and the `Page` shell.
+
+   Two families of layout were each internally consistent and disagreed with
+   each other. Full-bleed surfaces sat 4vw from the viewport edge; the data
+   column was capped at 104rem and centred. Those agree only while the viewport
+   is narrower than the cap — past ~1664px the column stops growing and drifts
+   inward while the nav keeps walking outward. Measured at 2560: wordmark at
+   102px, the H1 directly beneath it at 484px. On a 3440 display the gap is
+   924px, which is most of the "content floating in the middle with the chrome
+   somewhere else" complaint.
+
+   This is the centred column's own left edge, written as a length anything can
+   use. Below the cap the second term is zero and it is exactly 4vw, so nothing
+   about the site changes at ordinary widths — this only closes the drift on
+   displays wider than the cap. Full-bleed surfaces keep their full-bleed
+   backgrounds and their vw-scaled type; only where their content starts moves. */
+:root {
+  --shell-max: 104rem;
+  --gutter: calc(max(1.25rem, 4vw) + max(0px, (100vw - var(--shell-max)) / 2));
+}
+
 body {
   background: var(--color-ink-950);
   color: var(--color-fg);

@@ -22,7 +22,7 @@ export function Article({
   children: React.ReactNode
 }) {
   return (
-    <div className="px-[4vw] pb-[16vh] pt-[14vh]">
+    <div className="px-[var(--gutter)] pb-[16vh] pt-[14vh]">
       <div className="grid gap-x-12 gap-y-8 md:grid-cols-[10rem_1fr]">
         {/* The kicker was a tracked uppercase label stacked directly above the
             heading, which is banned outright — the heading carries its own

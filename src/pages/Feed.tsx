@@ -4,7 +4,7 @@ import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable } from "@/components/LaunchTable"
-import { Page } from "@/components/shell"
+import { Page, SectionHead } from "@/components/shell"
 import { useMarkets } from "@/lib/markets"
 
 const REFRESH_MS = 12000
@@ -648,7 +648,12 @@ function Search() {
         id="feed-search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Find a token — ticker, name, or paste an address"
+        /* Short enough to survive 375px. The long form — "Find a token —
+           ticker, name, or paste an address" — clipped mid-word on a phone,
+           which is worse than saying less: a truncated instruction reads as a
+           layout fault. The full sentence still reaches assistive tech through
+           the label above. */
+        placeholder="Ticker, name, or address"
         autoComplete="off"
         spellCheck={false}
         /* 16px minimum, or iOS Safari zooms the viewport on focus. */
@@ -687,11 +692,3 @@ function Search() {
   )
 }
 
-function SectionHead({ title, note }: { title: string; note: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-edge pb-3">
-      <h2 className="text-xl font-semibold text-fg">{title}</h2>
-      <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">{note}</span>
-    </div>
-  )
-}

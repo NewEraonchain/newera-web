@@ -163,7 +163,7 @@ function Hero() {
        still need. Type anchored to the lower left at plate scale and allowed to
        run past the right edge — the composition is a crop of something larger,
        not a centred block with room around it. */
-    <section className="relative -mt-16 flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[7vh] pt-[20vh]">
+    <section className="relative -mt-16 flex min-h-svh flex-col justify-end overflow-hidden px-[var(--gutter)] pb-[7vh] pt-[20vh]">
       {/* Atmosphere over the argument, never the argument: every point is a
           real launch from the live window, and the section reads without it. */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-90">
@@ -217,7 +217,7 @@ function BlockZero() {
           the reasoning set either side of the axis. Consistency is not the same
           as sameness — a rule-based system still has to make more than one
           shape. */}
-      <div className="px-[4vw] py-24 text-center sm:py-32">
+      <div className="px-[var(--gutter)] py-24 text-center sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display mx-auto max-w-[15ch] text-[clamp(2.6rem,7.4vw,6.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Nobody else can show you this, and it is not because they are worse'}</KineticText></Rise>
         <div className="mx-auto mt-12 grid max-w-5xl gap-x-16 gap-y-6 text-left lg:grid-cols-2">
@@ -308,7 +308,7 @@ function Pipeline() {
          top padding stops applying and the heading slides under the header. */
       className="relative flex min-h-screen flex-col justify-center overflow-hidden border-b border-edge bg-ink-950 pb-16 pt-28"
     >
-      <div className="w-full px-[4vw]">
+      <div className="w-full px-[var(--gutter)]">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Four stages, in the order they run'}</KineticText></Rise>
         <div className="mt-8 h-px w-full bg-edge">
@@ -363,7 +363,7 @@ function Pipeline() {
 function Detection() {
   return (
     <StackPanel tone={3} exit="drift">
-      <div className="px-[4vw] py-24 sm:py-32">
+      <div className="px-[var(--gutter)] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[13ch] text-[clamp(2.6rem,7.4vw,6.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Two tickers that render identically'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
@@ -388,7 +388,7 @@ function Evidence() {
 
   return (
     <StackPanel light exit="recede">
-      <div className="px-[4vw] py-24 sm:py-32">
+      <div className="px-[var(--gutter)] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'Measured, not projected'}</KineticText></Rise>
         <p className="measure mt-6 text-base leading-relaxed text-fg-muted">
@@ -519,7 +519,7 @@ function Questions() {
 
   return (
     <StackPanel tone={4} exit="hold">
-      <div className="px-[4vw] py-24 sm:py-32">
+      <div className="px-[var(--gutter)] py-24 sm:py-32">
         <RuleDraw className="mb-16" />
         <Rise><KineticText as="h2" className="font-display max-w-[20ch] text-[clamp(1.7rem,3.4vw,2.9rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" base={72} amount={0.30}>{'The questions worth asking first'}</KineticText></Rise>
 
@@ -586,7 +586,7 @@ function Close() {
   const live = useStats()
 
   return (
-    <StackPanel tone={0} exit="recede" className="relative flex min-h-svh flex-col justify-end overflow-hidden px-[4vw] pb-[10vh] pt-[18vh]">
+    <StackPanel tone={0} exit="recede" className="relative flex min-h-svh flex-col justify-end overflow-hidden px-[var(--gutter)] pb-[10vh] pt-[18vh]">
       {/* The field returns for the close, so the page ends where it began. */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
         <LaunchField />

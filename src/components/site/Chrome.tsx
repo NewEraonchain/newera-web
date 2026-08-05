@@ -87,18 +87,37 @@ export function Header() {
 
   return (
     <>
+      {/* A scrim under the nav, outside it.
+       *
+       * The header is `mix-blend-difference`, which is what lets one white nav
+       * read over both the black feed and the acid landing. But difference
+       * against a mid-grey ground returns mid-grey: over the tape wall — moving
+       * grey type at roughly #4a4a4a — the nav landed at ~1.4:1 against the
+       * letters it sat on and was, in practice, gone. The scrim cannot live
+       * inside the header (it would be blended with everything else); it is a
+       * separate fixed layer one z-index below, so it darkens the ground first
+       * and difference then resolves to white. It rides with the nav so it does
+       * not sit there alone once the header retracts. */}
+      <div
+        aria-hidden
+        className={`pointer-events-none fixed inset-x-0 top-0 z-40 h-[16vh] bg-gradient-to-b from-ink-950/85 via-ink-950/45 to-transparent transition-opacity duration-500 ${
+          hidden && !open ? "opacity-0" : "opacity-100"
+        }`}
+      />
       <header
         className={`fixed inset-x-0 top-0 z-50 mix-blend-difference transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           hidden && !open ? "-translate-y-full" : "translate-y-0"
         }`}
       >
-        <div className="flex items-start justify-between px-[4vw] py-[3.2vh]">
+        {/* `--gutter`, not 4vw — the one number every surface starts at. See
+            the note on it in index.css. */}
+        <div className="flex items-start justify-between px-[var(--gutter)] py-[3.2vh]">
           <Link
             to="/"
             className="-my-2 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white"
           >
             NewEra
-            <span className="mx-2 opacity-40">/</span>
+            <span className="mx-2 opacity-55">/</span>
             <span className="opacity-70">Robinhood Chain</span>
             {/* The field itself, not just the object. `indexedThroughBlock` is
                 `string | null`, and `Number(null)` is 0 — so a null height
@@ -107,7 +126,7 @@ export function Header() {
                 correctly; the header did not. */}
             {stats?.indexedThroughBlock && (
               <>
-                <span className="mx-2 opacity-40">/</span>
+                <span className="mx-2 opacity-55">/</span>
                 <RollingNumber value={Number(stats.indexedThroughBlock)} />
               </>
             )}
@@ -125,7 +144,7 @@ export function Header() {
                 viewTransition
                 className="group py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white"
               >
-                <span className="mr-1.5 opacity-40">{String(i + 1).padStart(2, "0")}</span>
+                <span className="mr-1.5 opacity-60">{String(i + 1).padStart(2, "0")}</span>
                 <span className={loc.pathname === n.to ? "" : "opacity-70 group-hover:opacity-100"}>
                   {n.label}
                 </span>
@@ -142,9 +161,15 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            className="-m-3 p-3 font-mono text-[11px] uppercase tracking-[0.12em] text-white md:hidden"
+            /* Boxed, because otherwise this is the wordmark again. "NewEra"
+               top-left and "Index" top-right were the same 11px mono uppercase
+               white string set at the same weight, so the only control on a
+               phone did not read as a control — it read as a second label. The
+               rule is the smallest thing that says "press me" without breaking
+               the difference blend. */
+            className="-m-1.5 border border-white/60 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white md:hidden"
           >
-            {open ? "Close" : "Index"}
+            {open ? "Close ×" : "Index"}
           </button>
         </div>
       </header>
@@ -178,7 +203,7 @@ export function Header() {
               el.querySelector<HTMLElement>("a[href], button")?.focus()
             }
           }}
-          className="fixed inset-0 z-40 flex flex-col overflow-y-auto overscroll-contain bg-ink-950 px-[4vw] pb-[8vh] pt-[14vh] md:hidden"
+          className="fixed inset-0 z-40 flex flex-col overflow-y-auto overscroll-contain bg-ink-950 px-[var(--gutter)] pb-[8vh] pt-[14vh] md:hidden"
           onKeyDown={(e) => {
             if (e.key !== "Tab") return
             const items = e.currentTarget.querySelectorAll<HTMLElement>("a[href], button")
@@ -280,7 +305,7 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
       viewTransition
       className="group py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white"
     >
-      <span className="mr-1.5 opacity-40">06</span>
+      <span className="mr-1.5 opacity-60">06</span>
       <span className="opacity-70 group-hover:opacity-100">Account</span>
     </Link>
   ) : (
@@ -289,7 +314,7 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
       onClick={() => openOnboarding("nav")}
       className="py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white"
     >
-      <span className="mr-1.5 opacity-40">06</span>
+      <span className="mr-1.5 opacity-60">06</span>
       <span className="underline decoration-1 underline-offset-4">Get started</span>
     </button>
   )
@@ -297,10 +322,17 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
 
 export function Footer() {
   return (
-    <footer className="border-t border-edge bg-ink-950 px-[4vw] pb-[6vh] pt-[12vh]">
+    <footer className="border-t border-edge bg-ink-950 px-[var(--gutter)] pb-[6vh] pt-[12vh]">
       <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-10">
         <span
-          className="font-display text-[15vw] font-extrabold uppercase leading-[0.8] tracking-[-0.04em] text-unresolved sm:text-[13vw]"
+          /* Was `text-unresolved` (#141619 on #000 = 1.16:1). DESIGN.md says "the
+           footer is anchored by the wordmark at plate scale", but the anchor
+           rendered as ~250px of empty black on every route, at every width, in
+           every capability state — the aperture is a darkening scrim, so it
+           can never brighten this, and under touch or reduced-motion the
+           scrims are display:none anyway. `ink-700` reads as a recessed plate
+           rather than as nothing. */
+          className="font-display text-[15vw] font-extrabold uppercase leading-[0.8] tracking-[-0.04em] text-ink-700 sm:text-[13vw]"
           style={{ fontStretch: "68%" }}
           aria-hidden
         >
@@ -308,11 +340,11 @@ export function Footer() {
         </span>
 
         {/* py-1.5 on each link, with the row's gap reduced to match, so every
-            target clears 24px without opening the footer up. Nine 17px-tall
-            links in a wrapping row is the hardest thing on the site to hit.
-            px-1.5 too, because that only fixed the height: "API" is three
-            glyphs of 11px mono and measured 23px wide — one pixel under the
-            floor, and the only target on the site still failing it. */}
+          target clears 24px without opening the footer up. Nine 17px-tall
+          links in a wrapping row is the hardest thing on the site to hit.
+          px-1.5 too, because that only fixed the height: "API" is three
+          glyphs of 11px mono and measured 23px wide — one pixel under the
+          floor, and the only target on the site still failing it. */}
         <nav className="-my-1.5 flex flex-wrap gap-x-8">
           {[
             ["/app", "Live feed"],
@@ -345,8 +377,8 @@ export function Footer() {
       </div>
 
       {/* text-xs, not 11px. Both of these are sentences, and 11px is the floor
-          for a label — the disclaimer that matters most legally was the least
-          readable text on the site. */}
+        for a label — the disclaimer that matters most legally was the least
+        readable text on the site. */}
       <div className="mt-[8vh] flex flex-wrap justify-between gap-x-10 gap-y-4 border-t border-edge pt-6 font-mono text-xs leading-relaxed text-fg-dim">
         <span>© 2026 NewEra</span>
         <span>Not investment advice. Nothing here is a price forecast.</span>

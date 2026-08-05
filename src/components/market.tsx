@@ -3,6 +3,7 @@ import { formatUnits } from "viem"
 import { explorerTx } from "@/lib/chain"
 import { useTrades, type TradeSource } from "@/lib/trades"
 import { shortAddr } from "@/lib/api"
+import { SectionHead } from "@/components/shell"
 
 /* The chart and the tape.
  *
@@ -49,7 +50,7 @@ export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-3">
-        <h2 className="text-xl font-semibold text-fg">Price</h2>
+        <h2 className="text-[clamp(1.15rem,1.6vw,1.4rem)] font-semibold text-fg">Price</h2>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Chart timeframe">
           {TIMEFRAMES.map((t) => (
             <button
@@ -117,16 +118,16 @@ export function Trades({
 
   return (
     <section className="mt-[7vh]">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-edge pb-3">
-        <h2 className="text-xl font-semibold text-fg">Trades happening</h2>
-        <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
-          {result === null
+      <SectionHead
+        title="Trades happening"
+        note={
+          result === null
             ? "reading the pool…"
             : result.ok
               ? "live · from the pool"
-              : "connection lost — showing the last read"}
-        </span>
-      </div>
+              : "connection lost — showing the last read"
+        }
+      />
 
       {result === null ? (
         <div className="mt-4 flex flex-col gap-2" aria-hidden>

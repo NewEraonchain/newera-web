@@ -172,7 +172,7 @@ export default function CaseFile() {
 
   return (
     <section className="border-b border-edge bg-ink-950">
-      <div className="px-[4vw] py-24 sm:py-32">
+      <div className="px-[var(--gutter)] py-24 sm:py-32">
         <h2 className="font-display max-w-[15ch] text-[clamp(2.1rem,5.6vw,4.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em]" style={{ fontStretch: "72%" }}>
           One cluster, indexed while you were reading this
         </h2>

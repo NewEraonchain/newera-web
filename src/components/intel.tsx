@@ -186,9 +186,21 @@ export function Toggle({
   )
 }
 
+/* A loading row you can actually see.
+ *
+ * This was `bg-white/[.02]`, which against point black composites to #030303 —
+ * 1.02:1, and 1.04:1 at the top of the pulse. Only the hairline border was
+ * visible, so "loading" was indistinguishable from "empty table", and the pulse
+ * animated something nobody could perceive. .07 sits between `edge` and
+ * `edge-strong` — the weakest fill in this world that still reads as a surface
+ * rather than as a hairline box around nothing. */
 export function Skeleton({ h = 48 }: { h?: number }) {
   return (
-    <div className="animate-pulse border-b border-edge bg-white/[.02]" style={{ height: h }} aria-hidden />
+    <div
+      className="animate-pulse border-b border-edge bg-[rgba(255,255,255,.07)]"
+      style={{ height: h }}
+      aria-hidden
+    />
   )
 }
 

@@ -11,8 +11,12 @@ import type { ReactNode } from "react"
  *
  * Width is a function of what the content is, not of the page it is on:
  *
- *   `prose`  — bound by the reading measure. Centring is correct here; a line
- *              of text wider than ~75ch is harder to read, not more generous.
+ *   `prose`  — bound by the reading measure. A line of text wider than ~75ch is
+ *              harder to read, not more generous. It is bound on the RIGHT and
+ *              left-aligned to the gutter, not centred: every other reading
+ *              surface on the site — /about, /docs, the legal pages — starts at
+ *              the gutter, so a centred column was one page floating on its own
+ *              axis while the nav above it stayed put.
  *   `app`    — bound by the widest useful table. Operate surfaces carry columns
  *              that want to align, and squeezing them into a reading measure is
  *              what made the feed read as an undifferentiated list.
@@ -27,7 +31,7 @@ import type { ReactNode } from "react"
    plate above the masthead is one more row of the tape you cannot see. */
 const WIDTHS = {
   prose: "max-w-[62rem] pt-[13vh]",
-  app: "max-w-[104rem] pt-[8vh]",
+  app: "max-w-[var(--shell-max)] pt-[8vh]",
   narrow: "max-w-[46rem] pt-[13vh]",
 } as const
 
@@ -40,9 +44,14 @@ export function Page({
   className?: string
   children: ReactNode
 }) {
+  /* The horizontal inset is `--gutter`, applied to a full-bleed box, rather
+     than a centred max-width with its own padding. The two produce an identical
+     left edge — that is how `--gutter` is defined — but this way the number is
+     shared with the nav, the footer and the landing instead of re-derived here,
+     so the whole site starts on one line. */
   return (
-    <div className={`mx-auto w-full ${WIDTHS[width]} px-[max(1.25rem,4vw)] pb-[14vh] ${className}`}>
-      {children}
+    <div className={`w-full px-[var(--gutter)] pb-[14vh] ${className}`}>
+      <div className={`w-full ${WIDTHS[width]}`}>{children}</div>
     </div>
   )
 }

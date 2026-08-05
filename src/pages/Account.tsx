@@ -5,6 +5,7 @@ import { currentAddress, hasSession, disconnect, connect, isRejection } from "@/
 import type { ConnectKind } from "@/lib/wallet"
 import { anonId } from "@/lib/onboarding"
 import { EmptyState } from "@/components/intel"
+import { Page } from "@/components/shell"
 import { ScanRow, WALLETS } from "@/components/rows"
 
 type Me = {
@@ -394,9 +395,12 @@ export default function Account() {
 }
 
 /* Held to a column. Full-bleed suits the feed and the tape, where the width is
-   the point; here it stranded every value a thousand pixels from its own label. */
+   the point; here it stranded every value a thousand pixels from its own label.
+   It now takes that column from the shell every other route uses, rather than
+   naming a fourth width of its own — 54rem agreed with nothing else on the
+   site, so this was the one page whose left edge was its own. */
 function Wrap({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-[54rem] px-[4vw] pb-[14vh] pt-[13vh]">{children}</div>
+  return <Page width="prose">{children}</Page>
 }
 
 /* One definition, both states. The disconnected page shows the identical list

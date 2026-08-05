@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Page } from "@/components/shell"
+import { Page, SectionHead } from "@/components/shell"
 import { LaunchTable } from "@/components/LaunchTable"
 import { Link, useParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
@@ -221,7 +221,7 @@ function Metrics({ theme, launches }: { theme: Theme; launches: Launch[] }) {
     { v: theme.launchCount, l: "launches", hint: "tokens created in this cluster" },
     {
       v: theme.creatorCount,
-      l: "distinct wallets",
+      l: theme.creatorCount === 1 ? "distinct wallet" : "distinct wallets",
       hint: "how many different addresses launched them",
       tone: theme.isOrganic ? "acid" : "bad",
     },
@@ -283,8 +283,7 @@ function Velocity({ series }: { series: Detail["series"] }) {
     const step = (W - pad * 2) / (vals.length - 1)
     const pts = vals.map((v, i) => [pad + i * step, H - pad - (v / max) * (H - pad * 2)] as const)
     const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ")
-    const area = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${H - pad} L${pad} ${H - pad} Z`
-    return { line, area, peak, W, H, n: series.length }
+    return { line, peak, W, H, n: series.length }
   }, [series])
 
   return (
@@ -301,15 +300,15 @@ function Velocity({ series }: { series: Detail["series"] }) {
           the theme&apos;s first minutes.
         </p>
       ) : (
-        <svg viewBox={`0 0 ${path.W} ${path.H}`} preserveAspectRatio="none" className="block h-20 w-full" role="img" aria-label="Launch velocity over time">
-          <defs>
-            <linearGradient id="vel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#cdff4d" stopOpacity=".28" />
-              <stop offset="100%" stopColor="#cdff4d" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path d={path.area} fill="url(#vel)" />
-          <path d={path.line} fill="none" stroke="#cdff4d" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        /* Stroke only. The filled area was a lime gradient — banned outright by
+           DESIGN.md ("never a heading, gradient or glow") and by the note in
+           index.css — and at ~1815x80px it was the loudest object on the page
+           while carrying no information the line does not. With two samples it
+           rendered a flat line stretched to full width: maximum visual weight,
+           zero variance. `preserveAspectRatio="none"` went with it, so slope
+           now means something. */
+        <svg viewBox={`0 0 ${path.W} ${path.H}`} className="block h-20 w-full" role="img" aria-label="Launch velocity over time">
+          <path d={path.line} fill="none" stroke="#cdff4d" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         </svg>
       )}
     </div>
@@ -330,7 +329,7 @@ function Creators({ launches }: { launches: Launch[] }) {
   return (
     <section className="mb-7">
       <SectionHead title="Who is launching into this" note={`${rows.length} total`} />
-      <div className="flex flex-col gap-2">
+      <div className="mt-4 flex flex-col gap-2">
         {rows.slice(0, 12).map((r) => {
           const share = r.n / launches.length
           return (
@@ -398,7 +397,7 @@ function Launches({ launches }: { launches: Launch[] }) {
           so a reader relearned where liquidity sits on every one of them. This
           also retires a 2px danger-coloured left border on high-risk rows —
           the hairline in `.scan-tr` says it without the costume. */}
-      <div>
+      <div className="mt-4">
         {launches.length === 0 ? (
           <EmptyState>No launches recorded for this cluster.</EmptyState>
         ) : (
@@ -416,11 +415,3 @@ function Launches({ launches }: { launches: Launch[] }) {
   )
 }
 
-function SectionHead({ title, note }: { title: string; note?: string }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-base font-bold">{title}</h2>
-      {note && <span className="text-xs text-fg-dim">{note}</span>}
-    </div>
-  )
-}

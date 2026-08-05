@@ -1,20 +1,19 @@
 import { useEffect, useRef } from "react"
 import gsap from "gsap"
-import { useStats } from "@/lib/useStats"
 
 /* The instrument's own cursor.
  *
  * The aperture is what the index is looking at; this is the thing doing the
- * looking, and it carries the chain height as its readout — so the pointer is
- * never just a pointer, it is a live position in the chain.
+ * looking. It used to carry the chain height as a readout beside the crosshair,
+ * which read well in principle and overprinted the page in practice — see the
+ * note on the crosshair below. The height lives in the header instead, where it
+ * has a background and does not follow the reader's eye.
  *
  * Only on fine pointers with motion allowed. Replacing the system cursor on a
  * touch device or for someone who has asked for less motion is a cost with no
  * benefit, so in those cases this renders nothing and the native cursor stays. */
 export default function Reticle() {
   const ref = useRef<HTMLDivElement>(null)
-  const readRef = useRef<HTMLSpanElement>(null)
-  const stats = useStats()
 
   useEffect(() => {
     const el = ref.current
@@ -53,12 +52,6 @@ export default function Reticle() {
     }
   }, [])
 
-  useEffect(() => {
-    if (readRef.current && stats?.indexedThroughBlock) {
-      readRef.current.textContent = `BLOCK ${Number(stats.indexedThroughBlock).toLocaleString("en-US")}`
-    }
-  }, [stats])
-
   return (
     <div
       ref={ref}
@@ -76,12 +69,19 @@ export default function Reticle() {
        * that will ever be added. */
       className="pointer-events-none fixed left-0 top-0 z-[9999] mix-blend-difference"
     >
+      {/* Crosshair only.
+          There was a "BLOCK 28,730,018" readout pinned 20px right and 8px below
+          the pointer — always on, no dwell delay, no collision avoidance, inside
+          a mix-blend-difference wrapper. Difference-blending white on white
+          renders black, so it destroyed BOTH itself and whatever text sat under
+          it, at the exact point the reader was looking. Captured overprinting
+          the custody sentence on /app, a liquidity figure on a cluster page, and
+          the DexScreener attribution on a token page. It was also 10px, below
+          the project's own 11px floor for functional text.
+          The block height already lives in the header and ticks there; the
+          crosshair is the pointer, and the pointer does not need a caption. */}
       <span className="absolute -left-3 top-0 block h-px w-6 bg-white" />
       <span className="absolute left-0 -top-3 block h-6 w-px bg-white" />
-      <span
-        ref={readRef}
-        className="absolute left-5 top-2 whitespace-nowrap font-mono text-[10px] tracking-[0.06em] text-white"
-      />
     </div>
   )
 }
