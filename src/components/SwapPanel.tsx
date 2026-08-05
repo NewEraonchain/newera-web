@@ -191,21 +191,44 @@ export default function SwapPanel({
          routing probe takes a second or two of RPC calls, and the verdict —
          you cannot trade this here — arrived as a silent DOM swap. */
       <section role="status" className="border border-edge p-6">
-        <h2 className="text-lg font-semibold text-fg">Trading this one happens elsewhere</h2>
+        {/* The heading has to match the reason under it. "Trading this one
+            happens elsewhere" is true when the market is on a venue we do not
+            route; it is false when the pool is empty, where trading is not
+            happening anywhere. */}
+        <h2 className="text-lg font-semibold text-fg">
+          {pool.venueTradeable === false
+            ? "This one cannot be traded right now"
+            : "Trading this one happens elsewhere"}
+        </h2>
         <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
           {pool.reason ||
             "NewEra cannot route this market, so we hand you over to the venue rather than guess at a route."}
         </p>
-        {venueUrl && (
-          <a
-            href={venueUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block-btn mt-5 inline-block bg-acid-500 font-semibold text-ink-950"
-          >
-            Trade on {venueName || "the venue"} ↗
-          </a>
-        )}
+        {venueUrl &&
+          (pool.venueTradeable === false ? (
+            /* Not an offer to trade. When the pool is empty or will not quote,
+               "Trade on Uniswap" sat directly under our own sentence saying
+               nothing can be traded at any size — pointing somebody at the same
+               wall with less explanation. The link stays, because seeing the
+               pool for yourself is the reasonable next step; the verb goes. */
+            <a
+              href={venueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="scan-link mt-5 inline-block text-sm text-fg-muted"
+            >
+              See the pool on {venueName || "the venue"} ↗
+            </a>
+          ) : (
+            <a
+              href={venueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block-btn mt-5 inline-block bg-acid-500 font-semibold text-ink-950"
+            >
+              Trade on {venueName || "the venue"} ↗
+            </a>
+          ))}
       </section>
     )
   }

@@ -50,6 +50,18 @@ export type Pool = {
   supported: boolean
   /** Why it is not supported, when it is not. Shown to the user verbatim. */
   reason?: string
+  /**
+   * Whether sending the user to the venue is a real offer.
+   *
+   * "We do not route this DEX" and "this pool is empty" are both reasons we
+   * cannot trade it, and only the first is a reason somebody else can. The
+   * handoff button said "Trade on Uniswap" directly beneath our own sentence
+   * saying nothing can be traded at any size — measured on TURBO, which
+   * DexScreener still reports at $32,213 of liquidity because it reads a price
+   * and we read the pool. Sending someone to Uniswap to hit the same wall with
+   * less explanation is worse than not offering.
+   */
+  venueTradeable?: boolean
 }
 
 /** Which way the trade goes. Selling needs approvals; buying never does. */
@@ -161,6 +173,7 @@ export async function resolveRoute(
         protocol: "v4",
         key,
         supported: false,
+        venueTradeable: false,
         reason:
           liquidity === 0n
             ? "This pool has a price but nothing behind it — whoever supplied its liquidity has withdrawn, so nothing can be traded at any size."
