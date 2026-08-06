@@ -9,12 +9,22 @@ import { Header, Footer } from "@/components/site/Chrome"
 import OnboardingModal from "@/components/OnboardingModal"
 import ErrorBoundary, { RouteError } from "@/components/ErrorBoundary"
 import { isOnboarded, wasDeclined, ONBOARD_EVENT, ONBOARD_DONE_EVENT } from "@/lib/onboarding"
-import Landing from "@/pages/Landing"
-
-/* Landing stays eager — it is the entry point, and deferring it only buys a
-   blank frame. Everything else loads on navigation so a visitor reading the
-   marketing pages never downloads the feed's polling and charting code, and
-   nobody downloads the legal pages until they ask for them. */
+/* Every route lazy, including the landing.
+ *
+ * Landing was eager on the reasoning that it is the entry point and deferring
+ * it only buys a blank frame. That reasoning was about `/` and paid for by
+ * every other route: an eager import puts the page's whole dependency tree in
+ * the entry chunk, and the landing's tree is the heaviest on the site — GSAP
+ * with SplitText and ScrambleTextPlugin, the WebGL field, the scroll stack.
+ *
+ * Measured: 634kB of JavaScript on /app, of which 131kB was GSAP text plugins
+ * for a page the visitor is not on. Somebody opening a shared token link paid
+ * the landing's animation budget to read a table.
+ *
+ * `/` does not regress: the fallback is a full-height block that holds the
+ * footer in place, and the chunk is fetched in parallel with the entry rather
+ * than after it. */
+const Landing = lazy(() => import("@/pages/Landing"))
 const Feed = lazy(() => import("@/pages/Feed"))
 const ThemeDetail = lazy(() => import("@/pages/ThemeDetail"))
 const Creator = lazy(() => import("@/pages/Creator"))

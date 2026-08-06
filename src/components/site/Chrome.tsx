@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useLenis } from "lenis/react"
 import { useStats } from "@/lib/useStats"
-import { RollingNumber } from "@/components/kinetic"
+import { RollingNumber } from "@/components/num"
 import { isOnboarded, openOnboarding, ONBOARD_DONE_EVENT } from "@/lib/onboarding"
 
 /* Chrome, in the Aperture vocabulary.

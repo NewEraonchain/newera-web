@@ -12,7 +12,8 @@ import StackPanel from "@/components/StackPanel"
 import { Rise, Stagger, RuleDraw } from "@/components/scroll"
 import { ClusterField, RiskHistogram, CadenceStrip } from "@/components/figures"
 import LaunchField from "@/components/LaunchField"
-import { KineticText, RollingNumber, SplitLines } from "@/components/kinetic"
+import { KineticText, SplitLines } from "@/components/kinetic"
+import { RollingNumber } from "@/components/num"
 import {
   Accordion,
   AccordionContent,

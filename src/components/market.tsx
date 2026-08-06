@@ -28,6 +28,7 @@ const TIMEFRAMES = [
 
 export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }) {
   const [tf, setTf] = useState<string>("15")
+  const [shown, setShown] = useState(false)
 
   /* Changing the interval remounts the iframe by key, which is the only way to
      drive an embed we do not control. Keyed rather than mutated so React tears
@@ -57,7 +58,10 @@ export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }
               key={t.interval}
               type="button"
               aria-pressed={tf === t.interval}
-              onClick={() => setTf(t.interval)}
+              onClick={() => {
+                setTf(t.interval)
+                setShown(true)
+              }}
               className={`border px-2.5 py-1 font-mono text-xs transition-colors ${
                 tf === t.interval
                   ? "border-acid-500 text-acid-500"
@@ -70,14 +74,50 @@ export function Chart({ venueUrl, symbol }: { venueUrl: string; symbol: string }
         </div>
       </div>
 
+      {/* Loaded on request, not on arrival.
+       *
+       * This is somebody else's application in a frame. Measured on a token
+       * page: mounting it pulled 8.8MB of JavaScript across 70 files — a 3.2MB
+       * page bundle, a 2.6MB library, and Google Analytics — against 630kB for
+       * the whole of NewEra. It was 93% of the weight of the page and none of
+       * it is ours.
+       *
+       * `loading="lazy"` did nothing, because the chart is in the first
+       * viewport on this layout; lazy only defers frames below the fold.
+       *
+       * There is a second reason, and it is the better one. Embedding the frame
+       * on load runs a third party's analytics on every visitor who opens a
+       * token page, whether or not they ever look at the chart. Our privacy
+       * page says what we load and when — this makes that sentence true by
+       * construction rather than by wording. */}
       <div className="mt-4 overflow-hidden border border-edge">
-        <iframe
-          key={tf}
-          src={src}
-          title={`${symbol || "Token"} price chart`}
-          loading="lazy"
-          className="h-[420px] w-full border-0 sm:h-[520px]"
-        />
+        {shown ? (
+          <iframe
+            key={tf}
+            src={src}
+            title={`${symbol || "Token"} price chart`}
+            className="h-[420px] w-full border-0 sm:h-[520px]"
+          />
+        ) : (
+          /* The same height as the frame it becomes, so nothing moves when it
+             loads — the whole point of having measured the layout shift. */
+          <div className="flex h-[420px] w-full flex-col items-center justify-center gap-4 px-6 text-center sm:h-[520px]">
+            <p className="measure text-sm leading-relaxed text-fg-muted">
+              The candle chart is DexScreener&apos;s, embedded from their site. It loads about 9MB
+              and runs their analytics, so we do not fetch it until you ask.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShown(true)}
+              className="block-btn border border-acid-500 text-acid-500"
+            >
+              Load the chart
+            </button>
+            <p className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+              Everything else on this page is read from the chain directly
+            </p>
+          </div>
+        )}
       </div>
       <p className="mt-3 text-xs text-fg-dim">
         Candles by DexScreener, which indexes this chain. Timeframe is ours; the data is theirs.

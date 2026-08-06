@@ -77,17 +77,6 @@ export function KineticText({
  * ticking figure has to sell something, and this one does not - it is a block
  * height in 11px mono. React already replaces only the text, `tabular-nums`
  * holds every column still, and the number simply ticks. */
-export function RollingNumber({
-  value,
-  className = "",
-}: {
-  value: number | string
-  className?: string
-}) {
-  const text = typeof value === "number" ? value.toLocaleString("en-US") : value
-  return <span className={`tabular-nums ${className}`}>{text}</span>
-}
-
 export function ResolveText({
   children,
   className = "",
