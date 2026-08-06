@@ -349,7 +349,7 @@ export function Privacy() {
         <p>We do not sell your information. We may disclose it where the law requires it.</p>
       </Section>
 
-      <Section title="6. Cookies &amp; local storage">
+      <Section title="6. Cookies, local storage &amp; embedded content">
         <p>NewEra sets no advertising or cross-site tracking cookies. It uses local storage for:</p>
         <Bullets
           items={[
@@ -359,12 +359,29 @@ export function Privacy() {
           ]}
         />
         <p>Clearing your browser storage removes all of them and returns you to an anonymous visitor.</p>
+        <p>
+          {/* The sentence above was narrowly true and misleading by omission.
+              The candle chart on a token page is DexScreener's site in an
+              iframe, and it loads their analytics — so a visitor who never left
+              NewEra was still being measured by somebody else. It does not
+              mount until you press the button now, which is what makes this
+              paragraph an accurate description rather than a caveat. */}
+          One page embeds someone else&apos;s: the candle chart on a token page is DexScreener&apos;s,
+          in an iframe. When you load it, their site runs in that frame with its own analytics and
+          cookies, under their privacy policy and not ours. We do not fetch it until you press
+          &ldquo;Load the chart&rdquo;, so opening a token page does not hand your visit to them.
+          Everything else on that page is read from the blockchain or from our own API.
+        </p>
       </Section>
 
       <Section title="7. Your rights &amp; choices">
         <Bullets
           items={[
-            <><b>See it all.</b> Your <Link to="/account" className="text-acid-500 hover:underline">account page</Link> lists every field stored against your address.</>,
+            /* "Lists every field" is the claim the account page itself was
+               corrected for — it shows the fields you gave us or we derived,
+               which is 13 of roughly 30 columns. The export is the exhaustive
+               one, and it is the next bullet down. */
+            <><b>See it.</b> Your <Link to="/account" className="text-acid-500 hover:underline">account page</Link> shows what you gave us and what we derived about you; the export below is the complete record, from every table.</>,
             <><b>Delete it.</b> One button erases the record we hold for your wallet — onboarding answers, contact details, session history and the cached wallet summary.</>,
             <><b>Export it.</b> Download a portable copy in one click.</>,
             <><b>Withdraw consent.</b> Remove an email or handle at any time; nothing else changes.</>,
