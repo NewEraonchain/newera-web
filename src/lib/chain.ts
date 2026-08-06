@@ -19,9 +19,29 @@ export const robinhoodChain = defineChain({
   },
 })
 
+/* One HTTP round trip for the calls a page makes together.
+ *
+ * Everything this app reads from the chain arrives in bursts: opening a token
+ * page resolves a fee tier by probing several v3 tiers, recovers a v4 pool key,
+ * quotes, reads decimals and reads two balances — each its own POST, each
+ * paying a full round trip to a public RPC that is not close to the user.
+ * Measured on a token page: 9 separate JSON-RPC POSTs on one load, and up to 37
+ * on a page whose pool needed a wide log sweep.
+ *
+ * `batch` collects the calls issued inside one tick into a single
+ * `eth_call`-per-entry JSON-RPC array. It changes nothing about what is asked
+ * or what comes back — viem un-batches the responses — so no caller has to know
+ * about it. `wait: 16` is one frame: long enough to catch the calls a render
+ * pass fires off together, short enough that a lone read is not visibly delayed.
+ *
+ * The cap matters. This node errors rather than truncating when a request is
+ * too large, and the log sweeps in v4.ts are already near its limits, so the
+ * batch is bounded well under anything that has been seen to fail. */
 export const publicClient = createPublicClient({
   chain: robinhoodChain,
-  transport: http(),
+  transport: http(undefined, {
+    batch: { wait: 16, batchSize: 16 },
+  }),
 })
 
 /** Uniswap's official deployments. Verified on-chain 2026-08-02. */

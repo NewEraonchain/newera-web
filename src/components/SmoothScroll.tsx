@@ -26,7 +26,27 @@ function Sync() {
     gsap.ticker.add(raf)
     gsap.ticker.lagSmoothing(0)
 
+    /* Nothing ticks for a tab nobody is looking at.
+     *
+     * gsap.ticker stays awake for as long as a listener is attached, and this
+     * attaches one for the life of the app — so the ticker and GSAP's internal
+     * _rafBugFix loop ran at the display's refresh rate forever, measured at
+     * 292 frame callbacks a second with the page completely idle. A hidden tab
+     * cannot be scrolled, so there is nothing for either to do.
+     *
+     * The ticker is only slept, never stopped while visible: Lenis interpolates
+     * towards a target every frame and a wheel event has to be answered on the
+     * next one. Waking on `visibilitychange` is early enough — the browser
+     * fires it before the tab can be interacted with. */
+    const onVisibility = () => {
+      if (document.hidden) gsap.ticker.sleep()
+      else gsap.ticker.wake()
+    }
+    document.addEventListener("visibilitychange", onVisibility)
+
     return () => {
+      document.removeEventListener("visibilitychange", onVisibility)
+      gsap.ticker.wake()
       lenis.off("scroll", update)
       gsap.ticker.remove(raf)
       gsap.ticker.lagSmoothing(500, 33)

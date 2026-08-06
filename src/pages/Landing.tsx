@@ -286,6 +286,21 @@ function Pipeline() {
           start: "top top",
           end: () => `+=${distance()}`,
           pin: true,
+          /* Translate the pinned section, do not fix it.
+           *
+           * GSAP's default pinType is "fixed": it swaps the element to
+           * position:fixed and inserts a spacer of the same size. The browser
+           * scores that swap as a layout shift of the whole section, twice —
+           * once entering the pin and once leaving. Measured while scrolling
+           * the landing page: two shifts of 1.00 and 0.986, from one section
+           * reporting height 0 then 900. Total CLS 2.0 against a 0.1 "good"
+           * boundary, and none of it visible, which is why it survived every
+           * look at the page and only a scrolling measurement found it.
+           *
+           * "transform" pins by translating instead. Nothing changes position
+           * in the layout tree, so there is nothing to score. It is also the
+           * mode GSAP documents for a Lenis-driven scroller. */
+          pinType: "transform",
           scrub: 0.6,
           invalidateOnRefresh: true,
           anticipatePin: 1,

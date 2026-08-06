@@ -186,17 +186,27 @@ export default function LaunchField({ className = "" }: { className?: string }) 
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
 
-    // Only draw while on screen. An off-screen shader loop is a battery leak
-    // nobody can see.
-    let visible = true
-    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0 })
-    io.observe(canvas)
-
+    /* Stop the LOOP off-screen, not just the drawing.
+     *
+     * This skipped the GL calls when off-screen and then rescheduled itself
+     * anyway, so the frame callback kept firing at the display's refresh rate
+     * for as long as the page existed. The landing renders two of these — the
+     * hero and the closing panel — and the closing one is off-screen for the
+     * whole page: measured, 290 frame callbacks a second while the page sat
+     * completely still, the largest single source of idle work on the site.
+     *
+     * `document.hidden` too. A shader animating for a tab nobody is looking at
+     * is the same leak with a worse excuse. */
     let raf = 0
+    let visible = true
     const t0 = performance.now()
+
+    /* A const arrow, declared before its callers, rather than a hoisted
+       `function` — a function declaration escapes the narrowing that proved
+       `gl` is not null up here, and the alternative is a non-null assertion on
+       every one of the eight GL calls below. */
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame)
-      if (!visible) return
       gl.clearColor(0, 0, 0, 0)
       gl.clear(gl.COLOR_BUFFER_BIT)
       gl.uniform1f(uTime, (t - t0) / 1000)
@@ -204,10 +214,34 @@ export default function LaunchField({ className = "" }: { className?: string }) 
       gl.uniform2f(uRes, canvas.width, canvas.height)
       gl.drawArrays(gl.POINTS, 0, n)
     }
-    raf = requestAnimationFrame(frame)
+    const stop = () => {
+      if (!raf) return
+      cancelAnimationFrame(raf)
+      raf = 0
+    }
+    const start = () => {
+      if (raf || !visible || document.hidden) return
+      raf = requestAnimationFrame(frame)
+    }
+
+    const io = new IntersectionObserver(
+      ([e]) => {
+        visible = e.isIntersecting
+        if (visible) start()
+        else stop()
+      },
+      { threshold: 0 }
+    )
+    io.observe(canvas)
+
+    const onVis = () => (document.hidden ? stop() : start())
+    document.addEventListener("visibilitychange", onVis)
+
+    start()
 
     return () => {
-      cancelAnimationFrame(raf)
+      stop()
+      document.removeEventListener("visibilitychange", onVis)
       io.disconnect()
       ro.disconnect()
       window.removeEventListener("pointermove", onMove)

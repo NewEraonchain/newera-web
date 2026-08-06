@@ -24,25 +24,49 @@ async function poll() {
   }
 }
 
+// Eight seconds: Robinhood Chain makes ten blocks a second, so the block height
+// visibly moves between polls without hammering the API.
+const EVERY_MS = 8000
+
+/* Nothing polls a tab nobody is looking at.
+ *
+ * This ran every eight seconds for as long as the page existed, which on a tab
+ * left open overnight is ten thousand requests to render a number behind
+ * another window. The block height is also stale the instant the tab is hidden,
+ * so the poll was buying nothing even in principle. Coming back reads
+ * immediately rather than waiting out the interval — a stale height on the tab
+ * you just switched to is the one moment it is actually being read. */
+function start() {
+  if (timer || document.hidden) return
+  poll()
+  timer = setInterval(poll, EVERY_MS)
+}
+
+function stop() {
+  if (!timer) return
+  clearInterval(timer)
+  timer = null
+}
+
+function onVisibility() {
+  if (document.hidden) stop()
+  else if (subscribers.size) start()
+}
+
 export function useStats(): Stats | null {
   const [stats, setStats] = useState<Stats | null>(current)
 
   useEffect(() => {
     subscribers.add(setStats)
     if (current) setStats(current)
-
-    if (!timer) {
-      poll()
-      // Eight seconds: Robinhood Chain makes ten blocks a second, so the block
-      // height visibly moves between polls without hammering the API.
-      timer = setInterval(poll, 8000)
-    }
+    start()
+    document.addEventListener("visibilitychange", onVisibility)
 
     return () => {
       subscribers.delete(setStats)
-      if (subscribers.size === 0 && timer) {
-        clearInterval(timer)
-        timer = null
+      if (subscribers.size === 0) {
+        stop()
+        document.removeEventListener("visibilitychange", onVisibility)
       }
     }
   }, [])

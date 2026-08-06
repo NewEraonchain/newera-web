@@ -217,8 +217,21 @@ function ScrollManager() {
 
 /* Held to the same min-height as a loaded page so the footer doesn't jump up
    and back down while a route chunk arrives. */
+/* Tall enough that the footer does not have to move.
+ *
+ * At 70vh the fallback was shorter than every real page, so the footer rendered
+ * inside the first viewport and then jumped off it the moment the route
+ * resolved. Measured on /app: a single 0.229 layout shift at 1241ms, the
+ * footer travelling from y=694 to below the fold — on its own more than twice
+ * Google's 0.1 "good" CLS boundary, and it happened on all thirteen lazy
+ * routes because they share this one element.
+ *
+ * 100vh is the floor rather than a guess at each page's height: no real page is
+ * shorter than the viewport, so the footer starts below the fold and stays
+ * there. It cannot overshoot into a scrollbar that then disappears either,
+ * because the fallback is replaced before anyone can scroll it. */
 function RouteFallback() {
-  return <div className="min-h-[70vh]" aria-busy="true" />
+  return <div className="min-h-svh" aria-busy="true" />
 }
 
 /* A wrong URL is not an unbuilt feature.

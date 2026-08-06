@@ -3,13 +3,56 @@ export const API =
   (import.meta.env.VITE_NEWERA_API as string | undefined) ||
   "https://newerabackend-production.up.railway.app"
 
+/* One read per URL, shared by everyone who asks for it.
+ *
+ * Components fetch what they need, which is the right way round — a page should
+ * not have to know that three sections below it want the same tape. But nothing
+ * was collapsing those asks, so mounting the landing page issued, measured:
+ *
+ *     10x  /intel/feed?limit=200
+ *      4x  /intel/stats
+ *      2x  /intel/themes?limit=120
+ *      2x  /intel/separation
+ *
+ * Ten identical 200-row reads, in flight simultaneously, for one screen. This
+ * is not a cache in the sense of serving stale data to save a request: it is a
+ * two-second window in which the SAME url resolves to the SAME promise. Two
+ * components mounting in one render pass get one network call; a poll two
+ * seconds later is a fresh read, which is what a live index needs.
+ *
+ * Only successful GETs are held. A failure must never be replayed to a later
+ * caller as though it were their own — the feed distinguishes "the index said
+ * nothing" from "we could not reach the index", and serving a cached rejection
+ * would blur exactly that line. */
+const TTL_MS = 2000
+const inFlight = new Map<string, { at: number; p: Promise<unknown> }>()
+
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(API + path, {
-    ...init,
-    headers: { accept: "application/json", ...(init?.headers || {}) },
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json() as Promise<T>
+  /* Only plain GETs are shared. Anything carrying a body, a method or auth
+     headers is a different request even at the same URL. */
+  const shareable = !init || (!init.method && !init.body && !init.headers)
+  const hit = shareable ? inFlight.get(path) : undefined
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.p as Promise<T>
+
+  const p = (async () => {
+    const res = await fetch(API + path, {
+      ...init,
+      headers: { accept: "application/json", ...(init?.headers || {}) },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  })()
+
+  if (shareable) {
+    inFlight.set(path, { at: Date.now(), p })
+    // Drop a failure immediately so the next caller makes a real attempt.
+    p.catch(() => inFlight.delete(path))
+    if (inFlight.size > 64) {
+      const cutoff = Date.now() - TTL_MS
+      for (const [k, v] of inFlight) if (v.at < cutoff) inFlight.delete(k)
+    }
+  }
+  return p as Promise<T>
 }
 
 export function authHeaders(): Record<string, string> {
