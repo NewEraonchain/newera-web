@@ -125,10 +125,32 @@ ok("1 no frozen statistics anywhere", frozen.length === 0, frozen.join(" | ") ||
   const solo = emerging.filter((t) => t.creatorCount < 2)
   ok("9b every EMERGING cluster has independent wallets", solo.length === 0, `${solo.length} solo of ${emerging.length} EMERGING`)
 
-  /* A status that is the same on every row carries no information. This is the
-     check that would have caught it: 100 of 100 were EMERGING. */
-  const spread = new Set(items.map((t) => t.status)).size
-  ok("9c the status field distinguishes clusters", items.length < 5 || spread > 1, `${spread} distinct states across ${items.length}`)
+  /* A status that is the same on every row carries no information — but this
+     has to be asked of the whole index, not of one page of it. `/intel/themes`
+     ranks EMERGING first and then slices, so a full page of EMERGING is what a
+     healthy index looks like whenever there are that many. Reading the spread
+     off the first 100 rows reported "1 distinct state" against an index holding
+     100 EMERGING, 51 HOT, 61 SATURATED and 100 DECAYING. Ask per status. */
+  const counts = {}
+  for (const st of ["EMERGING", "HOT", "SATURATED", "DECAYING"]) {
+    const r = await (
+      await fetch(`https://newerabackend-production.up.railway.app/intel/themes?limit=100&status=${st}`)
+    ).json()
+    counts[st] = (r.items || []).length
+  }
+  const populated = Object.values(counts).filter((n) => n > 0).length
+  ok(
+    "9c the status field distinguishes clusters",
+    populated > 1,
+    Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(" ")
+  )
+
+  /* And a status filter has to agree with the status it serves. */
+  const emergingOnly = await (
+    await fetch("https://newerabackend-production.up.railway.app/intel/themes?limit=100&status=EMERGING")
+  ).json()
+  const mislabelled = (emergingOnly.items || []).filter((t) => t.status !== "EMERGING")
+  ok("9d ?status= returns only what it says", mislabelled.length === 0, `${mislabelled.length} mislabelled`)
 }
 
 // 10. A deployer's record exists for the wallets the app links to.

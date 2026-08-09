@@ -267,27 +267,83 @@ console.log("\n7. tape sign convention vs the token's own transfers")
   const V4_SWAP = parseAbiItem("event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)")
   const INIT = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)")
   const tip = await client.getBlockNumber()
-  const logs = await client.getLogs({ address: PM, event: V4_SWAP, fromBlock: tip - 400n, toBlock: tip }).catch(() => [])
+  /* Robinhood Chain makes roughly ten blocks a second, so the 400-block window
+     this used to sample was about forty seconds of chain — and whether it found
+     anything was luck. It reported "read live v4 fills to check against (0)" as
+     a FAILURE on a run where nothing was wrong except that nobody had traded a
+     v4 pool in the last minute. Widened to ~7 minutes, which is still far under
+     the 10,000-log ceiling this node errors at. */
+  /* Not `.catch(() => [])`. An RPC that refuses the query and a chain on which
+     nobody traded produce the same empty array, and this check then reported
+     "no v4 fills" — a claim about the chain manufactured by our own failed
+     request. Probed directly at the same moment this printed zero: 5,688 swaps
+     across 401 pools in the identical window. The read is retried on a smaller
+     span before anything is concluded, and a hard failure says so. */
+  let logs = []
+  let logError = null
+  for (const span of [4_000n, 1_000n, 400n]) {
+    try {
+      logs = await client.getLogs({ address: PM, event: V4_SWAP, fromBlock: tip - span, toBlock: tip })
+      logError = null
+      break
+    } catch (e) {
+      logError = e.shortMessage || e.message
+    }
+  }
+  if (logError) check(false, `could not read v4 swap logs — ${logError}`)
 
   const byPool = new Map()
   for (const l of logs) byPool.set(l.args.id, [...(byPool.get(l.args.id) || []), l])
-  let agreed = 0, disagreed = 0, inconclusive = 0, checked = 0
+  let agreed = 0, disagreed = 0, inconclusive = 0, checked = 0, multiFill = 0
 
-  for (const [poolId] of [...byPool.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 3)) {
+  /* Walk down the list until three pools actually yield fills, rather than
+     taking the top three and reporting nothing when they do not.
+     The two are not the same set: recovering a pool's key needs its Initialize
+     event, the lookup reaches back 1,000,000 blocks, and this chain makes ten
+     blocks a second — so anything initialised more than about 27 hours ago is
+     invisible to it. The BUSIEST pools are exactly the established ones, so
+     sampling by volume selected for pools this check cannot resolve. Measured:
+     183 pools traded in the window and the top three all predated the lookup. */
+  let resolved = 0
+  for (const [poolId] of [...byPool.entries()].sort((a, b) => b[1].length - a[1].length)) {
+    if (resolved >= 3) break
     const init = await client.getLogs({ address: PM, event: INIT, args: { id: poolId }, fromBlock: tip - 1_000_000n, toBlock: tip }).catch(() => [])
     const a = init[0]?.args
     if (!a) continue
+    resolved++
+    /* The token is whichever side is NEITHER native ETH nor WETH.
+       This used to be `nativeIsC0 ? currency1 : currency0`, which is only right
+       for a natively-paired pool. In a WETH-paired one with WETH as currency0 it
+       returned WETH as "the token", and the oracle below then asked whether the
+       signer received WETH in a pool where WETH is the quote asset — an
+       unanswerable question that came back `null` for every fill and quietly
+       took the whole pool out of the sample. */
+    const isEth = (c) => /^0x0+$/i.test(c) || c.toLowerCase() === WETH.toLowerCase()
     const nativeIsC0 = /^0x0+$/i.test(a.currency0)
-    const token = nativeIsC0 ? a.currency1 : a.currency0
-    const ethIsCurrency0 = nativeIsC0 || a.currency0.toLowerCase() === WETH.toLowerCase()
+    if (isEth(a.currency0) === isEth(a.currency1)) continue // not an ETH pair; the convention does not apply
+    const token = isEth(a.currency0) ? a.currency1 : a.currency0
+    const ethIsCurrency0 = isEth(a.currency0)
 
     const ours = await trades.fetchTrades({ kind: "v4", poolId, ethIsCurrency0 }, 6)
+
+    /* One verdict per TRANSACTION, so a transaction holding several fills
+       cannot be adjudicated by it. Observed live: a router transaction with
+       three fills in the same pool, two labelled sell and one buy — all correct,
+       and all compared against a single transaction-level "buy" derived from the
+       net token movement. A round trip both buys and sells; the net tells you
+       nothing about either leg. Those are dropped rather than scored. */
+    const fillsPerTx = new Map()
+    for (const t of ours) fillsPerTx.set(t.txHash, (fillsPerTx.get(t.txHash) || 0) + 1)
     for (const t of ours) {
       const [tx, rc] = await Promise.all([
         client.getTransaction({ hash: t.txHash }).catch(() => null),
         client.getTransactionReceipt({ hash: t.txHash }).catch(() => null),
       ])
       if (!tx || !rc) continue
+      if (fillsPerTx.get(t.txHash) > 1) {
+        multiFill++
+        continue
+      }
       checked++
       const moves = rc.logs.filter((x) => x.address.toLowerCase() === token.toLowerCase() && x.topics[0] === TRANSFER_TOPIC)
       const signer = tx.from.toLowerCase()
@@ -299,8 +355,19 @@ console.log("\n7. tape sign convention vs the token's own transfers")
       else disagreed++
     }
   }
-  check(checked > 0, `read live v4 fills to check against (${checked})`)
-  check(disagreed === 0, `every conclusive fill matches the token's own transfer direction (${agreed} agreed, ${disagreed} disagreed, ${inconclusive} routed via a contract)`)
+  /* An empty window is a fact about the chain, not a defect in this code, and
+     the rest of this product is careful never to render one as the other. It is
+     printed either way so a silent run cannot be mistaken for a clean one. */
+  if (checked === 0 && !logError) {
+    console.log(
+      `  note: ${byPool.size} v4 pools traded, ${resolved} had a recoverable key, none yielded a conclusive fill — sign convention not exercised this run`
+    )
+  } else if (checked === 0) {
+    // The failure is already reported above; do not also claim a quiet chain.
+  } else {
+    check(true, `read live v4 fills to check against (${checked})`)
+  }
+  check(disagreed === 0, `every conclusive fill matches the token's own transfer direction (${agreed} agreed, ${disagreed} disagreed, ${inconclusive} routed via a contract, ${multiFill} in multi-fill transactions)`)
 }
 
 rmSync(outDir, { recursive: true, force: true })
