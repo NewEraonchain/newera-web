@@ -381,6 +381,81 @@ console.log("\n7. tape sign convention vs the token's own transfers")
   check(disagreed === 0, `every conclusive fill matches the token's own transfer direction (${agreed} agreed, ${disagreed} disagreed, ${inconclusive} routed via a contract, ${multiFill} in multi-fill transactions)`)
 }
 
+/* 8. The fee, when it is switched on.
+ *
+ * PRODUCTION SHIPS WITH IT OFF — there is no VITE_FEE_RECIPIENT — so sections 1
+ * and 2 above pin the no-fee encodings byte-for-byte against real transactions
+ * and would not notice the fee path at all. This bundles swap.ts a second time
+ * with a recipient configured and checks the calldata that a paying user would
+ * actually sign: that the money splits, and that the split is the one quoted.
+ *
+ * The PAY_PORTION layout was read off two live fee-taking transactions on this
+ * chain (0x10060c and 0x08060c) rather than from Uniswap's docs — the same
+ * method that caught V3_SWAP_EXACT_IN's undocumented sixth parameter. */
+console.log("\n8. the fee splits the money as quoted")
+{
+  const FEE_WALLET = "0x00000000000000000000000000000000feefee01"
+  await build({
+    entryPoints: [join(root, "src", "lib", "swap.ts")],
+    bundle: true, format: "esm", outfile: join(outDir, "swapfee.mjs"),
+    external: ["viem"], logLevel: "silent",
+    define: { "import.meta.env": JSON.stringify({ VITE_FEE_RECIPIENT: FEE_WALLET, VITE_FEE_BIPS: "100" }) },
+  })
+  const paid = await import(`file://${join(outDir, "swapfee.mjs").split("\\").join("/")}?t=${Date.now()}`)
+
+  check(paid.feeIsOn() && paid.FEE_BIPS === 100, `fee reads as on at ${paid.FEE_BIPS} bips`)
+  check(paid.feeOn(parseUnits("1", 18)) === parseUnits("0.01", 18), "1% of 1 ETH is 0.01 ETH")
+  check(swap.feeIsOn() === false, "and it stays OFF in the default build, which production ships")
+
+  const live = candidates.v3[0]
+  if (!live) {
+    console.log("  note: no live v3 candidate this run — calldata not simulated")
+  } else {
+    const pool = await paid.resolveRoute(live.addr, paid.poolFromLabels("uniswap", ["v3"], WETH))
+    const q = await paid.quoteTrade({ pool, token: live.addr, amount: "0.05", side: "buy", slippagePct: 5 })
+    if (!q) {
+      console.log("  note: the candidate stopped quoting — calldata not simulated")
+    } else {
+      check(q.feeWei === parseUnits("0.0005", 18), `fee on 0.05 ETH is ${q.feeWei} wei`)
+      check(q.amountInWei - q.feeWei === parseUnits("0.0495", 18), "the pool is asked for the net, not the gross")
+
+      const tx = paid.buildTrade({ pool, token: live.addr, recipient: SENDER, quote: q })
+      const cmds = decodeFunctionData({ abi: EXEC_ABI, data: tx.data }).args[0]
+      check(cmds === "0x0b0600", `buy commands are WRAP_ETH > PAY_PORTION > V3_SWAP_EXACT_IN (${cmds})`)
+      check(tx.value === q.amountInWei, "msg.value is the gross the user agreed to pay")
+
+      const sim = await client.simulateCalls({
+        account: SENDER,
+        calls: [{ to: tx.to, data: tx.data, value: tx.value }],
+        stateOverrides: [{ address: SENDER, balance: parseUnits("10", 18) }],
+      }).catch(() => null)
+      if (!sim) {
+        console.log("  note: node refused the simulation — split not verified this run")
+      } else {
+        const TRANSFER_T = toEventSelector("Transfer(address,address,uint256)")
+        let feeGot = 0n
+        for (const l of sim.results?.[0]?.logs || []) {
+          if (l.topics?.[0] !== TRANSFER_T) continue
+          if (l.address.toLowerCase() !== WETH.toLowerCase()) continue
+          if (("0x" + String(l.topics[2]).slice(26)).toLowerCase() !== FEE_WALLET) continue
+          feeGot += BigInt(l.data)
+        }
+        check(feeGot === q.feeWei, `simulated: the fee wallet received exactly what was quoted (${feeGot})`)
+      }
+
+      /* A sell splits on the way OUT, so its two floors are different numbers.
+         Setting both to the gross reverts every sell the moment the fee is on. */
+      const qs = await paid.quoteTrade({ pool, token: live.addr, amount: "1000", side: "sell", slippagePct: 5 })
+      if (qs) {
+        const st = paid.buildTrade({ pool, token: live.addr, recipient: SENDER, quote: qs })
+        const scmds = decodeFunctionData({ abi: EXEC_ABI, data: st.data }).args[0]
+        check(scmds === "0x00060c", `sell commands are V3_SWAP_EXACT_IN > PAY_PORTION > UNWRAP_WETH (${scmds})`)
+        check(qs.minReceiveWei < qs.minOutWei, "the unwrap floor sits below the swap floor by the fee")
+      }
+    }
+  }
+}
+
 rmSync(outDir, { recursive: true, force: true })
 console.log(`\n${failures === 0 ? "✅ all swap checks passed" : `❌ ${failures} FAILED`}`)
 process.exit(failures === 0 ? 0 : 1)

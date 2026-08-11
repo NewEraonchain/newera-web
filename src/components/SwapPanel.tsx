@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { formatUnits } from "viem"
 import { explorerTx } from "@/lib/chain"
-import { getDecimals, needsApproval, quoteTrade, type Pool, type Quote, type Side } from "@/lib/swap"
+import { FEE_BIPS, feeIsOn, getDecimals, needsApproval, quoteTrade, type Pool, type Quote, type Side } from "@/lib/swap"
 import { executeTrade, getEthBalance, getTokenBalance, type TradeState } from "@/lib/trade"
 import { connectedAddress, onAccountsChanged } from "@/lib/wallet"
 
@@ -370,7 +370,7 @@ export default function SwapPanel({
             {quoting && !quote
               ? "…"
               : quote
-                ? `${Number(quote.amountOut).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })} ${outSymbol}`
+                ? `${Number(quote.receive).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })} ${outSymbol}`
                 : "—"}
           </p>
 
@@ -386,10 +386,28 @@ export default function SwapPanel({
                     that is the figure reported at the end. */}
                 <dt className="text-fg-dim">Minimum the router will accept</dt>
                 <dd className="font-mono text-fg-muted">
-                  {Number(quote.minOut).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })}{" "}
+                  {Number(quote.minReceive).toLocaleString("en-US", { maximumFractionDigits: side === "buy" ? 4 : 6 })}{" "}
                   {outSymbol}
                 </dd>
               </div>
+              {feeIsOn() && (
+                /* Stated, always, in the unit it is charged in. A fee a reader
+                   has to infer from a worse-than-expected output is the same
+                   fee charged dishonestly — and on a buy it is already out of
+                   the amount they typed, so the figure above would not show it
+                   at all. */
+                <div className="flex justify-between gap-4">
+                  <dt className="text-fg-dim">
+                    NewEra fee ({(FEE_BIPS / 100).toFixed(2).replace(/\.?0+$/, "")}%)
+                  </dt>
+                  <dd className="font-mono text-fg-muted">
+                    {Number(formatUnits(quote.feeWei, 18)).toLocaleString("en-US", {
+                      maximumFractionDigits: 6,
+                    })}{" "}
+                    ETH
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-fg-dim">Price impact</dt>
                 <dd

@@ -80,9 +80,18 @@ export type Quote = {
   inDecimals: number
   /** Fraction lost versus a tiny reference trade in the SAME pool, 0–1. */
   priceImpact: number
-  /** What the user is guaranteed at the chosen slippage. */
+  /** What the SWAP LEG must produce. Builders enforce this on the pool. */
   minOutWei: bigint
   minOut: string
+  /** Our cut, in wei of ETH. Zero when the fee is off. */
+  feeWei: bigint
+  /** What actually reaches the user, after our cut. On a buy the fee comes off
+      the input so this equals the pool output; on a sell it does not. */
+  receiveWei: bigint
+  receive: string
+  /** The floor on what reaches the user — the number to put next to "minimum". */
+  minReceiveWei: bigint
+  minReceive: string
 }
 
 /* Price impact is measured against a near-dust trade in the same pool, never
@@ -375,7 +384,15 @@ export async function quoteTrade(params: {
   }
   if (amountInWei <= 0n) return null
 
-  const quoted = await routeQuote(pool, token, amountInWei, side)
+  /* Quote what the POOL will see, not what the user typed.
+     On a buy our cut comes off the ETH before the swap, so quoting the gross
+     would promise an output the pool was never asked for — every buy would
+     then miss its own minimum and revert. On a sell the whole input reaches the
+     pool and the cut comes off the ETH on the way back out. */
+  const swapInWei = side === "buy" ? netOfFee(amountInWei) : amountInWei
+  if (swapInWei <= 0n) return null
+
+  const quoted = await routeQuote(pool, token, swapInWei, side)
   if (!quoted || quoted.out <= 0n) return null
   const out = quoted.out
   const fee = quoted.fee ?? pool.fee
@@ -396,7 +413,7 @@ export async function quoteTrade(params: {
   let priceImpact = 0
   if (ref && ref.out > 0n) {
     const refRate = Number(ref.out) / Number(referenceWei)
-    const rate = Number(out) / Number(amountInWei)
+    const rate = Number(out) / Number(swapInWei)
     priceImpact = refRate > 0 ? Math.max(0, (refRate - rate) / refRate) : 0
   }
 
@@ -409,6 +426,13 @@ export async function quoteTrade(params: {
   const bps = BigInt(Math.round(Math.min(50, Math.max(0.1, slippagePct)) * 100))
   const minOutWei = (out * (10000n - bps)) / 10000n
 
+  /* On a sell the cut is taken from the ETH coming back, so what the user
+     receives is less than what the pool produced. On a buy it was already taken
+     from the input and the pool's output is theirs in full. */
+  const receiveWei = side === "sell" ? netOfFee(out) : out
+  const minReceiveWei = side === "sell" ? netOfFee(minOutWei) : minOutWei
+  const feeWei = side === "sell" ? feeOn(out) : feeOn(amountInWei)
+
   return {
     pool: refPool,
     side,
@@ -420,6 +444,11 @@ export async function quoteTrade(params: {
     priceImpact,
     minOutWei,
     minOut: formatUnits(minOutWei, outDecimals),
+    feeWei,
+    receiveWei,
+    receive: formatUnits(receiveWei, outDecimals),
+    minReceiveWei,
+    minReceive: formatUnits(minReceiveWei, outDecimals),
   }
 }
 
@@ -446,6 +475,63 @@ export async function quoteTrade(params: {
  * equality so a future edit cannot quietly regress it. */
 const CMD_WRAP_ETH_THEN_V3_IN = "0x0b00"
 const CMD_V3_IN_THEN_UNWRAP = "0x000c"
+/* With the fee taken, in ETH, on the way past. Both shapes were read off real
+   transactions on this chain rather than from the docs — see the note on
+   PAY_PORTION below. */
+const CMD_BUY_WITH_FEE = "0x0b0600"   // WRAP_ETH > PAY_PORTION > V3_SWAP_EXACT_IN
+const CMD_SELL_WITH_FEE = "0x00060c"  // V3_SWAP_EXACT_IN > PAY_PORTION > UNWRAP_WETH
+
+/* ── The fee ─────────────────────────────────────────────────────────────
+ *
+ * PAY_PORTION (0x06) pays a share of whatever the router is currently holding
+ * of a token to a recipient. Its input is `abi.encode(address token, address
+ * recipient, uint256 bips)` with bips out of 10,000 — verified by decoding two
+ * live fee-taking transactions on this chain rather than trusting the docs,
+ * which is the same method that caught V3_SWAP_EXACT_IN's undocumented sixth
+ * parameter. Those two both charged in WETH on the way out of a sell
+ * (0x10060c and 0x08060c), at 70 and 50 bips.
+ *
+ * We charge in ETH on BOTH sides — off the input on a buy, off the output on a
+ * sell — so the fee is always one denomination and always the thing the user
+ * already thinks in. Charging in the token would mean quoting a fee in a unit
+ * that may be worth nothing.
+ *
+ * OFF UNLESS CONFIGURED. With no recipient set the commands fall back to the
+ * exact encodings the audit suite pins byte-for-byte against real transactions,
+ * so a missing environment variable cannot silently produce calldata nobody has
+ * verified. */
+/* Read through a guard, not directly. `import.meta.env` exists under Vite and
+   does NOT exist under plain Node — and tools/audit bundles this very file and
+   runs it in Node to check the calldata against the live chain. Reaching for
+   `.VITE_x` on an undefined `env` threw before a single assertion ran, which
+   would have taken the whole swap suite offline the moment the fee shipped. */
+const ENV = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {}
+const FEE_RECIPIENT = ENV.VITE_FEE_RECIPIENT?.trim()
+const IS_ADDRESS = /^0x[a-fA-F0-9]{40}$/
+export const FEE_BIPS = FEE_RECIPIENT && IS_ADDRESS.test(FEE_RECIPIENT)
+  ? Math.max(0, Math.min(200, Number(ENV.VITE_FEE_BIPS ?? 100)))
+  : 0
+export const feeIsOn = () => FEE_BIPS > 0 && !!FEE_RECIPIENT && IS_ADDRESS.test(FEE_RECIPIENT)
+
+/** The cut, in wei, of an ETH-denominated amount. Zero when the fee is off. */
+export const feeOn = (weiAmount: bigint): bigint =>
+  feeIsOn() ? (weiAmount * BigInt(FEE_BIPS)) / 10000n : 0n
+
+/** What is left after the cut. */
+export const netOfFee = (weiAmount: bigint): bigint => weiAmount - feeOn(weiAmount)
+
+const PAY_PORTION_PARAMS = [
+  { type: "address" }, // token taken
+  { type: "address" }, // recipient
+  { type: "uint256" }, // bips, out of 10,000
+] as const
+
+const payPortionInput = () =>
+  encodeAbiParameters(PAY_PORTION_PARAMS, [
+    WETH as `0x${string}`,
+    FEE_RECIPIENT as `0x${string}`,
+    BigInt(FEE_BIPS),
+  ])
 /** UniversalRouter's magic recipients: the router itself, and whoever called. */
 const ADDRESS_THIS = "0x0000000000000000000000000000000000000002"
 const MSG_SENDER = "0x0000000000000000000000000000000000000001"
@@ -512,12 +598,19 @@ export function buildBuy(params: {
     [ADDRESS_THIS as `0x${string}`, amountInWei]
   )
 
+  /* The swap only ever sees what is left after the fee.
+     PAY_PORTION runs between the wrap and the swap and takes its share of the
+     router's WETH, so the swap has to be told the NET amount — asking it to
+     spend the gross would leave it short and revert. `minOutWei` is already
+     quoted against this net amount; see quoteTrade. */
+  const swapInWei = netOfFee(amountInWei)
+
   /* payerIsUser = false: the router already holds the wrapped ETH, so funds come
      from its own balance rather than being pulled from the user through Permit2.
      recipient is the user's wallet — the tokens never touch an address of ours. */
   const swapInput = encodeAbiParameters(V3_SWAP_IN_PARAMS, [
     recipient as `0x${string}`,
-    amountInWei,
+    swapInWei,
     minOutWei,
     encodePath(WETH, fee, token),
     false,
@@ -529,7 +622,9 @@ export function buildBuy(params: {
     data: encodeFunctionData({
       abi: ROUTER_ABI,
       functionName: "execute",
-      args: [CMD_WRAP_ETH_THEN_V3_IN, [wrapInput, swapInput], deadline],
+      args: feeIsOn()
+        ? [CMD_BUY_WITH_FEE, [wrapInput, payPortionInput(), swapInput], deadline]
+        : [CMD_WRAP_ETH_THEN_V3_IN, [wrapInput, swapInput], deadline],
     }),
     value: amountInWei,
     deadline,
@@ -579,10 +674,16 @@ export function buildSell(params: {
 
   /* The minimum is repeated here deliberately. The swap leg already enforces it,
      but UNWRAP_WETH carries its own floor, and leaving that at zero would let a
-     swap that somehow produced less still forward whatever it produced. */
+     swap that somehow produced less still forward whatever it produced.
+
+     The two floors are NOT the same number once a fee is taken between them.
+     The swap must produce the gross minimum; PAY_PORTION then removes its share;
+     so the unwrap can only require what is left. Setting both to the gross
+     figure reverts every sell the moment the fee is switched on — the router
+     would be asked to forward more WETH than it still holds. */
   const unwrapInput = encodeAbiParameters(
     [{ type: "address" }, { type: "uint256" }],
-    [MSG_SENDER as `0x${string}`, minOutWei]
+    [MSG_SENDER as `0x${string}`, netOfFee(minOutWei)]
   )
 
   return {
@@ -590,7 +691,9 @@ export function buildSell(params: {
     data: encodeFunctionData({
       abi: ROUTER_ABI,
       functionName: "execute",
-      args: [CMD_V3_IN_THEN_UNWRAP, [swapInput, unwrapInput], deadline],
+      args: feeIsOn()
+        ? [CMD_SELL_WITH_FEE, [swapInput, payPortionInput(), unwrapInput], deadline]
+        : [CMD_V3_IN_THEN_UNWRAP, [swapInput, unwrapInput], deadline],
     }),
     value: 0n,
     deadline,
