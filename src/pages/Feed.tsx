@@ -6,6 +6,7 @@ import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable } from "@/components/LaunchTable"
 import { Page, SectionHead } from "@/components/shell"
 import { useMarkets, type Market } from "@/lib/markets"
+import FeedFilters, { loadFilters, filtersToQuery, needsMeasurement, type Filters } from "@/components/FeedFilters"
 
 const REFRESH_MS = 12000
 
@@ -51,6 +52,10 @@ export default function Feed() {
   const [launches, setLaunches] = useState<Launch[] | null>(null)
   const [includeSolo, setIncludeSolo] = useState(false)
   const [hideRisky, setHideRisky] = useState(false)
+  /* Restored from the last visit — a filter set is a workspace, and rebuilding
+     it on every arrival is why nobody uses filters twice. */
+  const [filters, setFilters] = useState<Filters>(() => loadFilters())
+  const [measuredOnly, setMeasuredOnly] = useState(false)
   const [byRisk, setByRisk] = useState(false)
   const [failures, setFailures] = useState(0)
   /* Tracked separately from `failures`. That counter only increments when ALL
@@ -93,7 +98,16 @@ export default function Feed() {
     const [s, t, f] = await Promise.allSettled([
       getJSON<Stats>("/intel/stats"),
       getJSON<{ items: Theme[] }>("/intel/themes?limit=24&organicOnly=1"),
-      getJSON<{ items: Launch[] }>(`/intel/feed?limit=30${hideRisky ? "&maxRisk=25" : ""}`),
+      /* The filters go to the DATABASE. Narrowing the thirty rows already in
+         the browser would be a sort wearing a filter's clothes: ask for "over
+         50 holders" and you would get however many of those thirty qualify,
+         usually none, and conclude the chain was empty. `maxRisk` from the
+         toggle stays unless the filter panel sets its own. */
+      getJSON<{ items: Launch[]; measuredOnly?: boolean }>(
+        `/intel/feed?limit=30${
+          hideRisky && filters.maxRisk === null ? "&maxRisk=25" : ""
+        }${filtersToQuery(filters)}`
+      ),
     ])
 
     // Figures are safe to update live: they occupy a fixed box and nobody is
@@ -122,6 +136,8 @@ export default function Feed() {
       }
     }
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
+    // The API says when a filter restricted the answer to measured tokens.
+    if (f.status === "fulfilled") setMeasuredOnly(f.value.measuredOnly === true)
 
     /* Decided out here, not inside a state updater. Queueing `setPending` from
        within `setLaunches` is a side effect in a reducer — React is free to run
@@ -139,7 +155,7 @@ export default function Feed() {
 
     const failed = [s, t, f].filter((r) => r.status === "rejected").length
     setFailures((n) => (failed === 3 ? n + 1 : 0))
-  }, [includeSolo, hideRisky])
+  }, [includeSolo, hideRisky, filters])
 
   const applyPending = useCallback(() => {
     setPending((p) => {
@@ -158,7 +174,7 @@ export default function Feed() {
     // A different set is being requested, so the next response is not an
     // interruption — let it land even if the reader is scrolled down.
     shown.current = false
-  }, [includeSolo, hideRisky])
+  }, [includeSolo, hideRisky, filters])
 
   /* How many of the held launches are ones the reader has not seen. */
   const waiting = useMemo(() => {
@@ -460,6 +476,21 @@ export default function Feed() {
             {byRisk ? "Riskiest first" : "Newest first"}
           </Toggle>
         </div>
+
+        <FeedFilters value={filters} onChange={setFilters} />
+
+        {measuredOnly && needsMeasurement(filters) && (
+          /* Said out loud, because a holder filter silently drops every token
+             we have not measured yet — and four results could mean "only four
+             are this clean" or "we have only measured forty". A reader cannot
+             tell those apart, and the difference decides whether the filter is
+             useful or misleading. */
+          <p className="measure mt-4 text-xs leading-relaxed text-warn">
+            Holder filters can only match launches we have already measured. Everything else is
+            hidden here — not because it failed, but because we have not looked at it yet. Newer
+            launches are measured first.
+          </p>
+        )}
 
         {/* The scale, stated. The column heading named the number but not what
             it meant, and the only explanation of the thresholds was a `title`
