@@ -81,6 +81,32 @@ export type Launch = {
 
 export type ThemeStatus = "EMERGING" | "HOT" | "SATURATED" | "DECAYING"
 
+/* GET /intel/token/:address/distribution — who holds it.
+ *
+ * Its own call, not part of the token payload, because the backend replays
+ * every Transfer the token has emitted and that takes a second or two. The page
+ * renders on what it already has and this fills in.
+ *
+ * `top10Pct` is null when nobody holds the token — a percentage of nothing is
+ * not zero, it is unanswerable, and the panel has to be able to say so. */
+export type Distribution = {
+  address: string
+  holders: number
+  top10Pct: number | null
+  devHoldsPct: number | null
+  devSold: boolean
+  devSoldAmount: string
+  firstBuyers: number
+  firstBuyersStillHolding: number
+  decimals: number
+  totalSupply: string
+  transfersScanned: number
+  fromBlock: number
+  toBlock: number
+  /** True when the replay started at the launch block, which the API enforces. */
+  complete: boolean
+}
+
 /* GET /intel/separation — the one claim the product rests on, measured rather
    than quoted. Every field is nullable on purpose: a sample too thin to mean
    anything reports itself, and the page has to be able to say nothing. */

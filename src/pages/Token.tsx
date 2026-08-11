@@ -7,6 +7,7 @@ import { Page, SectionHead } from "@/components/shell"
 import { useMarkets, usd, type Market } from "@/lib/markets"
 import { Chart, Trades } from "@/components/market"
 import SwapPanel from "@/components/SwapPanel"
+import DistributionPanel from "@/components/Distribution"
 import { getDecimals, poolFromLabels, resolveRoute, type Pool } from "@/lib/swap"
 import { getPoolAddress, v4Source, type TradeSource } from "@/lib/trades"
 
@@ -240,6 +241,11 @@ export default function Token() {
           </div>
         )}
       </div>
+
+      {/* Above "what the index knows", because it answers the earlier question.
+          The index panel says whether the NAME is a copy; this says whether the
+          position can be exited, and a reader wants that first. */}
+      {usable && <DistributionPanel address={address.toLowerCase()} />}
 
       <WhatWeKnow data={data} state={indexState} />
       <Siblings data={data} />
