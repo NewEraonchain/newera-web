@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { getJSON, type Distribution } from "@/lib/api"
 import { SectionHead } from "@/components/shell"
+import { judgeDistribution, type Severity } from "@/lib/distributionVerdict"
 
 /* Who holds it — and, first, what that adds up to.
  *
@@ -16,77 +17,7 @@ import { SectionHead } from "@/components/shell"
  * advice to buy or sell: "the deployer holds 25%" is a fact, "the deployer may
  * dump" is a forecast, and this product does not make forecasts. */
 
-type Verdict = { text: string; tone: "bad" | "warn" | "ok" | "unknown" }
-
-/* Ordered by how much it matters, and the first one that fits wins.
- *
- * The order is the whole design. A token can be concentrated AND have a
- * departed deployer AND thin holders; leading with the least consequential of
- * those buries the one that decides the trade. */
-export function readDistribution(d: Distribution): Verdict {
-  if (d.holders === 0) {
-    return {
-      tone: "unknown",
-      text: "Nobody holds this yet. Every token is still with the pool or the contract.",
-    }
-  }
-  if (d.holders === 1) {
-    return {
-      tone: "bad",
-      text: "One wallet holds every token in circulation.",
-    }
-  }
-  if (d.devHoldsPct !== null && d.devHoldsPct >= 20) {
-    return {
-      tone: "bad",
-      /* The "more than everyone else combined" clause is only TRUE above 50%,
-         and this branch fires from 20%. Saying it at 25% would be a plain
-         arithmetic overclaim on a panel whose whole argument is that its
-         figures can be checked. Above half, the comparison is worth making
-         because it is the fact that matters; below it, the number speaks. */
-      text:
-        d.devHoldsPct > 50
-          ? `The deployer still holds ${d.devHoldsPct}% of the entire supply — more than everyone else combined.`
-          : `The deployer still holds ${d.devHoldsPct}% of the entire supply.`,
-    }
-  }
-  if (d.holders <= 5) {
-    return {
-      tone: "bad",
-      text: `Only ${d.holders} wallets hold this.`,
-    }
-  }
-  if (d.top10Pct !== null && d.top10Pct >= 90) {
-    return {
-      tone: "bad",
-      text: `${d.holders} wallets hold it, but the largest ten have ${d.top10Pct}% between them.`,
-    }
-  }
-  if (d.firstBuyers >= 3 && d.firstBuyersStillHolding === 0) {
-    return {
-      tone: "warn",
-      text: `Every one of the first ${d.firstBuyers} buyers has already sold out.`,
-    }
-  }
-  if (d.devSold) {
-    return {
-      tone: "warn",
-      text: `${d.holders} wallets hold it, and the deployer has sold theirs.`,
-    }
-  }
-  if (d.top10Pct !== null && d.top10Pct >= 70) {
-    return {
-      tone: "warn",
-      text: `${d.holders} wallets hold it, with ${d.top10Pct}% concentrated in the largest ten.`,
-    }
-  }
-  return {
-    tone: "ok",
-    text: `${d.holders} wallets hold it, the largest ten ${d.top10Pct}% between them. That is a real spread for a launch this age.`,
-  }
-}
-
-const TONE: Record<Verdict["tone"], string> = {
+const TONE: Record<Severity, string> = {
   bad: "text-danger",
   warn: "text-warn",
   ok: "text-acid-500",
@@ -178,9 +109,11 @@ export default function DistributionPanel({ address }: { address: string }) {
       {state === "ok" && d && (
         <>
           {(() => {
-            const v = readDistribution(d)
+            const v = judgeDistribution(d)
             return (
-              <p className={`measure mt-4 text-lg leading-relaxed ${TONE[v.tone]}`}>{v.text}</p>
+              <p className={`measure mt-4 text-lg leading-relaxed ${TONE[v.severity]}`}>
+                {v.sentence}
+              </p>
             )
           })()}
 

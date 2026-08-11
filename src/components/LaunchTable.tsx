@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { ago } from "@/lib/api"
+import { judgeDistribution } from "@/lib/distributionVerdict"
 import type { Launch } from "@/lib/api"
 import { usd, type Market } from "@/lib/markets"
 import { FlagPill, RiskPill } from "@/components/intel"
@@ -102,13 +103,27 @@ function TapeRow({
   const traded = !!market?.liquidityUsd
   const chg = market?.priceChange24h ?? null
   const live = (market?.txns5m ?? 0) > 0
-  /* Monochrome on purpose. This was acid for a rise and danger for a fall, which
-     spends the two colours the product reserves for its own judgement — acid
-     means "this looks organic", danger means "this looks manufactured" — on a
-     price a venue reported. A reader scanning the table saw green and read it as
-     our verdict on the token. The sign is already printed, so direction survives
-     the colour going away, and it now survives colour-blindness too. */
+
+  /* Monochrome on purpose. This was acid for a rise and danger for a fall,
+     which spends the two colours the product reserves for its own judgement —
+     acid means "this looks organic", danger means "this looks manufactured" —
+     on a price a venue reported. A reader scanning the table saw green and read
+     it as our verdict on the token. The sign is already printed, so direction
+     survives the colour going away, and it survives colour-blindness too. */
   const tone = chg === null ? "text-fg-dim" : "text-fg-muted"
+
+  /* Same ladder as the token page, from one module, so a row and the page it
+     opens can never disagree about the same token. One badge at most: a row is
+     scanned, not read, and a second badge competes with the first. A token we
+     have not measured gets nothing, because silence is the honest rendering of
+     "we have not looked". */
+  const verdict = launch.distribution ? judgeDistribution(launch.distribution) : null
+  const distTone =
+    verdict?.severity === "bad"
+      ? "text-danger"
+      : verdict?.severity === "warn"
+        ? "text-warn"
+        : "text-fg-dim"
 
   /* "No market" is the product's central claim about most of these rows, so it
      is written out once across the market columns rather than repeated as four
@@ -131,6 +146,20 @@ function TapeRow({
           <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
           <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
         </Link>
+        {/* The distribution warning, in the badge row rather than a new column.
+            The table is already six columns wide and the point of this is not a
+            figure to compare across rows — it is a flag that says "this one is
+            held by almost nobody" before you open it. Only shown when it is
+            actually adverse: a healthy spread needs no badge, and a token we
+            have not measured gets nothing at all, because silence is the honest
+            rendering of "we have not looked". */}
+        {verdict?.badge && (
+          <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className={`font-mono text-micro font-semibold ${distTone}`}>
+              {verdict.badge}
+            </span>
+          </span>
+        )}
         {(launch.spoofFlags?.length || launch.dupeCount > 0 || launch.devBuyEth > 0) && (
           <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {(launch.spoofFlags || []).slice(0, 2).map((f) => (

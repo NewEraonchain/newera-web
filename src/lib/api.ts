@@ -77,6 +77,17 @@ export type Launch = {
   riskScore: number
   txHash: string
   theme: { id: string; label: string; slug: string; status: ThemeStatus } | null
+  /* Null means NOT MEASURED, not "no holders". The two must never render the
+     same way: one is a gap in our coverage, the other is a claim about the
+     token. Filled in when someone opens the token page, and topped up in the
+     background for recent launches. */
+  distribution: {
+    holders: number
+    top10Pct: number | null
+    devHoldsPct: number | null
+    devSold: boolean
+    measuredAt: string
+  } | null
 }
 
 export type ThemeStatus = "EMERGING" | "HOT" | "SATURATED" | "DECAYING"
