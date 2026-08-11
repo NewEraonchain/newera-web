@@ -66,7 +66,10 @@ export function LaunchTable({
             <th scope="col" className={`${HEAD} w-[30%]`}>Token</th>
             <th scope="col" className={`${HEAD} hidden w-[14%] pl-4 text-right lg:table-cell`}>Liquidity</th>
             <th scope="col" className={`${HEAD} hidden w-[14%] pl-4 text-right lg:table-cell`}>Traded 24h</th>
-            <th scope="col" className={`${HEAD} hidden w-[11%] pl-4 text-right xl:table-cell`}>Trades</th>
+            {/* "Trades 5m", not "Trades". A 24-hour count cannot distinguish a
+                token trading right now from one that finished yesterday, and
+                that is the only thing this column is scanned for. */}
+            <th scope="col" className={`${HEAD} hidden w-[11%] pl-4 text-right xl:table-cell`}>Trades 5m</th>
             <th scope="col" className={`${HEAD} hidden w-[12%] pl-4 text-right sm:table-cell`}>24h</th>
             <th scope="col" className={`${HEAD} w-[9%] pl-4 text-right`}>Risk</th>
           </tr>
@@ -98,6 +101,7 @@ function TapeRow({
   const risky = launch.riskScore >= 40
   const traded = !!market?.liquidityUsd
   const chg = market?.priceChange24h ?? null
+  const live = (market?.txns5m ?? 0) > 0
   /* Monochrome on purpose. This was acid for a rise and danger for a fall, which
      spends the two colours the product reserves for its own judgement — acid
      means "this looks organic", danger means "this looks manufactured" — on a
@@ -159,8 +163,18 @@ function TapeRow({
       <td className={`${NUM} hidden text-fg-muted lg:table-cell`}>
         {traded ? usd(market!.volume24h) : "—"}
       </td>
-      <td className={`${NUM} hidden text-fg-dim xl:table-cell`}>
-        {traded && market!.txns24h !== null ? market!.txns24h.toLocaleString("en-US") : "—"}
+      {/* Live count in acid, a dead one left dim. This is the one place on the
+          row where colour is a judgement rather than decoration: it separates
+          "trading now" from "traded at some point today", which is the
+          distinction the whole section is ranked on. */}
+      <td className={`${NUM} hidden xl:table-cell ${live ? "text-acid-500" : "text-fg-dim"}`}>
+        {!traded
+          ? "—"
+          : market!.txns5m === null
+            ? "—"
+            : market!.txns5m > 0
+              ? market!.txns5m.toLocaleString("en-US")
+              : "0"}
       </td>
       <td className={`${NUM} hidden sm:table-cell ${traded ? tone : "text-fg-dim"}`}>
         {traded && chg !== null

@@ -227,7 +227,14 @@ if (!targets.v4list.length) {
     const state = await page.waitForFunction(
       () => {
         if (document.querySelector("#swap-amount")) return "panel"
-        if (/Trading this one happens elsewhere/.test(document.body.innerText)) return "handoff"
+        /* BOTH headings. The panel says "Trading this one happens elsewhere"
+           when a venue we do not route holds the market, and "This one cannot
+           be traded right now" when the pool is drained — because sending
+           somebody to trade an empty pool is not an offer. Matching only the
+           first made every drained-pool token time out at 40 seconds and report
+           as "never resolved", which reads as a broken page when the page was
+           correct. */
+        if (/Trading this one happens elsewhere|This one cannot be traded right now/.test(document.body.innerText)) return "handoff"
         return false
       },
       { timeout: 40000 }
@@ -275,7 +282,9 @@ if (!targets.v4list.length) {
       declines++
       const reason = await page.evaluate(() => {
         const t = document.body.innerText
-        const i = t.indexOf("Trading this one happens elsewhere")
+        const m = t.match(/Trading this one happens elsewhere|This one cannot be traded right now/)
+        const i = m ? m.index : -1
+        if (i < 0) return ""
         // The first NON-EMPTY line after the heading — innerText puts a blank
         // line between block elements, so [1] is reliably "".
         return t.slice(i, i + 400).split("\n").slice(1).map(s => s.trim()).find(Boolean) || ""

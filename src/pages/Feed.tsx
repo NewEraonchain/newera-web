@@ -5,7 +5,7 @@ import type { Launch, Stats, Theme } from "@/lib/api"
 import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable } from "@/components/LaunchTable"
 import { Page, SectionHead } from "@/components/shell"
-import { useMarkets } from "@/lib/markets"
+import { useMarkets, type Market } from "@/lib/markets"
 
 const REFRESH_MS = 12000
 
@@ -32,6 +32,18 @@ const REFRESH_MS = 12000
  * a scrolling page is the single most dashboard-like thing a layout can do: it
  * hides its own contents, fights the page, and was the source of the standing
  * `first-viewport-column-overflow` finding. */
+
+/* How alive a market is right now, in dollars-weighted-by-recency.
+ *
+ * Not a score shown to anyone — only an ordering. A token doing $500 in the
+ * last five minutes is more use to a reader than one that did $50,000 yesterday
+ * and stopped, and 24h volume ranked them the other way round. */
+function liveness(m: Market): number {
+  const v5 = m.volume5m ?? 0
+  const v1h = m.volume1h ?? 0
+  const v24 = m.volume24h ?? 0
+  return v5 * 12 + v1h * 2 + v24 * 0.05
+}
 
 export default function Feed() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -221,12 +233,18 @@ export default function Feed() {
      one batched call covers both the section below and every row. */
   const markets = useMarkets(useMemo(() => (launches || []).map((l) => l.address), [launches]))
 
-  /* Traded, ranked by how much. This is the section the feed did not have: it
-     showed what launched and how spammy it looked, and nothing at all about
-     whether a token had traction — which is most of what a reader is there to
-     find out. Ordered by 24h volume because that is the question being asked.
-     A single seed trade is not traction, so it has to clear both a volume and
-     a trade-count floor. */
+  /* Traded, ranked by what is trading NOW.
+   *
+   * This is the section the feed did not have: it showed what launched and how
+   * spammy it looked, and nothing about whether a token had traction — most of
+   * what a reader is there to find out. A single seed trade is not traction, so
+   * it still has to clear a volume and a trade-count floor.
+   *
+   * The RANK was the bug. Ordered by 24-hour volume, a token that traded
+   * heavily twenty hours ago and has been dead since outranked one trading this
+   * minute — and "Getting traded" is present tense. DexScreener returns m5 and
+   * h1 in the same response we already make, so the ordering now prefers recent
+   * activity and falls back to 24h only where the short windows are absent. */
   const traded = useMemo(() => {
     if (!launches || !markets) return null
     return launches
@@ -242,7 +260,11 @@ export default function Feed() {
           (r.market.volume24h ?? 0) > 0 &&
           (r.market.txns24h ?? 0) > 1
       )
-      .sort((a, b) => (b.market!.volume24h ?? 0) - (a.market!.volume24h ?? 0))
+      /* Recency-weighted: the last hour dominates, the last five minutes
+         dominate that, and 24h only breaks ties between tokens that are equally
+         quiet now. Weights rather than a strict sort so a token with one big
+         recent trade does not leapfrog one with sustained volume. */
+      .sort((a, b) => liveness(b.market!) - liveness(a.market!))
   }, [launches, markets])
 
   const marketsDown = markets !== null && !markets.ok

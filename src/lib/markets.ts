@@ -35,6 +35,21 @@ export type Market = {
   volume24h: number | null
   priceChange24h: number | null
   txns24h: number | null
+  /* Short windows, which DexScreener already returns in the same response.
+   *
+   * 24h alone cannot tell a token trading right now from one that traded
+   * heavily yesterday and is dead — and the feed was ranking by it, so a
+   * finished token outranked a live one. These come free in a call we already
+   * make; there is no backend work behind them. m5 is the shortest DexScreener
+   * offers, so GMGN's "60 trades in the first minute" rule is not reproducible
+   * from this source. */
+  txns5m: number | null
+  txns1h: number | null
+  buys5m: number | null
+  sells5m: number | null
+  volume5m: number | null
+  volume1h: number | null
+  priceChange5m: number | null
   marketCap: number | null
   /** The market page, taken from the response. Never constructed by us. */
   url: string
@@ -105,6 +120,12 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
       if (prev && (prev.liquidityUsd ?? 0) >= (liquidityUsd ?? 0)) continue
       const buys = num(pair?.txns?.h24?.buys) ?? 0
       const sells = num(pair?.txns?.h24?.sells) ?? 0
+      const b5 = num(pair?.txns?.m5?.buys)
+      const s5 = num(pair?.txns?.m5?.sells)
+      const b1h = num(pair?.txns?.h1?.buys)
+      const s1h = num(pair?.txns?.h1?.sells)
+      const sum = (a: number | null, b: number | null) =>
+        a === null && b === null ? null : (a ?? 0) + (b ?? 0)
       out.set(addr, {
         address: addr,
         symbol: String(pair?.baseToken?.symbol || ""),
@@ -114,6 +135,13 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         volume24h: num(pair?.volume?.h24),
         priceChange24h: num(pair?.priceChange?.h24),
         txns24h: buys + sells,
+        txns5m: sum(b5, s5),
+        txns1h: sum(b1h, s1h),
+        buys5m: b5,
+        sells5m: s5,
+        volume5m: num(pair?.volume?.m5),
+        volume1h: num(pair?.volume?.h1),
+        priceChange5m: num(pair?.priceChange?.m5),
         marketCap: num(pair?.marketCap) ?? num(pair?.fdv),
         url: String(pair?.url || ""),
         dex: String(pair?.dexId || ""),

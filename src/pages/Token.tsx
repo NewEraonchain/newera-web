@@ -313,6 +313,38 @@ function TheMarket({
     tone,
   }]
 
+  /* Is it trading NOW, or did it finish?
+   *
+   * "Traded 24h" cannot tell those apart, and they are opposite answers to the
+   * only question this block is asked. DexScreener returns m5 and h1 in the
+   * same response, so the comparison costs nothing. Stated as an observation:
+   * a token whose whole day happened in the last hour is a token that just
+   * started, and one with nothing in an hour has stopped — neither is a
+   * forecast about what happens next. */
+  const t5 = market.txns5m
+  const t1h = market.txns1h
+
+  /* Trade count alone is the wrong tell, and it is the one GMGN publishes.
+   *
+   * Their rule is "over 60 trades in the first minute indicates genuine
+   * activity rather than wash trading". Measured against this chain the same
+   * afternoon: one token showed 1,112 trades in five minutes on $3,631 of
+   * volume — $3.27 a trade — while another showed 151 trades on $48,086, or
+   * $318 a trade. The rule rates the first as the most genuine token on the
+   * list. Average size separates them by two orders of magnitude, so we state
+   * both and let the reader see the shape rather than asserting "wash
+   * trading", which we cannot prove from a trade count. */
+  const avg5m = t5 && t5 > 0 && market.volume5m !== null ? market.volume5m / t5 : null
+
+  const pace =
+    t5 === null || t1h === null
+      ? null
+      : t5 > 0
+        ? { text: `${t5.toLocaleString("en-US")} ${t5 === 1 ? "trade" : "trades"} in the last five minutes`, live: true }
+        : t1h > 0
+          ? { text: `Nothing in five minutes; ${t1h.toLocaleString("en-US")} in the last hour`, live: false }
+          : { text: "No trades in the last hour", live: false }
+
   return (
     <section className="mt-[6vh] border-y border-edge py-7">
       {/* An even grid across the full width, not a left-packed flex row. Packed,
@@ -345,6 +377,26 @@ function TheMarket({
           </a>
         )}
       </div>
+
+      {pace && (
+        <p className="mt-5 flex flex-wrap items-baseline gap-x-3 text-sm">
+          <span className={pace.live ? "text-acid-500" : "text-warn"}>{pace.text}</span>
+          {market.buys5m !== null && market.sells5m !== null && (t5 ?? 0) > 0 && (
+            <span className="font-mono text-xs text-fg-dim">
+              {market.buys5m} buying · {market.sells5m} selling
+            </span>
+          )}
+          {avg5m !== null && (
+            <span className="font-mono text-xs text-fg-dim">
+              averaging{" "}
+              {avg5m < 1
+                ? `$${avg5m.toFixed(2)}`
+                : `$${Math.round(avg5m).toLocaleString("en-US")}`}{" "}
+              a trade
+            </span>
+          )}
+        </p>
+      )}
 
       {/* This paragraph used to say NewEra "does not execute trades", which
           stopped being true the moment the swap panel shipped. What survives is
