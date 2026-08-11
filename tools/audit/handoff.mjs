@@ -34,8 +34,20 @@ for (const href of hrefs) {
   await wait(6000)
   const r = await t.evaluate(() => {
     const txt = document.body.innerText
-    const cta = [...document.querySelectorAll("a")].find((a) => /^Trade on /i.test(a.innerText.trim()))
-    const head = [...document.querySelectorAll("h2")].find((h) => /happens elsewhere/i.test(h.textContent || ""))
+    /* Both headings and both call-to-action wordings. The panel says "Trading
+       this one happens elsewhere" when a venue we do not route holds the market,
+       and "This one cannot be traded right now" when the pool is empty — and the
+       second one offers "See the pool on X", not "Trade on X", precisely because
+       sending somebody to trade an empty pool is not an offer. This matcher knew
+       only the first pair and reported the second as a handoff with a null
+       reason, which read as a page failing to explain itself when the page was
+       explaining itself perfectly. */
+    const cta = [...document.querySelectorAll("a")].find((a) =>
+      /^(Trade on|See the pool on) /i.test(a.innerText.trim())
+    )
+    const head = [...document.querySelectorAll("h2")].find((h) =>
+      /happens elsewhere|cannot be traded right now/i.test(h.textContent || "")
+    )
     const reason = head?.nextElementSibling?.textContent?.trim() || null
     return {
       symbol: (document.querySelector("h1")?.innerText || "").slice(0, 14),

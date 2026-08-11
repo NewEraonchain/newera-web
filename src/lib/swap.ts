@@ -103,10 +103,43 @@ const REFERENCE_WEI = 10n ** 12n // 0.000001 ETH
  * fine and the pairing was the problem. v4 has no such restriction here: it
  * takes native ETH directly, and its pairing is checked when the key resolves.
  */
+/* The venues whose contracts this file actually knows.
+ *
+ * An ALLOWLIST, because `CONTRACTS` in chain.ts holds Uniswap's deployment and
+ * nothing else. This used to blocklist flapsh by name and let everything else
+ * through, so any other DEX publishing a "v3" label was routed into Uniswap's
+ * quoter — which of course found no pool and declined with "No v3 pool answered
+ * a quote for this token". Observed live on a SushiSwap market: the panel
+ * offered "Trade on SushiSwap" underneath a sentence blaming the token for a
+ * pool that exists and is perfectly fine, on a venue we simply do not route.
+ *
+ * A blocklist has to be updated every time a new DEX appears on the chain, and
+ * the failure when it is not is a wrong explanation rather than a missing one.
+ * An allowlist fails the other way: an unknown venue declines by name. */
+const ROUTED_VENUES = new Set(["uniswap"])
+
+/* How each venue writes its own name. Title-casing the dexId gets "Sushiswap",
+   which is not what SushiSwap calls itself — and a sentence explaining why we
+   will not route somewhere should at least spell it correctly. Anything unknown
+   falls back to the raw id rather than a guess at its capitalisation. */
+const VENUE_NAMES: Record<string, string> = {
+  uniswap: "Uniswap",
+  sushiswap: "SushiSwap",
+  pancakeswap: "PancakeSwap",
+  flapsh: "flapsh",
+}
+const venueName = (dexId?: string) =>
+  dexId ? VENUE_NAMES[dexId.toLowerCase()] || dexId : "another venue"
+
 export function poolFromLabels(dexId?: string, labels?: string[], quoteToken?: string): Pool {
   const l = (labels || []).map((s) => s.toLowerCase())
-  if (dexId === "flapsh") {
-    return { protocol: "flapsh", supported: false, reason: "This market is on flapsh, which NewEra does not route." }
+  if (dexId && !ROUTED_VENUES.has(dexId.toLowerCase())) {
+    return {
+      protocol: dexId.toLowerCase() === "flapsh" ? "flapsh" : "unknown",
+      supported: false,
+      venueTradeable: true,
+      reason: `This market is on ${venueName(dexId)}, which NewEra does not route.`,
+    }
   }
   if (l.includes("v4")) return { protocol: "v4", supported: true }
   if (l.includes("v2")) {

@@ -239,6 +239,17 @@ console.log("\n6. routing")
 check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap v3 against WETH is a candidate")
 check(swap.poolFromLabels("uniswap", ["v4"], WETH).supported === true, "uniswap v4 is a candidate")
 check(swap.poolFromLabels("flapsh", [], WETH).supported === false, "flapsh falls back to the handoff")
+/* An unknown venue declines BY NAME rather than being routed into Uniswap's
+   quoter and blamed on the token. This was a blocklist of one, so a SushiSwap
+   market carrying a "v3" label reached the v3 path and came back "No v3 pool
+   answered a quote for this token" — a sentence about the token, for a pool
+   that was fine, on a venue we do not route. */
+{
+  const sushi = swap.poolFromLabels("sushiswap", ["v3"], WETH)
+  check(sushi.supported === false, "an unrouted venue with a v3 label is not treated as Uniswap")
+  check(/SushiSwap/i.test(sushi.reason || ""), `the reason names the venue (${sushi.reason})`)
+  check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap still routes")
+}
 check(swap.poolFromLabels("uniswap", ["v3"], "0xdead000000000000000000000000000000000000").supported === false,
   "v3 paired against a non-WETH token falls back rather than offering a swap that cannot quote")
 check(!!(await swap.resolveRoute("0x000000000000000000000000000000000000dead", swap.poolFromLabels("uniswap", ["v4"], WETH), "0x" + "ab".repeat(32))).reason,

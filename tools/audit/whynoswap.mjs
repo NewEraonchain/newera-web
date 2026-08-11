@@ -44,7 +44,10 @@ for (const p of pairs) {
   if (!a) continue
   const liq = Number(p?.liquidity?.usd) || 0
   if ((best.get(a)?.liq ?? -1) >= liq) continue
-  best.set(a, { liq, dex: String(p.dexId || ""), labels: (p.labels || []).map(String),
+  const t = (p.txns || {}).h24 || {}
+  best.set(a, { liq, vol: Number(p?.volume?.h24) || 0,
+    tx: (Number(t.buys) || 0) + (Number(t.sells) || 0),
+    dex: String(p.dexId || ""), labels: (p.labels || []).map(String),
     quote: String(p?.quoteToken?.address || "").toLowerCase(), pairAddress: String(p.pairAddress || ""),
     symbol: String(p?.baseToken?.symbol || "") })
 }
@@ -63,6 +66,34 @@ for (const [addr, m] of ranked) {
   if (ranked.indexOf([addr, m]) < 0) { /* noop */ }
   console.log(
     `  $${String(Math.round(m.liq)).padStart(7)}  ${m.symbol.padEnd(12).slice(0, 12)} ${m.dex}/${m.labels.join(",") || "-"}  ${why}`
+  )
+}
+
+/* Coverage is not the same question as demand.
+ *
+ * "A third of markets are on a venue we do not route" sounds like the biggest
+ * gap on the product until you ask whether anyone trades there. Measured:
+ * flapsh held nearly twice Uniswap's liquidity with ZERO 24h volume and 8
+ * trades against Uniswap's 1,020 — it is where launches park their initial
+ * liquidity, not where trading happens. Routing it would have bought coverage
+ * on paper and served nobody. This table exists so the judgement is made from
+ * volume rather than from pair counts. */
+const byVenue = new Map()
+for (const [, m] of ranked) {
+  const v = byVenue.get(m.dex) || { pairs: 0, liq: 0, vol: 0, tx: 0 }
+  v.pairs++
+  v.liq += m.liq
+  v.vol += m.vol
+  v.tx += m.tx
+  byVenue.set(m.dex, v)
+}
+const money = (n) => "$" + Math.round(n).toLocaleString("en-US")
+console.log("\nwho actually trades, by venue:")
+for (const [dex, v] of [...byVenue.entries()].sort((a, b) => b[1].vol - a[1].vol)) {
+  console.log(
+    `  ${(dex || "unknown").padEnd(11)} pairs=${String(v.pairs).padStart(3)}` +
+      `  liquidity=${money(v.liq).padStart(11)}  24h volume=${money(v.vol).padStart(11)}` +
+      `  24h trades=${String(v.tx).padStart(5)}`
   )
 }
 
