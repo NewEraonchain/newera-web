@@ -562,6 +562,21 @@ export default function Feed() {
           </div>
         )}
 
+        {/* Why two thirds of the rows have dashes where the money should be.
+            Measured on production: DexScreener indexes 606 of 738 v3 pools on
+            this chain and ZERO of 1,463 v4 pools, and v4 is the majority here.
+            Without this the reader concludes those tokens are dead, when the
+            truth is that our price source cannot see them. A dash that is never
+            explained is read as a zero. */}
+        {rows.some((r) => r.launch.pool?.venue === "v4" && !r.market) && (
+          <p className="measure mt-6 text-micro leading-relaxed text-warn">
+            Rows showing a dash instead of a price are Uniswap v4 pools. They trade — we read the
+            pool opening from the chain — but our price source does not index v4 on this chain
+            yet, so we will not put a number next to them. Sorting by a money column ranks the
+            tokens we can price and leaves these at the end.
+          </p>
+        )}
+
         <p className="mt-6 text-sm text-fg-dim">
           Scores explained on{" "}
           <Link to="/detection" className="scan-link text-acid-500">

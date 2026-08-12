@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
-import type { TokenDetail } from "@/lib/api"
+import type { Launch, TokenDetail } from "@/lib/api"
 import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/components/intel"
 import { Page, SectionHead } from "@/components/shell"
 import { useMarkets, usd, type Market } from "@/lib/markets"
@@ -206,7 +206,7 @@ export default function Token() {
         )}
       </div>
 
-      <TheMarket market={market} state={marketState} />
+      <TheMarket market={market} state={marketState} pool={launch?.pool} />
 
       {/* Two rails, because deciding and acting are one task.
           Stacked, the trade panel sat a full screen above the chart it is a
@@ -259,9 +259,14 @@ export default function Token() {
 function TheMarket({
   market,
   state,
+  pool,
 }: {
   market?: Market
   state: "loading" | "ok" | "down"
+  /* What the CHAIN says, as opposed to what a market aggregator says. These
+     answer different questions and this section had only ever asked the second
+     one — see the no-market branch below. */
+  pool?: Launch["pool"]
 }) {
   if (state === "loading") {
     return (
@@ -283,6 +288,35 @@ function TheMarket({
   }
 
   if (!market || !market.liquidityUsd) {
+    /* "Nobody can trade this" is a claim about the TOKEN. Having no price from
+     * one aggregator is a fact about our coverage. They are not the same
+     * sentence, and this branch printed the first while only knowing the
+     * second.
+     *
+     * Measured on production: DexScreener indexes ZERO of the 1,463 v4 pools on
+     * this chain, against 606 of 738 on v3. v4 is 66% of everything tradable
+     * here — so two out of every three tokens with a working pool were being
+     * told, in the largest type on the page, that nobody could buy them.
+     *
+     * We index pool creation ourselves, from the chain, so we know better. When
+     * a pool exists the page says what is actually true: it trades, and we
+     * cannot price it yet. */
+    if (pool) {
+      return (
+        <section className="mt-[6vh] border-y border-edge py-7">
+          <p className="max-w-[52ch] text-[clamp(1.05rem,1.7vw,1.35rem)] leading-[1.5] text-fg">
+            This trades — we just cannot price it yet.
+          </p>
+          <p className="measure mt-3 text-sm leading-relaxed text-fg-dim">
+            A {pool.venue === "v4" ? "Uniswap v4" : "Uniswap v3"} pool opened
+            {pool.pooledAt ? ` ${ago(Math.max(0, Math.floor((Date.now() - new Date(pool.pooledAt).getTime()) / 1000)))} ago` : ""}
+            , which we read from the chain directly. The price and depth shown elsewhere on this
+            site come from DexScreener, and it does not currently index v4 pools on this chain —
+            so the figures are missing, not the market.
+          </p>
+        </section>
+      )
+    }
     return (
       <section className="mt-[6vh] border-y border-edge py-7">
         <p className="max-w-[46ch] text-[clamp(1.05rem,1.7vw,1.35rem)] leading-[1.5] text-fg">
