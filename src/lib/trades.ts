@@ -55,10 +55,21 @@ export type TradeSource =
   | { kind: "v3"; pool: string }
   | { kind: "v4"; poolId: string; ethIsCurrency0: boolean }
 
-export async function getPoolAddress(token: string, fee: number): Promise<string | null> {
+/* Which factory holds it decides whether the pool exists at all.
+ *
+ * SushiSwap pools are the same contract shape as Uniswap v3 ones — same Swap
+ * event, so the tape reads them identically — but a different factory deployed
+ * them. Asking Uniswap's factory where a Sushi pool is returns the zero
+ * address, and the token page then shows an empty trade tape for a pair that
+ * is trading fine. */
+export async function getPoolAddress(
+  token: string,
+  fee: number,
+  factory: string = CONTRACTS.v3Factory
+): Promise<string | null> {
   try {
     const pool = (await publicClient.readContract({
-      address: CONTRACTS.v3Factory as `0x${string}`,
+      address: factory as `0x${string}`,
       abi: FACTORY_ABI,
       functionName: "getPool",
       args: [WETH as `0x${string}`, token as `0x${string}`, fee],

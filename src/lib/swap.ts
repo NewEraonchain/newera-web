@@ -39,7 +39,18 @@ export const ERC20_ABI = parseAbi([
   "function approve(address spender, uint256 amount) returns (bool)",
 ])
 
-export type Protocol = "v3" | "v4" | "flapsh" | "unknown"
+/* "sushi" is Uniswap v3 with a different factory, quoter and router — same
+   pool math, same fee tiers, same calldata shape. It is a separate protocol
+   here rather than a flag on "v3" because every address it touches differs,
+   and a boolean would leave four call sites free to forget which venue they
+   are on. */
+export type Protocol = "v3" | "v4" | "sushi" | "flapsh" | "unknown"
+
+/** Which periphery answers for a protocol. v4 has its own path entirely. */
+const QUOTER_FOR: Record<string, `0x${string}`> = {
+  v3: CONTRACTS.quoterV2 as `0x${string}`,
+  sushi: CONTRACTS.sushiQuoter as `0x${string}`,
+}
 
 export type Pool = {
   protocol: Protocol
@@ -142,6 +153,21 @@ const venueName = (dexId?: string) =>
 
 export function poolFromLabels(dexId?: string, labels?: string[], quoteToken?: string): Pool {
   const l = (labels || []).map((s) => s.toLowerCase())
+  const venue = (dexId || "").toLowerCase()
+  /* SushiSwap is a v3 fork and we now hold its whole periphery, so it routes.
+     It still has to clear the same ETH-pairing check as Uniswap v3 below —
+     being able to reach a venue is not the same as being able to fill a trade
+     against it in one hop. */
+  if (venue === "sushiswap" && (labels || []).map((x) => x.toLowerCase()).includes("v3")) {
+    return !quoteToken || quoteToken.toLowerCase() === WETH.toLowerCase()
+      ? { protocol: "sushi", supported: true }
+      : {
+          protocol: "sushi",
+          supported: false,
+          venueTradeable: true,
+          reason: "This SushiSwap pool is not paired against ETH, so it cannot be traded in one hop.",
+        }
+  }
   if (dexId && !ROUTED_VENUES.has(dexId.toLowerCase())) {
     return {
       protocol: dexId.toLowerCase() === "flapsh" ? "flapsh" : "unknown",
@@ -183,6 +209,19 @@ export async function resolveRoute(
       return { protocol: "v3", supported: false, reason: "No v3 pool answered a quote for this token." }
     }
     return { protocol: "v3", fee, supported: true }
+  }
+
+  if (candidate.protocol === "sushi") {
+    const fee = await findFeeTier(token, CONTRACTS.sushiQuoter as `0x${string}`)
+    if (fee === null) {
+      return {
+        protocol: "sushi",
+        supported: false,
+        venueTradeable: true,
+        reason: "No SushiSwap pool answered a quote for this token.",
+      }
+    }
+    return { protocol: "sushi", fee, supported: true }
   }
 
   if (candidate.protocol === "v4") {
@@ -255,11 +294,16 @@ async function quoteRaw(
   tokenOut: string,
   amountInWei: bigint,
   fee: number,
-  reversed = false
+  reversed = false,
+  /* Which venue's quoter to ask. Uniswap's QuoterV2 derives the pool from its
+     OWN factory, so pointing it at a Sushi pair returns "no pool" rather than a
+     wrong number — the failure is safe, but it is still a failure, and it is
+     why this cannot default. */
+  quoter: `0x${string}` = CONTRACTS.quoterV2 as `0x${string}`
 ): Promise<bigint | null> {
   try {
     const { result } = await publicClient.simulateContract({
-      address: CONTRACTS.quoterV2,
+      address: quoter,
       abi: QUOTER_V2_ABI,
       functionName: "quoteExactInputSingle",
       args: [
@@ -293,10 +337,11 @@ async function quoteRaw(
  */
 export async function bestFeeTier(
   tokenOut: string,
-  amountInWei: bigint
+  amountInWei: bigint,
+  quoter: `0x${string}` = CONTRACTS.quoterV2 as `0x${string}`
 ): Promise<{ fee: number; amountOut: bigint } | null> {
   const quotes = await Promise.all(
-    V3_FEE_TIERS.map(async (fee) => ({ fee, out: await quoteRaw(tokenOut, amountInWei, fee) }))
+    V3_FEE_TIERS.map(async (fee) => ({ fee, out: await quoteRaw(tokenOut, amountInWei, fee, false, quoter) }))
   )
   let best: { fee: number; amountOut: bigint } | null = null
   for (const q of quotes) {
@@ -306,8 +351,11 @@ export async function bestFeeTier(
 }
 
 /** The deepest tier holding this pair, measured at a reference size. */
-export async function findFeeTier(tokenOut: string): Promise<number | null> {
-  const best = await bestFeeTier(tokenOut, REFERENCE_WEI)
+export async function findFeeTier(
+  tokenOut: string,
+  quoter: `0x${string}` = CONTRACTS.quoterV2 as `0x${string}`
+): Promise<number | null> {
+  const best = await bestFeeTier(tokenOut, REFERENCE_WEI, quoter)
   return best?.fee ?? null
 }
 
@@ -340,16 +388,19 @@ async function routeQuote(
     return out === null ? null : { out }
   }
 
+  const quoter = QUOTER_FOR[pool.protocol]
+  if (!quoter) return null
+
   if (side === "sell") {
     if (pool.fee === undefined) return null
-    const out = await quoteRaw(token, amountInWei, pool.fee, true)
+    const out = await quoteRaw(token, amountInWei, pool.fee, true, quoter)
     return out && out > 0n ? { out, fee: pool.fee } : null
   }
 
   /* Re-pick the v3 tier at this size on every quote rather than trusting the one
      found at page load. Depth shifts between blocks on pools this small, and the
      tier that was best for 0.01 ETH is not always best for 0.5. */
-  const best = await bestFeeTier(token, amountInWei)
+  const best = await bestFeeTier(token, amountInWei, quoter)
   return best ? { out: best.amountOut, fee: best.fee } : null
 }
 
@@ -389,7 +440,7 @@ export async function quoteTrade(params: {
      would promise an output the pool was never asked for — every buy would
      then miss its own minimum and revert. On a sell the whole input reaches the
      pool and the cut comes off the ETH on the way back out. */
-  const swapInWei = side === "buy" ? netOfFee(amountInWei) : amountInWei
+  const swapInWei = side === "buy" && pool.protocol !== "sushi" ? netOfFee(amountInWei) : amountInWei
   if (swapInWei <= 0n) return null
 
   const quoted = await routeQuote(pool, token, swapInWei, side)
@@ -704,6 +755,130 @@ export function buildSell(params: {
  * Build a trade on whichever protocol the route names. The single entry point
  * the UI uses, so a caller cannot accidentally send a v4 pool down the v3 path.
  */
+
+/* SushiSwap: SwapRouter02, not the Universal Router.
+ *
+ * Same pool math as Uniswap v3, entirely different periphery. There is no
+ * Universal Router here, so there are no commands and no PAY_PORTION — the
+ * composition instead comes from `multicall(deadline, bytes[])`, which
+ * SwapRouter02 unwraps and executes in order against its own storage.
+ *
+ * WHERE THE CUT COMES FROM, AND WHY IT DIFFERS.
+ * On Uniswap we take the fee off the ETH before the swap, because PAY_PORTION
+ * can split a balance mid-command. SwapRouter02 has no equivalent for the
+ * INPUT: its two fee helpers, `sweepTokenWithFee` and `unwrapWETH9WithFee`,
+ * both act on what the router is holding AFTER the swap. So on this venue the
+ * cut is taken from the output in both directions — the bought token on a buy,
+ * ETH on a sell. `quoteTrade` knows this and prices the full input here rather
+ * than the net, so the number on screen is the number the pool is asked for.
+ *
+ * ADDRESS_THIS / MSG_SENDER are SwapRouter02's own sentinels, the same two
+ * constants the Universal Router uses, so the router keeps custody between the
+ * swap and the sweep without either leg naming a real address.
+ *
+ * Approval is a plain ERC-20 allowance to the router — SwapRouter02 pulls with
+ * `transferFrom`, not through Permit2. See `buildApproval`.
+ */
+const SUSHI_ROUTER_ABI = parseAbi([
+  "function multicall(uint256 deadline, bytes[] data) payable returns (bytes[])",
+  "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) payable returns (uint256)",
+  "function sweepTokenWithFee(address token, uint256 amountMinimum, address recipient, uint256 feeBips, address feeRecipient) payable",
+  "function unwrapWETH9WithFee(uint256 amountMinimum, address recipient, uint256 feeBips, address feeRecipient) payable",
+  "function unwrapWETH9(uint256 amountMinimum, address recipient) payable",
+])
+
+function sushiDeadline(deadlineSeconds?: number, nowSeconds?: bigint): bigint {
+  const now = nowSeconds ?? BigInt(Math.floor(Date.now() / 1000))
+  return now + BigInt(deadlineSeconds ?? 900)
+}
+
+export function buildSushiTrade(params: {
+  token: string
+  recipient: string
+  side: Side
+  amountInWei: bigint
+  minOutWei: bigint
+  fee: number
+  deadlineSeconds?: number
+  nowSeconds?: bigint
+}): BuiltSwap {
+  const { token, recipient, side, amountInWei, minOutWei, fee } = params
+  const deadline = sushiDeadline(params.deadlineSeconds, params.nowSeconds)
+  const router = CONTRACTS.sushiRouter02 as `0x${string}`
+  const takeFee = feeIsOn()
+
+  /* The swap leg. When a fee is taken the router must KEEP the output so the
+     sweep can split it, so the minimum moves to the sweep — enforcing it twice
+     would reject trades that satisfy it exactly. When no fee is taken the
+     output goes straight to the user and the swap enforces it itself. */
+  const swapLeg = encodeFunctionData({
+    abi: SUSHI_ROUTER_ABI,
+    functionName: "exactInputSingle",
+    args: [
+      {
+        tokenIn: (side === "buy" ? WETH : token) as `0x${string}`,
+        tokenOut: (side === "buy" ? token : WETH) as `0x${string}`,
+        fee,
+        recipient: (takeFee || side === "sell" ? ADDRESS_THIS : MSG_SENDER) as `0x${string}`,
+        amountIn: amountInWei,
+        amountOutMinimum: takeFee || side === "sell" ? 0n : minOutWei,
+        sqrtPriceLimitX96: 0n,
+      },
+    ],
+  })
+
+  const legs: `0x${string}`[] = [swapLeg]
+
+  if (side === "buy") {
+    /* Only needed when the router is holding the token. Without a fee the swap
+       already paid the user directly and a sweep would be a no-op call that
+       still costs gas. */
+    if (takeFee) {
+      legs.push(
+        encodeFunctionData({
+          abi: SUSHI_ROUTER_ABI,
+          functionName: "sweepTokenWithFee",
+          args: [
+            token as `0x${string}`,
+            minOutWei,
+            recipient as `0x${string}`,
+            BigInt(FEE_BIPS),
+            FEE_RECIPIENT as `0x${string}`,
+          ],
+        })
+      )
+    }
+  } else {
+    /* A sell always ends in WETH held by the router, so it always unwraps —
+       the only question is whether the unwrap splits off a fee on the way. */
+    legs.push(
+      takeFee
+        ? encodeFunctionData({
+            abi: SUSHI_ROUTER_ABI,
+            functionName: "unwrapWETH9WithFee",
+            args: [minOutWei, recipient as `0x${string}`, BigInt(FEE_BIPS), FEE_RECIPIENT as `0x${string}`],
+          })
+        : encodeFunctionData({
+            abi: SUSHI_ROUTER_ABI,
+            functionName: "unwrapWETH9",
+            args: [minOutWei, recipient as `0x${string}`],
+          })
+    )
+  }
+
+  return {
+    to: router,
+    data: encodeFunctionData({
+      abi: SUSHI_ROUTER_ABI,
+      functionName: "multicall",
+      args: [deadline, legs],
+    }),
+    // A buy pays in ETH, which SwapRouter02 wraps itself out of msg.value.
+    value: side === "buy" ? amountInWei : 0n,
+    deadline,
+  }
+}
+
 export function buildTrade(params: {
   pool: Pool
   token: string
@@ -744,6 +919,20 @@ export function buildTrade(params: {
   }
 
   if (pool.fee === undefined) throw new Error("no v3 fee tier on this route — refusing to send")
+
+  if (pool.protocol === "sushi") {
+    return buildSushiTrade({
+      token,
+      recipient,
+      side: quote.side,
+      amountInWei: quote.amountInWei,
+      minOutWei: quote.minOutWei,
+      fee: pool.fee,
+      deadlineSeconds,
+      nowSeconds,
+    })
+  }
+
   return quote.side === "buy"
     ? buildBuy({ token, recipient, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds, nowSeconds })
     : buildSell({ token, amountInWei: quote.amountInWei, minOutWei: quote.minOutWei, fee: pool.fee, deadlineSeconds, nowSeconds })

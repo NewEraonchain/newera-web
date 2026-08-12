@@ -10,6 +10,7 @@ import SwapPanel from "@/components/SwapPanel"
 import DistributionPanel from "@/components/Distribution"
 import { getDecimals, poolFromLabels, resolveRoute, type Pool } from "@/lib/swap"
 import { getPoolAddress, v4Source, type TradeSource } from "@/lib/trades"
+import { CONTRACTS } from "@/lib/chain"
 
 /* One token: everything about it, the tape, and the trade.
  *
@@ -111,8 +112,15 @@ export default function Token() {
          account of who traded, not ours. */
       if (resolved.protocol === "v4" && resolved.key) {
         if (alive) setTapeSource(v4Source(resolved.key))
-      } else if (resolved.protocol === "v3" && resolved.fee !== undefined) {
-        const p = await getPoolAddress(address, resolved.fee)
+      } else if ((resolved.protocol === "v3" || resolved.protocol === "sushi") && resolved.fee !== undefined) {
+        /* Sushi pools read exactly like v3 ones and emit the same Swap event,
+           so the tape needs no new code — only the lookup changes, because a
+           different factory deployed them. */
+        const p = await getPoolAddress(
+          address,
+          resolved.fee,
+          resolved.protocol === "sushi" ? CONTRACTS.sushiFactory : CONTRACTS.v3Factory
+        )
         if (alive && p) setTapeSource({ kind: "v3", pool: p })
       }
     })()

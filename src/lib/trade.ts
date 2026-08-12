@@ -155,7 +155,7 @@ export async function executeTrade(
     const pulls = approvalAsset(pool, token, quote.side)
     if (pulls) {
       onState({ phase: "checking" })
-      const steps = await missingApprovals(pulls, address, quote.amountInWei)
+      const steps = await missingApprovals(pulls, address, quote.amountInWei, pool.protocol)
       for (let i = 0; i < steps.length; i++) {
         const approval = buildApproval(steps[i], pulls)
         onState({ phase: "approving", step: i + 1, total: steps.length, label: approval.label })

@@ -38,7 +38,16 @@ const MAX_UINT256 = (1n << 256n) - 1n
    session, bounded so a forgotten allowance does not live forever. */
 const EXPIRY_SECONDS = 365 * 24 * 60 * 60
 
-export type ApprovalStep = "erc20" | "permit2"
+/* "sushi" is a third grant, not a variant of the first two.
+ *
+ * The Universal Router never touches a token directly: the user approves
+ * Permit2, Permit2 approves the router, which is why this was two steps.
+ * SushiSwap's SwapRouter02 pulls with a plain `transferFrom`, so it needs one
+ * allowance naming the router itself. Sending a Sushi seller down the Permit2
+ * path would have them sign two grants the router they are about to use cannot
+ * read, and the swap would still revert at the pull — two wasted signatures and
+ * a failure that looks like ours. */
+export type ApprovalStep = "erc20" | "permit2" | "sushi"
 
 /**
  * Which grants are still missing before `amount` of `token` can be sold.
@@ -47,9 +56,26 @@ export type ApprovalStep = "erc20" | "permit2"
 export async function missingApprovals(
   token: string,
   owner: string,
-  amount: bigint
+  amount: bigint,
+  /** Which venue will pull the token. Absent means the Uniswap path. */
+  protocol?: string
 ): Promise<ApprovalStep[]> {
   const steps: ApprovalStep[] = []
+
+  /* One grant, to the router itself, and it returns early — the Permit2 reads
+     below are not just unnecessary here, they would report a missing grant for
+     a contract this trade never touches. */
+  if (protocol === "sushi") {
+    const allowance = await publicClient
+      .readContract({
+        address: token as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [owner as `0x${string}`, CONTRACTS.sushiRouter02 as `0x${string}`],
+      })
+      .catch(() => 0n)
+    return (allowance as bigint) < amount ? ["sushi"] : []
+  }
 
   const [erc20Allowance, permit2Allowance] = await Promise.all([
     publicClient
@@ -88,6 +114,13 @@ export type ApprovalTx = { to: `0x${string}`; data: `0x${string}`; label: string
 
 /** The transaction for a given missing grant, ready to send. */
 export function buildApproval(step: ApprovalStep, token: string): ApprovalTx {
+  if (step === "sushi") {
+    return {
+      to: token as `0x${string}`,
+      data: encodeErc20Approve(CONTRACTS.sushiRouter02, MAX_UINT256),
+      label: "Allow SushiSwap's router to spend it",
+    }
+  }
   if (step === "erc20") {
     return {
       to: token as `0x${string}`,

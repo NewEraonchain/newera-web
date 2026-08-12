@@ -55,6 +55,27 @@ export const CONTRACTS = {
   /** Read-only view onto PoolManager state — v4 pools expose nothing directly. */
   v4StateView: "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
   v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
+
+  /* SushiSwap, which is a Uniswap v3 fork with its own periphery.
+   *
+   * Measured across the top 200 tokens by liquidity: Uniswap v4 held 86.3%,
+   * SushiSwap 7.3% and Uniswap v3 6.4%. Refusing to route the second-largest
+   * venue on the chain sent people to another interface for one trade in
+   * thirteen.
+   *
+   * Found by reading the chain rather than a docs page: the `Swap` event on a
+   * Sushi pool carries an indexed `sender`, which is the contract that called
+   * `pool.swap()` — that named the router, and the router's `factory()` named
+   * the factory, and the factory's deployer had published the whole periphery
+   * in one run. Blockscout confirms the names.
+   *
+   * Their SwapRouter02 is the same contract Uniswap's is, pointed at a
+   * different factory, so it takes the same calldata — including
+   * `sweepTokenWithFee` and `unwrapWETH9WithFee`, which is how the 1% survives
+   * on a venue that has no Universal Router to PAY_PORTION through. */
+  sushiFactory: "0xe51960f1b45f1c9fb6d166e6a884f866fc70433b",
+  sushiRouter02: "0xb2d8ed81e79eb64a0751352459ec215fbafad669",
+  sushiQuoter: "0x3e290e5e01818002a0b672148bdc7514d861c7b3",
   permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
 } as const
 

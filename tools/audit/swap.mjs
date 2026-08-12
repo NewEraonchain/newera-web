@@ -239,15 +239,24 @@ console.log("\n6. routing")
 check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap v3 against WETH is a candidate")
 check(swap.poolFromLabels("uniswap", ["v4"], WETH).supported === true, "uniswap v4 is a candidate")
 check(swap.poolFromLabels("flapsh", [], WETH).supported === false, "flapsh falls back to the handoff")
-/* An unknown venue declines BY NAME rather than being routed into Uniswap's
-   quoter and blamed on the token. This was a blocklist of one, so a SushiSwap
+/* An unrouted venue declines BY NAME rather than being routed into Uniswap's
+   quoter and blamed on the token. The original blocklist was of one, so a
    market carrying a "v3" label reached the v3 path and came back "No v3 pool
    answered a quote for this token" — a sentence about the token, for a pool
-   that was fine, on a venue we do not route. */
+   that was fine, on a venue we do not route.
+
+   SushiSwap used to be the example here and is now the counter-example: it is
+   a v3 fork whose whole periphery we hold, so it routes. The guarantee is
+   unchanged and PancakeSwap carries it — what matters is that a venue we
+   cannot reach says so about itself. */
 {
   const sushi = swap.poolFromLabels("sushiswap", ["v3"], WETH)
-  check(sushi.supported === false, "an unrouted venue with a v3 label is not treated as Uniswap")
-  check(/SushiSwap/i.test(sushi.reason || ""), `the reason names the venue (${sushi.reason})`)
+  check(sushi.supported === true, "sushiswap v3 against WETH now routes in-app")
+  check(sushi.protocol === "sushi", `and on its own protocol, not v3 (${sushi.protocol})`)
+
+  const unrouted = swap.poolFromLabels("pancakeswap", ["v3"], WETH)
+  check(unrouted.supported === false, "an unrouted venue with a v3 label is not treated as Uniswap")
+  check(/PancakeSwap/i.test(unrouted.reason || ""), `the reason names the venue (${unrouted.reason})`)
   check(swap.poolFromLabels("uniswap", ["v3"], WETH).supported === true, "uniswap still routes")
 }
 check(swap.poolFromLabels("uniswap", ["v3"], "0xdead000000000000000000000000000000000000").supported === false,
