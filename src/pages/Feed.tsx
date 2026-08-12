@@ -57,7 +57,9 @@ type View = "trading" | "new" | "clusters"
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "trading", label: "Trading" },
-  { id: "new", label: "New" },
+  /* The stored id stays "new" so a saved view from an older build still
+     resolves; only what it means to a reader has changed. */
+  { id: "new", label: "New pairs" },
   { id: "clusters", label: "Clusters" },
 ]
 
@@ -143,8 +145,18 @@ export default function Feed() {
          50 holders" and you would get however many of those thirty qualify,
          usually none, and conclude the chain was empty. `maxRisk` from the
          toggle stays unless the filter panel sets its own. */
+      /* 150, and sorted by when a pool opened rather than when the token was
+         minted.
+
+         Thirty was the whole reason this read as a toy next to a real terminal,
+         and the sort was the reason those thirty were unactionable: the API
+         returns tradable rows only, but ordering them newest-MINTED-first puts
+         the tokens that cannot have a pool yet at the top. Measured on chain,
+         ~45% of indexed launches eventually get a pool, and a pool opens some
+         time after the mint — so "recently became tradable" is both the larger
+         set and the one somebody is actually shopping. */
       getJSON<{ items: Launch[]; measuredOnly?: boolean }>(
-        `/intel/feed?limit=30${
+        `/intel/feed?limit=150&sort=pooled${
           hideRisky && filters.maxRisk === null ? "&maxRisk=25" : ""
         }${filtersToQuery(filters)}`
       ),
@@ -537,7 +549,10 @@ export default function Feed() {
               Lost contact with the intelligence API. The rows below are the last good read.
             </EmptyState>
           ) : tape.length === 0 ? (
-            <EmptyState>Nothing indexed in this window yet.</EmptyState>
+            /* The feed asks for tradable rows only, so "nothing indexed" would
+               be the wrong claim — the index is almost certainly full of
+               launches that simply have no pool. Say which one is empty. */
+            <EmptyState>Nothing has become tradable in this window yet.</EmptyState>
           ) : (
             <LaunchTable
               rows={tape.map((l) => ({
@@ -545,7 +560,7 @@ export default function Feed() {
                 market: markets?.markets.get(l.address.toLowerCase()),
               }))}
               marketStatus={marketStatus}
-              caption="Every launch in the current window, newest first"
+              caption="Tokens that recently became tradable, most recent pool first"
             />
           )}
         </div>

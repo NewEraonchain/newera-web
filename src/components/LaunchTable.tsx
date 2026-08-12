@@ -98,6 +98,11 @@ export function LaunchTable({
         <thead>
           <tr className="border-b border-edge-strong">
             <th scope="col" className={HEAD_L}>Age</th>
+            {/* Two different ages, because they answer different questions.
+                "Age" is how long the token has existed; "Pool" is how long it
+                has been buyable, which is the one that decides whether you are
+                early. They can be hours apart. */}
+            <th scope="col" className={`${HEAD_L} hidden sm:table-cell`}>Pool</th>
             <th scope="col" className={`${HEAD_L} w-full`}>Token</th>
             <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Price</th>
             <th scope="col" className={`${HEAD} hidden lg:table-cell`}>MCap</th>
@@ -155,6 +160,27 @@ function LaunchRow({
     <tr className={`scan-tr border-b border-edge ${risky ? "is-risky" : ""}`}>
       <td className="whitespace-nowrap px-1.5 py-0 font-mono text-micro tabular-nums text-fg-dim sm:px-2">
         {ago(launch.ageSeconds)}
+      </td>
+
+      {/* Venue sits with the pool age rather than beside the name: it qualifies
+          where the token trades, and v3/v4 is the difference between a pool
+          with its own address and one keyed inside a singleton. A token with no
+          pool cannot appear here — the feed asks for tradable rows — but the
+          dash is kept because this table is also rendered from other queries. */}
+      <td className="hidden whitespace-nowrap px-1.5 py-0 font-mono text-micro tabular-nums text-fg-dim sm:table-cell sm:px-2">
+        {launch.pool?.pooledAt ? (
+          <span className="inline-flex items-baseline gap-1">
+            {ago(
+              Math.max(
+                0,
+                Math.floor((Date.now() - new Date(launch.pool.pooledAt).getTime()) / 1000)
+              )
+            )}
+            <span className="text-fg-dim/70">{launch.pool.venue}</span>
+          </span>
+        ) : (
+          "—"
+        )}
       </td>
 
       {/* Identity takes the slack, and the flags sit inline rather than on a

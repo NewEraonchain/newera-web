@@ -77,6 +77,19 @@ export type Launch = {
   riskScore: number
   txHash: string
   theme: { id: string; label: string; slug: string; status: ThemeStatus } | null
+  /* Where it trades. Null means we have never seen a pool open for it, which
+     is a different statement from "it has a pool and we could not price it" —
+     the first is a fact about the token, the second a gap in the market read,
+     and a row that renders them alike tells the reader something false.
+     `pooledAt` is when it became tradable, which is what the feed sorts on. */
+  pool: {
+    venue: "v3" | "v4"
+    address: string | null // v3 only
+    id: string | null // v4 only
+    pairToken: string | null
+    pooledAt: string | null
+    routable: boolean
+  } | null
   /* Null means NOT MEASURED, not "no holders". The two must never render the
      same way: one is a gap in our coverage, the other is a claim about the
      token. Filled in when someone opens the token page, and topped up in the
