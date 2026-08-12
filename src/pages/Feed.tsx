@@ -6,6 +6,7 @@ import { Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable, type SortKey } from "@/components/LaunchTable"
 import { Page } from "@/components/shell"
 import { useMarkets, type Market } from "@/lib/markets"
+import { useStatsState } from "@/lib/useStats"
 import FeedFilters, { loadFilters, filtersToQuery, needsMeasurement, type Filters } from "@/components/FeedFilters"
 
 const REFRESH_MS = 12000
@@ -97,7 +98,15 @@ const PAGE = 100
 const MAX_ROWS = 500
 
 export default function Feed() {
-  const [stats, setStats] = useState<Stats | null>(null)
+  /* The SHARED poller, not a second one.
+   *
+   * This page ran its own /intel/stats fetch on a 12s loop while the site
+   * header ran the module poller on an 8s loop — measured as 2-3 requests for
+   * the same endpoint on every load of /app. That is the exact duplication
+   * useStats was written to end, and its comment says why: two sources of one
+   * number can disagree, on a page whose entire argument is that the figures
+   * are measured. */
+  const { stats, failed: statsFailed } = useStatsState()
   const [themes, setThemes] = useState<Theme[] | null>(null)
   const [launches, setLaunches] = useState<Launch[] | null>(null)
   const [hideRisky, setHideRisky] = useState(false)
@@ -123,7 +132,7 @@ export default function Feed() {
      fully populated tape. A working page telling the reader it is still
      connecting is the same defect this file's own comments were written to
      prevent, one endpoint over. */
-  const [statsFailed, setStatsFailed] = useState(false)
+
 
   /* Updates wait for the reader.
    *
@@ -152,10 +161,12 @@ export default function Feed() {
   }, [])
 
   const load = useCallback(async () => {
-    // allSettled, not all: the three panels are independent, and a failing
-    // stats query must not blank a perfectly good feed.
-    const [s, t, f] = await Promise.allSettled([
-      getJSON<Stats>("/intel/stats"),
+    /* allSettled, not all: the panels are independent, and one failing query
+       must not blank a perfectly good feed.
+
+       The figures are NOT fetched here any more — the shared poller owns them,
+       so this loop asks for the two things only this page needs. */
+    const [t, f] = await Promise.allSettled([
       getJSON<{ items: Theme[] }>("/intel/themes?limit=24&organicOnly=1"),
       /* The filters go to the DATABASE. Narrowing the thirty rows already in
          the browser would be a sort wearing a filter's clothes: ask for "over
@@ -188,15 +199,6 @@ export default function Feed() {
       ),
     ])
 
-    // Figures are safe to update live: they occupy a fixed box and nobody is
-    // mid-click on a percentage.
-    if (s.status === "fulfilled") {
-      setStats(s.value)
-      setStatsFailed(false)
-    } else {
-      setStatsFailed(true)
-    }
-
     const nextThemes = t.status === "fulfilled" ? t.value.items : null
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
     // The API says when a filter restricted the answer to measured tokens.
@@ -223,8 +225,12 @@ export default function Feed() {
       setPending({ themes: nextThemes, launches: nextLaunches })
     }
 
-    const failed = [s, t, f].filter((r) => r.status === "rejected").length
-    setFailures((n) => (failed === 3 ? n + 1 : 0))
+    /* Both, not all three. The figures moved to the shared poller, so this
+       counter now watches the two requests this page still makes — leaving it
+       at three would mean it could never trip, and the honest outage message
+       below would be unreachable. */
+    const failed = [t, f].filter((r) => r.status === "rejected").length
+    setFailures((n) => (failed === 2 ? n + 1 : 0))
     setLoadingMore(false)
   }, [hideRisky, filters, sort, more])
 
@@ -514,6 +520,25 @@ export default function Feed() {
       )}
 
       <section className="mt-4">
+        {/* A lookup failure, said out loud.
+         *
+         * The old "Trading" tab carried this sentence in its empty state, and
+         * collapsing three tabs into one table deleted it — fixcheck caught the
+         * regression: with DexScreener blocked, /app showed dashes and never
+         * explained why. The guarantee it protects is that a failure of OUR
+         * lookup must never read as a fact about the tokens.
+         *
+         * It matters less than it did, because the server now mirrors these
+         * figures and most rows still carry numbers. It does not matter zero:
+         * the live overlay is what refreshes the short windows, and a reader
+         * watching a stale 5m column deserves to know it is stale. */}
+        {marketStatus === "down" && (
+          <p className="measure mb-4 text-micro leading-relaxed text-warn">
+            Live market data is unavailable right now, so prices and short-window figures may be
+            stale or missing. That is a lookup failure on our side, not a statement about these
+            tokens.
+          </p>
+        )}
         <div>
           {/* Failure is checked BEFORE the null case. Ordered the other way,
               `tape === null` matched first on a cold outage and the honest

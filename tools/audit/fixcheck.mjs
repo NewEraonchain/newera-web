@@ -69,6 +69,12 @@ const b = await puppeteer.launch({ executablePath: CHROME, headless: "new" })
   const r = await p.evaluate(() => ({
     kids: document.getElementById("root")?.children.length ?? 0,
     text: document.body.innerText,
+    /* Rows, not headings. The old assertion below looked for the section
+       titles of a three-tab layout that no longer exists, so it failed for the
+       best possible reason — the tabs became one sortable table. What "the
+       page still works" means is that the tape rendered, which is a row count
+       and survives any amount of copy editing. */
+    rows: document.querySelectorAll("tbody tr").length,
   }))
   ok("C1 unrenderable field -> page not blank", r.kids > 0, `root children=${r.kids}`)
   /* This used to assert the error boundary caught a crash. The feed no longer
@@ -80,7 +86,7 @@ const b = await puppeteer.launch({ executablePath: CHROME, headless: "new" })
   ok("C2 garbage stat is not rendered as a measurement",
      !/\[object Object\]/.test(r.text) && !/NaN|undefined%/.test(r.text),
      r.text.match(/[^ ]*(COPY OR IMPERSONATION)/)?.[0] || "no stat row found")
-  ok("C2b the page still works around it", /Getting traded|Everything launching/i.test(r.text))
+  ok("C2b the page still works around it", r.rows > 0, `${r.rows} rows on the tape`)
   await p.close()
 }
 

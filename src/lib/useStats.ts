@@ -10,17 +10,26 @@ import { getJSON, type Stats } from "./api"
  * measured. A single source keeps them in step. */
 
 let current: Stats | null = null
+/* Whether the LAST attempt failed, so a consumer can tell "still connecting"
+   from "asked and got nothing". The feed needs the difference: one is a
+   skeleton, the other is a sentence explaining the outage, and showing the
+   first forever is the failure mode this file's own comments keep describing. */
+let failing = false
 let timer: ReturnType<typeof setInterval> | null = null
-const subscribers = new Set<(s: Stats) => void>()
+type Listener = (s: Stats | null, failed: boolean) => void
+const subscribers = new Set<Listener>()
 
 async function poll() {
   try {
     const s = await getJSON<Stats>("/intel/stats")
     current = s
-    for (const fn of subscribers) fn(s)
+    failing = false
+    for (const fn of subscribers) fn(s, false)
   } catch (err) {
     // Silent failure is how the onboarding funnel stayed broken for hours.
     console.error("[stats] unavailable:", err)
+    failing = true
+    for (const fn of subscribers) fn(current, true)
   }
 }
 
@@ -53,17 +62,22 @@ function onVisibility() {
   else if (subscribers.size) start()
 }
 
-export function useStats(): Stats | null {
-  const [stats, setStats] = useState<Stats | null>(current)
+/** The figures and whether the last read for them failed. */
+export function useStatsState(): { stats: Stats | null; failed: boolean } {
+  const [state, setState] = useState<{ stats: Stats | null; failed: boolean }>({
+    stats: current,
+    failed: failing,
+  })
 
   useEffect(() => {
-    subscribers.add(setStats)
-    if (current) setStats(current)
+    const listener: Listener = (s, f) => setState({ stats: s, failed: f })
+    subscribers.add(listener)
+    setState({ stats: current, failed: failing })
     start()
     document.addEventListener("visibilitychange", onVisibility)
 
     return () => {
-      subscribers.delete(setStats)
+      subscribers.delete(listener)
       if (subscribers.size === 0) {
         stop()
         document.removeEventListener("visibilitychange", onVisibility)
@@ -71,5 +85,10 @@ export function useStats(): Stats | null {
     }
   }, [])
 
-  return stats
+  return state
+}
+
+/** The figures alone, for the callers that only render a number. */
+export function useStats(): Stats | null {
+  return useStatsState().stats
 }
