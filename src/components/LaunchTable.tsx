@@ -149,6 +149,9 @@ export type SortKey =
   /* Risk is the one sort that does NOT imply a pool — riskScore is computed at
      launch and is never null, so ordering by it can span the whole index. */
   | "risk"
+  /* Volume the CHAIN reported, which is the only ordering that can surface a
+     pool no aggregator has indexed yet. */
+  | "chainvol"
 
 function Th({
   label,
@@ -391,8 +394,26 @@ function LaunchRow({
       <td className={`${NUM} ${traded ? "text-fg" : "text-fg-dim"}`}>
         {cell(short(market?.liquidityUsd))}
       </td>
+      {/* Dollars when an aggregator priced it, ETH when only the chain did.
+          Mixing units in one column is normally a scanning mistake, and the Ξ
+          is there so it never reads as dollars. It earns the exception because
+          the alternative is a dash: on v4 pools no aggregator has indexed —
+          which is most of them in a token's first minutes — a dash says "no
+          activity" about something that is trading right now, and being early
+          is the entire product. The dimmer tone marks it as the lesser
+          measurement without hiding it. */}
       <td className={`${NUM} hidden text-fg-muted md:table-cell`}>
-        {cell(short(market?.volume24h))}
+        {market?.volume24h !== null && market?.volume24h !== undefined ? (
+          cell(short(market.volume24h))
+        ) : launch.chainVolEth24h ? (
+          <span className="text-fg-dim" title="Read from chain swaps, in ETH">
+            Ξ{launch.chainVolEth24h < 0.01
+              ? launch.chainVolEth24h.toExponential(1)
+              : launch.chainVolEth24h.toFixed(2)}
+          </span>
+        ) : (
+          cell(null)
+        )}
       </td>
 
       <td className={`${NUM} hidden xl:table-cell`}>

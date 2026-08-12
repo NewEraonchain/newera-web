@@ -101,6 +101,12 @@ export type Launch = {
     txns24h: number | null
     at: string
   } | null
+  /* Volume WE read off the chain, in ETH, from v4 Swap events.
+     Different provenance from `market` and different blind spots: it covers
+     pools no aggregator has a pair for and sees a pool's first trades before
+     one indexes it, but it is v4-only and denominated in ETH because that is
+     what the event says. Null means we have seen no fills — not zero volume. */
+  chainVolEth24h: number | null
   /* Where it trades. Null means we have never seen a pool open for it, which
      is a different statement from "it has a pool and we could not price it" —
      the first is a fact about the token, the second a gap in the market read,

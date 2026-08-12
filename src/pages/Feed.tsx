@@ -66,6 +66,7 @@ const SORTS: { id: SortKey; label: string }[] = [
   { id: "txns5m", label: "Trades 5m" },
   { id: "change5m", label: "Gainers 5m" },
   { id: "change24h", label: "Gainers 24h" },
+  { id: "chainvol", label: "Trading now" },
   { id: "risk", label: "Spam risk" },
 ]
 
