@@ -124,40 +124,121 @@ function TokenMark({ src, symbol }: { src: string | null; symbol: string }) {
   )
 }
 
+/* Sorting happens in the DATABASE, and the header is how you ask for it.
+ *
+ * Every one of these keys maps to an indexed column, so "highest liquidity"
+ * means highest on the chain — not highest among whatever rows the browser has
+ * already loaded. That distinction is the whole reason the market figures are
+ * mirrored server-side; a header that re-ordered the current page would be the
+ * same page-narrowing trick `FeedFilters` was written to avoid.
+ *
+ * A column with no server-side key is not clickable rather than sorting a
+ * subset and looking identical to one that works. */
+export type SortKey =
+  | "new" | "pooled" | "price" | "mcap" | "liquidity"
+  | "volume" | "change5m" | "change1h" | "change24h" | "txns5m"
+  /* Risk is the one sort that does NOT imply a pool — riskScore is computed at
+     launch and is never null, so ordering by it can span the whole index. */
+  | "risk"
+
+function Th({
+  label,
+  sortKey,
+  active,
+  onSort,
+  className,
+  align = "right",
+}: {
+  label: string
+  sortKey?: SortKey
+  active?: SortKey
+  onSort?: (k: SortKey) => void
+  className: string
+  align?: "left" | "right"
+}) {
+  const on = !!sortKey && !!onSort
+  const isActive = on && active === sortKey
+  return (
+    <th
+      scope="col"
+      className={className}
+      /* Only the column actually ordering the query claims it. These are all
+         descending — "most liquidity", "biggest mover" — so there is no
+         direction to toggle and none is announced. */
+      aria-sort={isActive ? "descending" : undefined}
+    >
+      {on ? (
+        <button
+          type="button"
+          onClick={() => onSort!(sortKey!)}
+          className={`inline-flex items-center gap-1 uppercase tracking-[0.1em] transition-colors hover:text-fg ${
+            isActive ? "text-acid-500" : ""
+          } ${align === "right" ? "flex-row-reverse" : ""}`}
+        >
+          {label}
+          {/* Marks the active column without reserving width in the others,
+              which would drag every heading off its own column edge. */}
+          {isActive && <span aria-hidden="true">↓</span>}
+        </button>
+      ) : (
+        label
+      )}
+    </th>
+  )
+}
+
 export function LaunchTable({
   rows,
   marketStatus = "ok",
   caption,
+  sort,
+  onSort,
 }: {
   rows: Row[]
   marketStatus?: "ok" | "loading" | "down"
   /** Screen-reader label; the visible heading sits above the table. */
   caption: string
+  /** The key the SERVER is ordering by. Absent means the table is unsorted. */
+  sort?: SortKey
+  onSort?: (k: SortKey) => void
 }) {
+  const th = (label: string, className: string, sortKey?: SortKey, align?: "left" | "right") => (
+    <Th
+      label={label}
+      className={className}
+      sortKey={sortKey}
+      active={sort}
+      onSort={onSort}
+      align={align}
+    />
+  )
   return (
     <div className="overflow-x-auto">
       <table className="w-full table-auto border-collapse">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-edge-strong">
-            <th scope="col" className={HEAD_L}>Age</th>
+            {th("Age", HEAD_L, "new", "left")}
             {/* Two different ages, because they answer different questions.
                 "Age" is how long the token has existed; "Pool" is how long it
                 has been buyable, which is the one that decides whether you are
                 early. They can be hours apart. */}
-            <th scope="col" className={`${HEAD_L} hidden sm:table-cell`}>Pool</th>
+            {th("Pool", `${HEAD_L} hidden sm:table-cell`, "pooled", "left")}
             <th scope="col" className={`${HEAD_L} w-full`}>Token</th>
-            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Price</th>
-            <th scope="col" className={`${HEAD} hidden lg:table-cell`}>MCap</th>
-            <th scope="col" className={HEAD}>Liq</th>
-            <th scope="col" className={`${HEAD} hidden md:table-cell`}>Vol 24h</th>
-            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>5m</th>
-            <th scope="col" className={`${HEAD} hidden lg:table-cell`}>1h</th>
-            <th scope="col" className={`${HEAD} hidden sm:table-cell`}>24h</th>
-            <th scope="col" className={`${HEAD} hidden md:table-cell`}>TX 5m</th>
+            {th("Price", `${HEAD} hidden xl:table-cell`, "price")}
+            {th("MCap", `${HEAD} hidden lg:table-cell`, "mcap")}
+            {th("Liq", HEAD, "liquidity")}
+            {th("Vol 24h", `${HEAD} hidden md:table-cell`, "volume")}
+            {th("5m", `${HEAD} hidden xl:table-cell`, "change5m")}
+            {th("1h", `${HEAD} hidden lg:table-cell`, "change1h")}
+            {th("24h", `${HEAD} hidden sm:table-cell`, "change24h")}
+            {th("TX 5m", `${HEAD} hidden md:table-cell`, "txns5m")}
+            {/* Holders and Top10 come from the distribution read, which is not
+                a column the index can order by — so they stay unsortable
+                rather than silently sorting the loaded page. */}
             <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Holders</th>
             <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Top10</th>
-            <th scope="col" className={HEAD}>Risk</th>
+            {th("Risk", HEAD, "risk")}
           </tr>
         </thead>
         <tbody>

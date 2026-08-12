@@ -84,6 +84,23 @@ export type Launch = {
   logo: string | null
   description: string | null
   socials: string | null
+  /* The server's mirrored market figures — what the feed's ordering is computed
+     from, so every row carries them, not just the ones on screen. Null means
+     never measured, which is NOT zero liquidity. Distinct from the live
+     DexScreener read in `lib/markets`, which is fresher but only covers rows
+     the browser asked about. */
+  market: {
+    priceUsd: number | null
+    liquidityUsd: number | null
+    marketCapUsd: number | null
+    volume24hUsd: number | null
+    change5m: number | null
+    change1h: number | null
+    change24h: number | null
+    txns5m: number | null
+    txns24h: number | null
+    at: string
+  } | null
   /* Where it trades. Null means we have never seen a pool open for it, which
      is a different statement from "it has a pool and we could not price it" —
      the first is a fact about the token, the second a gap in the market read,

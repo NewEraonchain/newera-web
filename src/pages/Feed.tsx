@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
-import { ClusterRow, Toggle, Skeleton, EmptyState } from "@/components/intel"
-import { LaunchTable } from "@/components/LaunchTable"
-import { Page, SectionHead } from "@/components/shell"
+import { Toggle, Skeleton, EmptyState } from "@/components/intel"
+import { LaunchTable, type SortKey } from "@/components/LaunchTable"
+import { Page } from "@/components/shell"
 import { useMarkets, type Market } from "@/lib/markets"
 import FeedFilters, { loadFilters, filtersToQuery, needsMeasurement, type Filters } from "@/components/FeedFilters"
 
@@ -34,71 +34,79 @@ const REFRESH_MS = 12000
  * hides its own contents, fights the page, and was the source of the standing
  * `first-viewport-column-overflow` finding. */
 
-/* How alive a market is right now, in dollars-weighted-by-recency.
+/* One table, ordered however you ask — not three tabs.
  *
- * Not a score shown to anyone — only an ordering. A token doing $500 in the
- * last five minutes is more use to a reader than one that did $50,000 yesterday
- * and stopped, and 24h volume ranked them the other way round. */
-function liveness(m: Market): number {
-  const v5 = m.volume5m ?? 0
-  const v1h = m.volume1h ?? 0
-  const v24 = m.volume24h ?? 0
-  return v5 * 12 + v1h * 2 + v24 * 0.05
-}
-
-/* The three questions this page answers, as one table's three states.
+ * The tabs were three answers to one question. "Trading" was the tape filtered
+ * to rows with a live market, "New pairs" was the same tape ordered by pool
+ * time, and both are just orderings of the same set — which is what a sortable
+ * column already is. Clusters went entirely: the launches themselves show what
+ * is being launched, and a second grid saying the same thing in another shape
+ * was a page to scroll past, not an answer.
  *
- * Trading first, because "what can I actually buy right now" is what a visitor
- * arrives with. New is the raw tape and the product's proof — a launch visible
- * before it has a price. Clusters is the judgement nobody else makes, and it is
- * a different shape of answer, so it gets its own view rather than a wall of
- * blocks wedged between two tables. */
-type View = "trading" | "new" | "clusters"
-
-const VIEWS: { id: View; label: string }[] = [
-  { id: "trading", label: "Trading" },
-  /* The stored id stays "new" so a saved view from an older build still
-     resolves; only what it means to a reader has changed. */
-  { id: "new", label: "New pairs" },
-  { id: "clusters", label: "Clusters" },
+ * Every key here maps to an indexed column, so the ordering is applied by the
+ * DATABASE across everything tradable. Sorting the loaded page instead would
+ * make "highest liquidity" mean "highest among the newest 150", which is the
+ * page-narrowing trick this codebase already refuses elsewhere. */
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: "pooled", label: "Newly tradable" },
+  { id: "volume", label: "Volume 24h" },
+  { id: "liquidity", label: "Liquidity" },
+  { id: "mcap", label: "Market cap" },
+  { id: "txns5m", label: "Trades 5m" },
+  { id: "change5m", label: "Movers 5m" },
+  { id: "change24h", label: "Movers 24h" },
+  { id: "new", label: "Newest launch" },
+  { id: "risk", label: "Riskiest" },
 ]
 
-const VIEW_KEY = "newera_feed_view"
+const SORT_KEY = "newera_feed_sort"
+const IS_SORT = (v: unknown): v is SortKey => SORTS.some((s) => s.id === v)
 
-function loadView(): View {
+function loadSort(): SortKey {
   try {
-    const v = localStorage.getItem(VIEW_KEY)
-    return v === "new" || v === "clusters" || v === "trading" ? v : "trading"
+    const v = localStorage.getItem(SORT_KEY)
+    /* Defaults to newly-tradable. A trader opening this wants what just became
+       buyable, and the old default ordered by MINT time, which puts the tokens
+       that cannot have a pool yet at the top. */
+    return IS_SORT(v) ? v : "pooled"
   } catch {
-    return "trading"
+    return "pooled"
   }
 }
 
-function saveView(v: View) {
+function saveSort(v: SortKey) {
   try {
-    localStorage.setItem(VIEW_KEY, v)
+    localStorage.setItem(SORT_KEY, v)
   } catch {
     /* private mode — the choice still holds for this visit */
   }
 }
 
+/** How many rows one request brings, and one "load more" adds. */
+const PAGE = 100
+/** The API ceiling. Past this, "load more" has nothing left to ask for. */
+const MAX_ROWS = 500
+
 export default function Feed() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [themes, setThemes] = useState<Theme[] | null>(null)
   const [launches, setLaunches] = useState<Launch[] | null>(null)
-  const [includeSolo, setIncludeSolo] = useState(false)
   const [hideRisky, setHideRisky] = useState(false)
   /* Restored from the last visit — a filter set is a workspace, and rebuilding
      it on every arrival is why nobody uses filters twice. */
   const [filters, setFilters] = useState<Filters>(() => loadFilters())
-  /* One page, three views — not three stacked sections.
-     Stacked, the tape began at y=1951 and the cluster grid sat between two
-     tables that are the same act of scanning. A terminal switches what the one
-     table is showing; it does not make you scroll past the other answers. The
-     choice persists because it is a workspace, not a navigation step. */
-  const [view, setView] = useState<View>(() => loadView())
+  /* The ordering the SERVER applies. Persisted because it is a workspace, not a
+     navigation step — someone who watches liquidity wants liquidity next time. */
+  const [sort, setSort] = useState<SortKey>(() => loadSort())
+  /* How many rows PAST the first page are being held. Kept as a count rather
+     than a page number because the poll re-fetches from zero: the ordering keys
+     are mutable — liquidity changes between requests — so a cursor would skip
+     or repeat rows, and asking for `PAGE + more` in one request is the only way
+     a refresh cannot lose what you already scrolled to. */
+  const [more, setMore] = useState(0)
+  const [total, setTotal] = useState<number | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [measuredOnly, setMeasuredOnly] = useState(false)
-  const [byRisk, setByRisk] = useState(false)
   const [failures, setFailures] = useState(0)
   /* Tracked separately from `failures`. That counter only increments when ALL
      THREE requests reject, so a stats-only outage left the masthead on
@@ -155,8 +163,17 @@ export default function Feed() {
          ~45% of indexed launches eventually get a pool, and a pool opens some
          time after the mint — so "recently became tradable" is both the larger
          set and the one somebody is actually shopping. */
-      getJSON<{ items: Launch[]; measuredOnly?: boolean }>(
-        `/intel/feed?limit=150&sort=pooled${
+      /* One request for everything on screen, ordered by the DATABASE.
+         `limit` grows with "load more" rather than the request being paged,
+         because the poll refetches every twelve seconds and these sort keys
+         move — asking for page 2 again after liquidity shifted would repeat or
+         drop rows, while re-asking for the whole visible span cannot. */
+      getJSON<{
+        items: Launch[]
+        measuredOnly?: boolean
+        total?: number
+      }>(
+        `/intel/feed?limit=${Math.min(MAX_ROWS, PAGE + more)}&sort=${sort}${
           hideRisky && filters.maxRisk === null ? "&maxRisk=25" : ""
         }${filtersToQuery(filters)}`
       ),
@@ -171,25 +188,17 @@ export default function Feed() {
       setStatsFailed(true)
     }
 
-    /* "Include one-wallet clusters" has to ADD, which meant a second request.
-       It used to drop `organicOnly` from the same limit=24 query, so one-wallet
-       clusters consumed the page budget and evicted the multi-wallet ones
-       already on screen — measured 19 clusters before the toggle and 10 after,
-       losing 14 to gain 8, under a control labelled "Include". Raising the limit
-       does not fix it either: the server sorts and slices AFTER filtering, so
-       the organic ones can still fall outside the window. Fetching both sets and
-       merging is the only shape that matches the label. */
-    let nextThemes = t.status === "fulfilled" ? t.value.items : null
-    if (includeSolo && nextThemes) {
-      const solo = await getJSON<{ items: Theme[] }>("/intel/themes?limit=100").catch(() => null)
-      if (solo?.items) {
-        const seen = new Set(nextThemes.map((x) => x.slug))
-        nextThemes = [...nextThemes, ...solo.items.filter((x) => !seen.has(x.slug))]
-      }
-    }
+    const nextThemes = t.status === "fulfilled" ? t.value.items : null
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
     // The API says when a filter restricted the answer to measured tokens.
-    if (f.status === "fulfilled") setMeasuredOnly(f.value.measuredOnly === true)
+    if (f.status === "fulfilled") {
+      setMeasuredOnly(f.value.measuredOnly === true)
+      /* The size of the whole query, not of this page. Without it the reader
+         cannot tell "that is everything" from "the request came back short",
+         which is the confusion the old rolling window created: fifteen rows and
+         no way to know a hundred thousand launches sat behind them. */
+      setTotal(typeof f.value.total === "number" ? f.value.total : null)
+    }
 
     /* Decided out here, not inside a state updater. Queueing `setPending` from
        within `setLaunches` is a side effect in a reducer — React is free to run
@@ -207,7 +216,8 @@ export default function Feed() {
 
     const failed = [s, t, f].filter((r) => r.status === "rejected").length
     setFailures((n) => (failed === 3 ? n + 1 : 0))
-  }, [includeSolo, hideRisky, filters])
+    setLoadingMore(false)
+  }, [hideRisky, filters, sort, more])
 
   const applyPending = useCallback(() => {
     setPending((p) => {
@@ -226,7 +236,10 @@ export default function Feed() {
     // A different set is being requested, so the next response is not an
     // interruption — let it land even if the reader is scrolled down.
     shown.current = false
-  }, [includeSolo, hideRisky, filters])
+    /* `sort` belongs here too: choosing a different ordering is the same act as
+       choosing a different filter — the reader asked for another set, and
+       holding that response back would make the control feel broken. */
+  }, [hideRisky, filters, sort])
 
   /* How many of the held launches are ones the reader has not seen. */
   const waiting = useMemo(() => {
@@ -286,57 +299,64 @@ export default function Feed() {
       .sort((a, b) => forming(b) - forming(a) || b.creatorCount - a.creatorCount)
   }, [themes])
 
-  const tape = useMemo(() => {
-    if (!launches) return null
-    if (!byRisk) return launches
-    return [...launches].sort(
-      (a, b) =>
-        b.riskScore - a.riskScore ||
-        b.dupeCount - a.dupeCount ||
-        (b.spoofFlags?.length || 0) - (a.spoofFlags?.length || 0)
-    )
-  }, [launches, byRisk])
+  /* The server already ordered these. Re-sorting here would reorder only the
+     rows the browser holds, which is the difference between ranking the chain
+     and ranking a page — and it would silently disagree with the column header
+     claiming to be active. */
+  const tape = launches
 
   /* Which of these actually have a market. Keyed off the tape's addresses, so
      one batched call covers both the section below and every row. */
   const markets = useMarkets(useMemo(() => (launches || []).map((l) => l.address), [launches]))
 
-  /* Traded, ranked by what is trading NOW.
-   *
-   * This is the section the feed did not have: it showed what launched and how
-   * spammy it looked, and nothing about whether a token had traction — most of
-   * what a reader is there to find out. A single seed trade is not traction, so
-   * it still has to clear a volume and a trade-count floor.
-   *
-   * The RANK was the bug. Ordered by 24-hour volume, a token that traded
-   * heavily twenty hours ago and has been dead since outranked one trading this
-   * minute — and "Getting traded" is present tense. DexScreener returns m5 and
-   * h1 in the same response we already make, so the ordering now prefers recent
-   * activity and falls back to 24h only where the short windows are absent. */
-  const traded = useMemo(() => {
-    if (!launches || !markets) return null
-    return launches
-      .map((l) => ({ launch: l, market: markets.markets.get(l.address.toLowerCase()) }))
-      /* `liquidityUsd` has to be in the predicate because MarketLine refuses to
-         render without it — a drained pool with past volume satisfied this
-         filter and then printed "No market yet" on the row directly beneath its
-         own heading. The two must agree on what "tradeable" means. */
-      .filter(
-        (r) =>
-          r.market &&
-          (r.market.liquidityUsd ?? 0) > 0 &&
-          (r.market.volume24h ?? 0) > 0 &&
-          (r.market.txns24h ?? 0) > 1
-      )
-      /* Recency-weighted: the last hour dominates, the last five minutes
-         dominate that, and 24h only breaks ties between tokens that are equally
-         quiet now. Weights rather than a strict sort so a token with one big
-         recent trade does not leapfrog one with sustained volume. */
-      .sort((a, b) => liveness(b.market!) - liveness(a.market!))
-  }, [launches, markets])
 
-  const marketsDown = markets !== null && !markets.ok
   const marketStatus = markets === null ? "loading" : markets.ok ? "ok" : "down"
+
+  /* What the table renders.
+   *
+   * The SERVER's mirrored figures are the base: they cover every row and they
+   * are what the ordering was computed from. The client DexScreener read is
+   * layered over them where it exists, because it is seconds old rather than up
+   * to a minute — but it can only refine a row, never decide its position.
+   *
+   * Sorting on one set of numbers while displaying another is how a table ends
+   * up contradicting its own active column. */
+  const rows = useMemo(
+    () =>
+      (tape || []).map((l) => {
+        const live = markets?.markets.get(l.address.toLowerCase())
+        if (live) return { launch: l, market: live }
+        const m = l.market
+        if (!m) return { launch: l }
+        return {
+          launch: l,
+          market: {
+            address: l.address,
+            symbol: l.symbol,
+            name: l.name,
+            priceUsd: m.priceUsd,
+            liquidityUsd: m.liquidityUsd,
+            volume24h: m.volume24hUsd,
+            priceChange24h: m.change24h,
+            txns24h: m.txns24h,
+            txns5m: m.txns5m,
+            txns1h: null,
+            buys5m: null,
+            sells5m: null,
+            volume5m: null,
+            volume1h: null,
+            priceChange5m: m.change5m,
+            priceChange1h: m.change1h,
+            marketCap: m.marketCapUsd,
+            /* Never constructed by us. The mirror does not carry the venue's
+               page, and inventing a URL that might 404 is worse than none. */
+            url: "",
+          } as Market,
+        }
+      }),
+    [tape, markets]
+  )
+
 
   /* Freshness is the age of the newest thing indexed, not the watcher's pulse.
    *
@@ -424,51 +444,47 @@ export default function Feed() {
           bought. Clusters are still the judgement only this product makes; they
           are just not what someone opens the app to do. */}
       {/* The one control surface for the whole page. */}
-      <div className="mt-[3vh] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-edge-strong">
-        <div className="flex flex-wrap items-end gap-x-1">
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              aria-pressed={view === v.id}
-              onClick={() => {
-                setView(v.id)
-                saveView(v.id)
-              }}
-              className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] transition-colors ${
-                view === v.id
-                  ? "border-acid-500 text-acid-500"
-                  : "border-transparent text-fg-dim hover:text-fg"
-              }`}
-            >
-              {v.label}
-              <span className="ml-2 text-micro text-fg-dim">
-                {v.id === "trading"
-                  ? marketsDown
-                    ? "—"
-                    : (traded?.length ?? "…")
-                  : v.id === "new"
-                    ? (tape?.length ?? "…")
-                    : (clusters?.length ?? "…")}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* The one control surface. One table, and the ordering is the control.
+          Three tabs were three answers to one question — "Trading" was the tape
+          filtered to rows with a market, "New pairs" the same tape by pool
+          time. Both are orderings, which is what this is. */}
+      <div className="mt-[3vh] border-b border-edge-strong pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+            {SORTS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={sort === s.id}
+                onClick={() => {
+                  setSort(s.id)
+                  saveSort(s.id)
+                  /* Back to one page. Holding 400 rows across a re-sort would
+                     ask the server for 400 rows in a completely different
+                     order, which is a long request nobody asked for. */
+                  setMore(0)
+                }}
+                className={`border px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] transition-colors ${
+                  sort === s.id
+                    ? "border-acid-500 text-acid-500"
+                    : "border-transparent text-fg-dim hover:border-edge hover:text-fg"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
 
-        {view !== "clusters" && (
-          <div className="flex flex-wrap items-center gap-3 pb-2">
+          <div className="flex flex-wrap items-center gap-3">
             <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
               Hide likely spam
             </Toggle>
-            <Toggle on={byRisk} onClick={() => setByRisk((v) => !v)}>
-              {byRisk ? "Riskiest first" : "Newest first"}
-            </Toggle>
             <FeedFilters value={filters} onChange={setFilters} />
           </div>
-        )}
+        </div>
       </div>
 
-      {measuredOnly && needsMeasurement(filters) && view !== "clusters" && (
+      {measuredOnly && needsMeasurement(filters) && (
         /* Said out loud, because a holder filter silently drops every token we
            have not measured yet — and four results could mean "only four are
            this clean" or "we have only measured forty". */
@@ -478,92 +494,73 @@ export default function Feed() {
         </p>
       )}
 
-      <section className={view === "trading" ? "mt-4" : "hidden"}>
-        <div>
-          {/* The intel-outage branch comes FIRST, before the skeleton.
-              `marketsDown` only covers a DexScreener failure. `traded` derives
-              from `launches`, which is null while the intel API is down, so an
-              intel outage fell through to the skeleton and pulsed forever — in
-              the one section that was moved to the top of the page, while its
-              three neighbours all explained themselves honestly. Measured still
-              pulsing at 70 seconds. This is the guarantee fixcheck.mjs asserts;
-              the section escaped it by being moved after that suite was written. */}
-          {failures >= 1 && traded === null ? (
-            <EmptyState>
-              The intelligence API is not responding, so we cannot say what is trading. This page
-              retries every 12 seconds.
-            </EmptyState>
-          ) : marketsDown ? (
-            <EmptyState>
-              Market data is unavailable right now, so we cannot say what is trading. This is a
-              lookup failure on our side, not a statement about these tokens.
-            </EmptyState>
-          ) : traded === null ? (
-            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h={64} />)
-          ) : traded.length === 0 ? (
-            <EmptyState>
-              Nothing in this window has a market yet. That is the normal state of a new launch, and
-              the reason this page exists: you are seeing them before they have a price.
-            </EmptyState>
-          ) : (
-            <LaunchTable rows={traded} caption="Launches with a live market, deepest first" />
-          )}
-        </div>
-      </section>
-
-      {/* Order: traded coins, then ALL coins, then clusters.
-          The cluster grid used to sit between the two tables, which put the raw
-          tape at y=1951 — a reader scanning for something to trade hit five
-          rows, then a wall of cluster blocks, then had to keep going to reach
-          the other thirty. Both tables are the same act of scanning and belong
-          together; the clusters are the judgement only this product makes, and
-          they still follow, where somebody who wants them will look. */}
-      <section className={view === "new" ? "mt-4" : "hidden"}>
-
-
-        {/* The scale, stated. The column heading named the number but not what
-            it meant, and the only explanation of the thresholds was a `title`
-            on a non-focusable span — invisible on touch, unannounced by screen
-            readers, and absent for anyone who simply does not hover. */}
-        {/* The threshold stated here has to be the one the control uses. I
-            first wrote "40 and over is the band Hide likely spam removes",
-            which was wrong: the request is `maxRisk=25`, so the toggle is
-            stricter than the documented high band and also removes the upper
-            half of the medium one. Describing the control's real behaviour
-            rather than the band boundary. */}
-
+      <section className="mt-4">
         <div>
           {/* Failure is checked BEFORE the null case. Ordered the other way,
               `tape === null` matched first on a cold outage and the honest
-              message below was unreachable on the one path that needed it —
-              the page pulsed sixteen skeletons and said "Connecting…" forever. */}
+              message below was unreachable on the one path that needed it. */}
           {failures >= 1 && tape === null ? (
             <EmptyState>
               The intelligence API is not responding. This page retries every 12 seconds — leave it
               open and it will fill in when the index is back.
             </EmptyState>
           ) : tape === null ? (
-            Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} />)
+            Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} />)
           ) : failures >= 3 ? (
             <EmptyState>
               Lost contact with the intelligence API. The rows below are the last good read.
             </EmptyState>
           ) : tape.length === 0 ? (
-            /* The feed asks for tradable rows only, so "nothing indexed" would
-               be the wrong claim — the index is almost certainly full of
-               launches that simply have no pool. Say which one is empty. */
-            <EmptyState>Nothing has become tradable in this window yet.</EmptyState>
+            <EmptyState>Nothing tradable matches these filters yet.</EmptyState>
           ) : (
             <LaunchTable
-              rows={tape.map((l) => ({
-                launch: l,
-                market: markets?.markets.get(l.address.toLowerCase()),
-              }))}
+              rows={rows}
               marketStatus={marketStatus}
-              caption="Tokens that recently became tradable, most recent pool first"
+              sort={sort}
+              onSort={(k) => {
+                setSort(k)
+                saveSort(k)
+                setMore(0)
+              }}
+              caption="Tradable tokens on Robinhood Chain, ordered by the selected column"
             />
           )}
         </div>
+
+        {/* How much of the index you are looking at, and the way to see more.
+            The feed used to be a rolling window of the newest rows with no way
+            past it — every launch older than the window was unreachable, which
+            is why it looked like the chain had produced fifteen tokens. */}
+        {tape && tape.length > 0 && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+            <p className="font-mono text-micro uppercase tracking-[0.1em] text-fg-dim">
+              {total === null
+                ? `${tape.length} shown`
+                : `${tape.length} of ${total.toLocaleString("en-US")} tradable`}
+            </p>
+            {total !== null && tape.length < total && tape.length < MAX_ROWS && (
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => {
+                  setLoadingMore(true)
+                  setMore((m) => Math.min(MAX_ROWS - PAGE, m + PAGE))
+                }}
+                className="block-btn border border-edge-strong text-fg-muted hover:text-fg disabled:opacity-50"
+              >
+                {loadingMore ? "Loading…" : `Show ${PAGE} more`}
+              </button>
+            )}
+            {tape.length >= MAX_ROWS && (
+              /* The ceiling is stated rather than the button just vanishing.
+                 A control that disappears reads as a bug; a sentence explaining
+                 the limit reads as a limit. */
+              <p className="font-mono text-micro uppercase tracking-[0.1em] text-fg-dim">
+                showing the first {MAX_ROWS} — narrow with filters or sort to reach the rest
+              </p>
+            )}
+          </div>
+        )}
 
         <p className="mt-6 text-sm text-fg-dim">
           Scores explained on{" "}
@@ -572,59 +569,11 @@ export default function Feed() {
           </Link>
           .
         </p>
-        {/* Below the tape, not above it.
-            Five lines of mono explaining a scale sat between the controls and
-            the first row — ~95px of instruction, on every visit, for a reader
-            who mostly already knows. The scale still has to be stated
-            somewhere: nowhere else says 40 is high, or that the toggle is
-            stricter than the band it appears to name, and the RiskPill's own
-            reading is announced only to assistive tech. It reads as a footnote
-            to the table it describes, which is where a legend belongs. */}
         <p className="mt-3 font-mono text-micro leading-relaxed text-fg-dim">
           Spam risk runs 0–100: higher means the launch looks more machine-generated. Under 15 is
           clean, 40 and over is high. <span className="text-fg-muted">Hide likely spam</span> is
           stricter than that line — it removes anything above 25. It is not a price forecast.
         </p>
-      </section>
-      <section className={view === "clusters" ? "mt-4" : "hidden"}>
-        <SectionHead
-          title="Worth looking at"
-          note={clusters ? `${clusters.length} listed` : "…"}
-        />
-        {/* Four lines of 14px prose cost ~110px of a scanning surface to
-            explain a heading that already says it. What survives is the part a
-            reader cannot infer — the ordering, and the limit of the claim. */}
-        <p className="mt-2 text-micro leading-relaxed text-fg-dim">
-          Ordered by how fast independent wallets are arriving. A statement about who is launching,
-          not a prediction about price.
-        </p>
-
-        {/* A grid, not a column. These are short comparable blocks, and one per
-            row left two thirds of the width empty while making the reader scroll
-            to compare the third cluster against the first. */}
-        <div className="mt-7 grid border-t border-edge lg:grid-cols-2 lg:gap-x-10 xl:grid-cols-3">
-          {failures >= 1 && clusters === null ? (
-            <EmptyState>
-              The intelligence API is not responding, so there is nothing to rank here yet.
-            </EmptyState>
-          ) : clusters === null ? (
-            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} h={110} />)
-          ) : clusters.length === 0 ? (
-            <EmptyState>
-              {includeSolo
-                ? "Nothing with two or more launches in this window. The indexer may still be warming up."
-                : "No cluster right now has more than one wallet launching into it — every active one is a single address repeating itself. Turn on one-wallet clusters below to see them anyway."}
-            </EmptyState>
-          ) : (
-            clusters.map((t) => <ClusterRow key={t.id} theme={t} />)
-          )}
-        </div>
-
-        <div className="mt-5">
-          <Toggle on={includeSolo} onClick={() => setIncludeSolo((v) => !v)}>
-            Include one-wallet clusters
-          </Toggle>
-        </div>
       </section>
 
     </Page>
