@@ -90,8 +90,8 @@ function Pct({ v }: { v: number | null | undefined }) {
  * exactly the same box — so a row never reflows when an image 404s, and the
  * column edge stays straight down a scrolling tape.
  *
- * The URL is the DEPLOYER'S, which makes it untrusted input pointed at by an
- * <img>. `referrerPolicy` stops our URLs leaking to whatever host they chose,
+ * The URL is the DEPLOYER'S, which makes it untrusted input behind an image
+ * tag. `referrerPolicy` stops our URLs leaking to whatever host they chose,
  * and `loading="lazy"` means a 150-row tape does not open 150 connections to
  * IPFS gateways on first paint. The API already allowlists the scheme; this is
  * the second half of that, because the tag is where it would actually bite.
