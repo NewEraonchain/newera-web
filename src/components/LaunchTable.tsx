@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ago } from "@/lib/api"
 import { judgeDistribution } from "@/lib/distributionVerdict"
@@ -78,6 +79,48 @@ function Pct({ v }: { v: number | null | undefined }) {
       {v > 0 ? "+" : ""}
       {s}%
     </span>
+  )
+}
+
+/* The token's own picture, or a monogram standing in for it.
+ *
+ * Only ~40% of tradable tokens on this chain declare a logo, so the fallback is
+ * the common case and has to look deliberate rather than broken. A monogram
+ * derived from the symbol is stable per token, needs no network, and occupies
+ * exactly the same box — so a row never reflows when an image 404s, and the
+ * column edge stays straight down a scrolling tape.
+ *
+ * The URL is the DEPLOYER'S, which makes it untrusted input pointed at by an
+ * <img>. `referrerPolicy` stops our URLs leaking to whatever host they chose,
+ * and `loading="lazy"` means a 150-row tape does not open 150 connections to
+ * IPFS gateways on first paint. The API already allowlists the scheme; this is
+ * the second half of that, because the tag is where it would actually bite.
+ */
+function TokenMark({ src, symbol }: { src: string | null; symbol: string }) {
+  const [failed, setFailed] = useState(false)
+  const letter = (symbol || "?").replace(/[^\p{L}\p{N}]/gu, "").slice(0, 1) || "?"
+
+  if (!src || failed) {
+    return (
+      <span
+        aria-hidden="true"
+        className="grid size-[18px] flex-none self-center place-items-center border border-edge bg-surface-1 font-mono text-[10px] uppercase leading-none text-fg-dim"
+      >
+        {letter}
+      </span>
+    )
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className="size-[18px] flex-none self-center border border-edge bg-surface-1 object-cover"
+    />
   )
 }
 
@@ -195,6 +238,7 @@ function LaunchRow({
               cell's slack and shoved the flags to the far right edge, so a COPY
               marker floated a screen-width away from the token it describes.
               Flags belong against the name they qualify. */}
+          <TokenMark src={launch.logo} symbol={launch.symbol} />
           <span className="font-mono text-xs font-semibold text-fg">{launch.symbol || "—"}</span>
           {/* The cap is responsive. A flat 26ch let the identity cell alone
               exceed a 320px viewport once age, liquidity and risk were beside

@@ -77,6 +77,13 @@ export type Launch = {
   riskScore: number
   txHash: string
   theme: { id: string; label: string; slug: string; status: ThemeStatus } | null
+  /* What the token says about ITSELF — the deployer's own strings, read from
+     getters on the contract, not anything we verified. Named `logo` rather
+     than `image` so nobody reads it as ours. About 40% of tradable tokens have
+     one; the rest must degrade to a monogram, never a broken image box. */
+  logo: string | null
+  description: string | null
+  socials: string | null
   /* Where it trades. Null means we have never seen a pool open for it, which
      is a different statement from "it has a pool and we could not price it" —
      the first is a fact about the token, the second a gap in the market read,
