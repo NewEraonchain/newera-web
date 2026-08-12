@@ -481,10 +481,12 @@ export default function Feed() {
                      order, which is a long request nobody asked for. */
                   setMore(0)
                 }}
-                className={`border px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] transition-colors ${
-                  sort === s.id
-                    ? "border-acid-500 text-acid-500"
-                    : "border-transparent text-fg-dim hover:border-edge hover:text-fg"
+                /* No box. The border made the active chip a tab, which is exactly
+                   what this row must stop reading as — the hairline under it is
+                   the same mark the aperture makes on a hovered row, and one
+                   marker per state is the rule everywhere else here. */
+                className={`chip px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] ${
+                  sort === s.id ? "text-acid-500" : "text-fg-dim hover:text-fg"
                 }`}
               >
                 {s.label}
@@ -627,16 +629,29 @@ function TheRead({
   failed: boolean
 }) {
   if (!stats) {
-    return (
-      <div className="mt-6 border-y border-edge py-4">
-        {failed ? (
-          <p className="text-sm leading-relaxed text-warn">
-            The index is not answering, so there is nothing measured to report here. This page
-            retries every 12 seconds.
-          </p>
-        ) : (
-          <Skeleton h={40} />
-        )}
+    /* Same box as the loaded strip: `mt-4`, `py-2.5`, and a skeleton the height
+       of one line of figures.
+     *
+     * This was `mt-6 py-4` around a 40px skeleton — 74px reserved for something
+     * that renders at 42px. Measured: /app scored a CLS of 0.772, and the blame
+     * trace put all of it in one shift at 4954ms where this box collapsed by
+     * 32px and dragged the control bar and the entire table up with it. A late
+     * shift is weighted hardest, so one collapsing element produced almost the
+     * whole score.
+     *
+     * The failure branch keeps its own height because a sentence genuinely is
+     * taller than a row of figures — reserving space for prose we might not
+     * show would trade a shift for a permanent hole. */
+    return failed ? (
+      <div className="mt-4 border-y border-edge py-2.5">
+        <p className="text-sm leading-relaxed text-warn">
+          The index is not answering, so there is nothing measured to report here. This page
+          retries every 12 seconds.
+        </p>
+      </div>
+    ) : (
+      <div className="mt-4 border-y border-edge py-2.5">
+        <Skeleton h={20} />
       </div>
     )
   }

@@ -127,7 +127,7 @@ function Row({
               type="button"
               aria-pressed={on}
               onClick={() => onChange(on ? null : o.value)}
-              className={`border px-2.5 py-1 font-mono text-micro tabular-nums transition-colors ${
+              className={`chip border px-2.5 py-1 font-mono text-micro tabular-nums ${
                 on
                   ? "border-acid-500 text-acid-500"
                   : "border-edge text-fg-dim hover:border-edge-strong hover:text-fg"
@@ -204,7 +204,7 @@ export default function FeedFilters({
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className={`border px-3 py-1.5 font-mono text-micro uppercase tracking-[0.1em] transition-colors ${
+          className={`chip border px-3 py-1.5 font-mono text-micro uppercase tracking-[0.1em] ${
             n > 0
               ? "border-acid-500 text-acid-500"
               : "border-edge-strong text-fg-muted hover:text-fg"

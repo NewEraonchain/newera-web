@@ -96,6 +96,15 @@ function Pct({ v }: { v: number | null | undefined }) {
  * IPFS gateways on first paint. The API already allowlists the scheme; this is
  * the second half of that, because the tag is where it would actually bite.
  */
+/** A name a screen reader can read out, whatever the deployer called the token. */
+function linkLabel(l: Launch): string {
+  const readable = (s: string) => /[\p{L}\p{N}]/u.test(s)
+  const parts = [l.symbol, l.name].filter((s) => s && readable(s))
+  if (parts.length) return parts.join(" — ")
+  // Emoji-only in both fields. The address is the only thing left that speaks.
+  return `Token ${l.address.slice(0, 6)}…${l.address.slice(-4)}`
+}
+
 function TokenMark({ src, symbol }: { src: string | null; symbol: string }) {
   const [failed, setFailed] = useState(false)
   const letter = (symbol || "?").replace(/[^\p{L}\p{N}]/gu, "").slice(0, 1) || "?"
@@ -171,7 +180,7 @@ function Th({
         <button
           type="button"
           onClick={() => onSort!(sortKey!)}
-          className={`inline-flex items-center gap-1 uppercase tracking-[0.1em] transition-colors hover:text-fg ${
+          className={`chip inline-flex items-center gap-1 uppercase tracking-[0.1em] hover:text-fg ${
             isActive ? "text-acid-500" : ""
           } ${align === "right" ? "flex-row-reverse" : ""}`}
         >
@@ -213,7 +222,19 @@ export function LaunchTable({
     />
   )
   return (
-    <div className="overflow-x-auto">
+    /* `relative` is load-bearing, not decoration.
+     *
+     * Overflow does not clip an absolutely-positioned descendant whose
+     * containing block sits OUTSIDE the scroller. Every risk cell carries an
+     * `sr-only` span, and Tailwind's sr-only is `position: absolute` — so with
+     * a static wrapper those spans escaped the scroll box entirely and set
+     * their containing block to the page. Measured at 320px: the document
+     * reached 329px against a 320px viewport, and /app was the one route that
+     * scrolled sideways on a phone. The table itself was innocent and properly
+     * clipped; it was the invisible labels inside it that leaked.
+     *
+     * Making the wrapper a containing block clips them with everything else. */
+    <div className="relative overflow-x-auto">
       <table className="w-full table-auto border-collapse">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -313,6 +334,20 @@ function LaunchRow({
       <td className="px-1.5 py-0 sm:px-2">
         <Link
           to={`/app/token/${launch.address}`}
+          /* Named explicitly, because the subtree cannot be trusted to name it.
+           *
+           * Two ways this link ended up unreadable. Tokens on this chain are
+           * routinely launched with emoji-only tickers, so the visible text can
+           * carry no letters at all — the a11y suite caught a link announcing
+           * itself as "🙈🙈". And the monogram beside it is decorative, marked
+           * aria-hidden, yet still reachable by anything reading text content
+           * rather than the accessibility tree, which turned the same link into
+           * "?🙈🙈".
+           *
+           * An explicit label ends both: it says the symbol and the name, and
+           * falls back to the address when neither contains a readable
+           * character, so every row announces something a person can act on. */
+          aria-label={linkLabel(launch)}
           className="flex min-w-0 items-baseline gap-x-2 py-2"
         >
           {/* The name truncates; it does NOT grow. `flex-1` on it consumed the
