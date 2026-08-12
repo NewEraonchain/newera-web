@@ -48,15 +48,24 @@ const REFRESH_MS = 12000
  * make "highest liquidity" mean "highest among the newest 150", which is the
  * page-narrowing trick this codebase already refuses elsewhere. */
 const SORTS: { id: SortKey; label: string }[] = [
-  { id: "pooled", label: "Newly tradable" },
-  { id: "volume", label: "Volume 24h" },
+  /* Labels are parallel on purpose. The first pair reads as a pair — "just
+     pooled" and "just launched" are the two clocks a token has, and naming
+     one "Newly tradable" and the other "Newest launch" hid that they answer
+     the same kind of question. The rest name the column they order, so the
+     chip and the table heading agree word for word.
+
+     Every one of these sorts DESCENDING, which is why "Gainers" is honest and
+     "Movers" was not: a mover could be falling, and this list never shows the
+     falling end first. */
+  { id: "pooled", label: "Just pooled" },
+  { id: "new", label: "Just launched" },
   { id: "liquidity", label: "Liquidity" },
+  { id: "volume", label: "Volume 24h" },
   { id: "mcap", label: "Market cap" },
   { id: "txns5m", label: "Trades 5m" },
-  { id: "change5m", label: "Movers 5m" },
-  { id: "change24h", label: "Movers 24h" },
-  { id: "new", label: "Newest launch" },
-  { id: "risk", label: "Riskiest" },
+  { id: "change5m", label: "Gainers 5m" },
+  { id: "change24h", label: "Gainers 24h" },
+  { id: "risk", label: "Spam risk" },
 ]
 
 const SORT_KEY = "newera_feed_sort"
@@ -449,8 +458,16 @@ export default function Feed() {
           filtered to rows with a market, "New pairs" the same tape by pool
           time. Both are orderings, which is what this is. */}
       <div className="mt-[3vh] border-b border-edge-strong pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+            {/* Named, because unnamed it is a tab bar.
+                These chips replaced three tabs and inherited their shape — a
+                horizontal row with one highlighted — so they still read as
+                "which set am I looking at" when they mean "in what order". Two
+                words fix it, and the em-rule keeps them out of the tab rhythm. */}
+            <span className="mr-2 shrink-0 font-mono text-micro uppercase tracking-[0.14em] text-fg-muted">
+              Rank by
+            </span>
             {SORTS.map((s) => (
               <button
                 key={s.id}
@@ -562,18 +579,17 @@ export default function Feed() {
           </div>
         )}
 
-        {/* Why two thirds of the rows have dashes where the money should be.
-            Measured on production: DexScreener indexes 606 of 738 v3 pools on
-            this chain and ZERO of 1,463 v4 pools, and v4 is the majority here.
-            Without this the reader concludes those tokens are dead, when the
-            truth is that our price source cannot see them. A dash that is never
-            explained is read as a zero. */}
-        {rows.some((r) => r.launch.pool?.venue === "v4" && !r.market) && (
-          <p className="measure mt-6 text-micro leading-relaxed text-warn">
-            Rows showing a dash instead of a price are Uniswap v4 pools. They trade — we read the
-            pool opening from the chain — but our price source does not index v4 on this chain
-            yet, so we will not put a number next to them. Sorting by a money column ranks the
-            tokens we can price and leaves these at the end.
+        {/* Why some rows have dashes where the money should be.
+            Measured on production: of pooled tokens the price source has looked
+            at, it answers for 84% on v3 and 47% on v4. A dash that is never
+            explained is read as a zero, and these tokens are not dead — they
+            have a pool we read from the chain and no price we can stand behind. */}
+        {rows.some((r) => r.launch.pool && !r.market) && (
+          <p className="measure mt-6 text-micro leading-relaxed text-fg-dim">
+            A dash instead of a price means the pool exists — we read it from the chain — but our
+            price source has no pair for it yet. That is ordinary in a token's first minutes.
+            Ranking by a money column puts the tokens we can price first and leaves these at the
+            end, rather than guessing a number for them.
           </p>
         )}
 

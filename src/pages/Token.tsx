@@ -293,10 +293,18 @@ function TheMarket({
      * sentence, and this branch printed the first while only knowing the
      * second.
      *
-     * Measured on production: DexScreener indexes ZERO of the 1,463 v4 pools on
-     * this chain, against 606 of 738 on v3. v4 is 66% of everything tradable
-     * here — so two out of every three tokens with a working pool were being
-     * told, in the largest type on the page, that nobody could buy them.
+     * Measured on production: of pooled tokens our price source has looked at,
+     * it returns a price for 84% on v3 and 47% on v4. So a token with a working
+     * pool and no price is ordinary — and roughly half of all v4 pools, which
+     * are the majority on this chain, were being told in the largest type on
+     * the page that nobody could buy them.
+     *
+     * (An earlier version of this comment said the source indexed NO v4 pools
+     * at all. That was a measurement taken before the market mirror had
+     * rotated through the v4 rows — every one still had a null stamp, so
+     * "never measured" was misread as "returned nothing". Same shape of
+     * mistake as the one this branch exists to fix: absence of data read as a
+     * fact about the token.)
      *
      * We index pool creation ourselves, from the chain, so we know better. When
      * a pool exists the page says what is actually true: it trades, and we
@@ -310,9 +318,9 @@ function TheMarket({
           <p className="measure mt-3 text-sm leading-relaxed text-fg-dim">
             A {pool.venue === "v4" ? "Uniswap v4" : "Uniswap v3"} pool opened
             {pool.pooledAt ? ` ${ago(Math.max(0, Math.floor((Date.now() - new Date(pool.pooledAt).getTime()) / 1000)))} ago` : ""}
-            , which we read from the chain directly. The price and depth shown elsewhere on this
-            site come from DexScreener, and it does not currently index v4 pools on this chain —
-            so the figures are missing, not the market.
+            , which we read from the chain directly. Price and depth come from DexScreener, which
+            has no pair for this one yet — common in a token's first minutes, and more common on
+            v4. The figures are missing, not the market.
           </p>
         </section>
       )
