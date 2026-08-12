@@ -446,7 +446,14 @@ export function CadenceStrip() {
 
   return (
     <div ref={root}>
-      <div className="flex h-20 items-end gap-px">
+      {/* The GAPS were the overflow, not the bars.
+          Each bar is `flex-1` with a zero basis and can shrink to nothing, but
+          `gap-px` is fixed: at one minute per bar this row carries ~260 of
+          them, so 259 gaps put a hard 259px floor under a 320px viewport and
+          the whole page scrolled sideways. Below `sm` the bars are about a
+          pixel wide anyway — no gap can separate them at that size — so the
+          separator is spent where it can actually be seen. */}
+      <div className="flex h-20 min-w-0 items-end gap-0 sm:gap-px">
         {bars.map((n, i) => (
           <span
             key={i}

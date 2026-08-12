@@ -46,6 +46,40 @@ function liveness(m: Market): number {
   return v5 * 12 + v1h * 2 + v24 * 0.05
 }
 
+/* The three questions this page answers, as one table's three states.
+ *
+ * Trading first, because "what can I actually buy right now" is what a visitor
+ * arrives with. New is the raw tape and the product's proof — a launch visible
+ * before it has a price. Clusters is the judgement nobody else makes, and it is
+ * a different shape of answer, so it gets its own view rather than a wall of
+ * blocks wedged between two tables. */
+type View = "trading" | "new" | "clusters"
+
+const VIEWS: { id: View; label: string }[] = [
+  { id: "trading", label: "Trading" },
+  { id: "new", label: "New" },
+  { id: "clusters", label: "Clusters" },
+]
+
+const VIEW_KEY = "newera_feed_view"
+
+function loadView(): View {
+  try {
+    const v = localStorage.getItem(VIEW_KEY)
+    return v === "new" || v === "clusters" || v === "trading" ? v : "trading"
+  } catch {
+    return "trading"
+  }
+}
+
+function saveView(v: View) {
+  try {
+    localStorage.setItem(VIEW_KEY, v)
+  } catch {
+    /* private mode — the choice still holds for this visit */
+  }
+}
+
 export default function Feed() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [themes, setThemes] = useState<Theme[] | null>(null)
@@ -55,6 +89,12 @@ export default function Feed() {
   /* Restored from the last visit — a filter set is a workspace, and rebuilding
      it on every arrival is why nobody uses filters twice. */
   const [filters, setFilters] = useState<Filters>(() => loadFilters())
+  /* One page, three views — not three stacked sections.
+     Stacked, the tape began at y=1951 and the cluster grid sat between two
+     tables that are the same act of scanning. A terminal switches what the one
+     table is showing; it does not make you scroll past the other answers. The
+     choice persists because it is a workspace, not a navigation step. */
+  const [view, setView] = useState<View>(() => loadView())
   const [measuredOnly, setMeasuredOnly] = useState(false)
   const [byRisk, setByRisk] = useState(false)
   const [failures, setFailures] = useState(0)
@@ -371,36 +411,63 @@ export default function Feed() {
           so the first thing offered was a set of things most of which cannot be
           bought. Clusters are still the judgement only this product makes; they
           are just not what someone opens the app to do. */}
-      <section className="mt-[4vh]">
-        <SectionHead
-          title="Getting traded"
-          /* Never a count during an outage. `traded.length` is 0 whenever the
-             market map is empty — including when the lookup FAILED — so the
-             heading asserted "0 of 30" directly above a body saying we cannot
-             say what is trading. */
-          note={
-            marketsDown
-              ? "unavailable"
-              : traded
-                ? `${traded.length} of ${launches?.length ?? 0}`
-                : "…"
-          }
-        />
-        {/* One line, because this section now opens the page. As five lines of
-            prose it was the last thing between a visitor and the first row they
-            could act on. Nothing measured or claimed has been dropped — the
-            custody position is stated in full on every token page, next to the
-            control it actually governs. */}
-        {/* One line, in the meta voice. The heading already says what the
-            section is; this only has to name the source and the custody
-            position, both of which are obligations rather than explanation.
-            As a 14px paragraph it cost a row of the tape to say so. */}
-        <p className="mt-2 text-micro leading-relaxed text-fg-dim">
-          Depth and volume from DexScreener.{" "}
-          <b className="font-semibold text-fg-muted">NewEra never holds your funds or your keys.</b>
-        </p>
+      {/* The one control surface for the whole page. */}
+      <div className="mt-[3vh] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-edge-strong">
+        <div className="flex flex-wrap items-end gap-x-1">
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              aria-pressed={view === v.id}
+              onClick={() => {
+                setView(v.id)
+                saveView(v.id)
+              }}
+              className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] transition-colors ${
+                view === v.id
+                  ? "border-acid-500 text-acid-500"
+                  : "border-transparent text-fg-dim hover:text-fg"
+              }`}
+            >
+              {v.label}
+              <span className="ml-2 text-micro text-fg-dim">
+                {v.id === "trading"
+                  ? marketsDown
+                    ? "—"
+                    : (traded?.length ?? "…")
+                  : v.id === "new"
+                    ? (tape?.length ?? "…")
+                    : (clusters?.length ?? "…")}
+              </span>
+            </button>
+          ))}
+        </div>
 
-        <div className="mt-7">
+        {view !== "clusters" && (
+          <div className="flex flex-wrap items-center gap-3 pb-2">
+            <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
+              Hide likely spam
+            </Toggle>
+            <Toggle on={byRisk} onClick={() => setByRisk((v) => !v)}>
+              {byRisk ? "Riskiest first" : "Newest first"}
+            </Toggle>
+            <FeedFilters value={filters} onChange={setFilters} />
+          </div>
+        )}
+      </div>
+
+      {measuredOnly && needsMeasurement(filters) && view !== "clusters" && (
+        /* Said out loud, because a holder filter silently drops every token we
+           have not measured yet — and four results could mean "only four are
+           this clean" or "we have only measured forty". */
+        <p className="measure mt-3 text-micro leading-relaxed text-warn">
+          Holder filters only match launches we have already measured. Everything else is hidden
+          here — not because it failed, but because we have not looked at it yet.
+        </p>
+      )}
+
+      <section className={view === "trading" ? "mt-4" : "hidden"}>
+        <div>
           {/* The intel-outage branch comes FIRST, before the skeleton.
               `marketsDown` only covers a DexScreener failure. `traded` derives
               from `launches`, which is null while the intel API is down, so an
@@ -439,38 +506,8 @@ export default function Feed() {
           the other thirty. Both tables are the same act of scanning and belong
           together; the clusters are the judgement only this product makes, and
           they still follow, where somebody who wants them will look. */}
-      {/* ── 4. The raw tape ─────────────────────────────────────────────── */}
-      <section className="mt-[5vh]">
-        <SectionHead title="Everything launching" note={tape ? `${tape.length} shown` : "…"} />
-        <p className="mt-2 text-micro text-fg-dim">
-          Unfiltered, newest first, straight from the index. Most of it is noise.
-        </p>
+      <section className={view === "new" ? "mt-4" : "hidden"}>
 
-        {/* One control row. The filter button sat on its own line below the
-            toggles, which spent a second row of the tape to show three
-            controls that belong together. */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
-            Hide likely spam
-          </Toggle>
-          <Toggle on={byRisk} onClick={() => setByRisk((v) => !v)}>
-            {byRisk ? "Riskiest first" : "Newest first"}
-          </Toggle>
-          <FeedFilters value={filters} onChange={setFilters} />
-        </div>
-
-        {measuredOnly && needsMeasurement(filters) && (
-          /* Said out loud, because a holder filter silently drops every token
-             we have not measured yet — and four results could mean "only four
-             are this clean" or "we have only measured forty". A reader cannot
-             tell those apart, and the difference decides whether the filter is
-             useful or misleading. */
-          <p className="measure mt-4 text-xs leading-relaxed text-warn">
-            Holder filters can only match launches we have already measured. Everything else is
-            hidden here — not because it failed, but because we have not looked at it yet. Newer
-            launches are measured first.
-          </p>
-        )}
 
         {/* The scale, stated. The column heading named the number but not what
             it meant, and the only explanation of the thresholds was a `title`
@@ -534,8 +571,7 @@ export default function Feed() {
           stricter than that line — it removes anything above 25. It is not a price forecast.
         </p>
       </section>
-      {/* ── 3. The judgement only this product makes ───────────────────── */}
-      <section className="mt-[5vh]">
+      <section className={view === "clusters" ? "mt-4" : "hidden"}>
         <SectionHead
           title="Worth looking at"
           note={clusters ? `${clusters.length} listed` : "…"}
