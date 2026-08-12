@@ -332,10 +332,20 @@ export default function Feed() {
           to scroll a full screen before seeing anything live. Plate-scale
           display type belongs to the Persuade surfaces; this is the instrument,
           and its job is to get out of the way of the tape. */}
+      {/* Masthead, search and status on ONE line. Search is chrome on an
+          Operate surface — a control you reach for, not a thing to read — and
+          stacked beneath the title it cost 60px of a first screen whose job is
+          to show rows. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3">
-        <h1 className="font-display text-[clamp(1.5rem,2.6vw,2.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em]">
+        {/* No `flex-none`. Pinning the masthead's width stopped it shrinking at
+            320px and pushed the page 38px sideways — a 1280 window at 400% zoom.
+            It may shrink; it simply must not wrap mid-word. */}
+        <h1 className="min-w-0 font-display text-[clamp(1.25rem,2.6vw,2.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em]">
           Live launch intelligence
         </h1>
+        <div className="order-last w-full min-w-0 flex-1 lg:order-none lg:w-auto lg:max-w-[34rem]">
+          <Search />
+        </div>
         <span className={`font-mono text-micro uppercase tracking-[0.14em] ${live ? "text-acid-500" : "text-warn"}`}>
           {/* "Live" is a claim. Only make it when the data supports it. */}
           {stats === null
@@ -352,8 +362,6 @@ export default function Feed() {
         </span>
       </div>
 
-      <Search />
-
       <TheRead stats={stats} clusters={clusters} failed={failures >= 1 || statsFailed} />
 
       {/* ── 2. What can actually be traded, first ───────────────────────
@@ -363,7 +371,7 @@ export default function Feed() {
           so the first thing offered was a set of things most of which cannot be
           bought. Clusters are still the judgement only this product makes; they
           are just not what someone opens the app to do. */}
-      <section className="mt-[7vh]">
+      <section className="mt-[4vh]">
         <SectionHead
           title="Getting traded"
           /* Never a count during an outage. `traded.length` is 0 whenever the
@@ -383,9 +391,13 @@ export default function Feed() {
             could act on. Nothing measured or claimed has been dropped — the
             custody position is stated in full on every token page, next to the
             control it actually governs. */}
-        <p className="mt-3 text-sm leading-relaxed text-fg-muted">
-          The launches somebody is actually trading. Depth and volume from DexScreener;{" "}
-          <b className="font-semibold text-fg">NewEra never holds your funds or your keys</b>.
+        {/* One line, in the meta voice. The heading already says what the
+            section is; this only has to name the source and the custody
+            position, both of which are obligations rather than explanation.
+            As a 14px paragraph it cost a row of the tape to say so. */}
+        <p className="mt-2 text-micro leading-relaxed text-fg-dim">
+          Depth and volume from DexScreener.{" "}
+          <b className="font-semibold text-fg-muted">NewEra never holds your funds or your keys.</b>
         </p>
 
         <div className="mt-7">
@@ -420,64 +432,32 @@ export default function Feed() {
         </div>
       </section>
 
-      {/* ── 3. The judgement only this product makes ───────────────────── */}
-      <section className="mt-[11vh]">
-        <SectionHead
-          title="Worth looking at"
-          note={clusters ? `${clusters.length} listed` : "…"}
-        />
-        <p className="measure mt-3 text-sm leading-relaxed text-fg-muted">
-          Clusters where more than one wallet is launching — the only thing separating a narrative
-          forming from one address repeating itself. Ordered by how fast independent wallets are
-          arriving, so the ones still forming come first. A statement about who is launching, not a
-          prediction about price.
-        </p>
-
-        {/* A grid, not a column. These are short comparable blocks, and one per
-            row left two thirds of the width empty while making the reader scroll
-            to compare the third cluster against the first. */}
-        <div className="mt-7 grid border-t border-edge lg:grid-cols-2 lg:gap-x-10 xl:grid-cols-3">
-          {failures >= 1 && clusters === null ? (
-            <EmptyState>
-              The intelligence API is not responding, so there is nothing to rank here yet.
-            </EmptyState>
-          ) : clusters === null ? (
-            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} h={110} />)
-          ) : clusters.length === 0 ? (
-            <EmptyState>
-              {includeSolo
-                ? "Nothing with two or more launches in this window. The indexer may still be warming up."
-                : "No cluster right now has more than one wallet launching into it — every active one is a single address repeating itself. Turn on one-wallet clusters below to see them anyway."}
-            </EmptyState>
-          ) : (
-            clusters.map((t) => <ClusterRow key={t.id} theme={t} />)
-          )}
-        </div>
-
-        <div className="mt-5">
-          <Toggle on={includeSolo} onClick={() => setIncludeSolo((v) => !v)}>
-            Include one-wallet clusters
-          </Toggle>
-        </div>
-      </section>
-
+      {/* Order: traded coins, then ALL coins, then clusters.
+          The cluster grid used to sit between the two tables, which put the raw
+          tape at y=1951 — a reader scanning for something to trade hit five
+          rows, then a wall of cluster blocks, then had to keep going to reach
+          the other thirty. Both tables are the same act of scanning and belong
+          together; the clusters are the judgement only this product makes, and
+          they still follow, where somebody who wants them will look. */}
       {/* ── 4. The raw tape ─────────────────────────────────────────────── */}
-      <section className="mt-[11vh]">
+      <section className="mt-[5vh]">
         <SectionHead title="Everything launching" note={tape ? `${tape.length} shown` : "…"} />
-        <p className="mt-3 text-sm leading-relaxed text-fg-muted">
+        <p className="mt-2 text-micro text-fg-dim">
           Unfiltered, newest first, straight from the index. Most of it is noise.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        {/* One control row. The filter button sat on its own line below the
+            toggles, which spent a second row of the tape to show three
+            controls that belong together. */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
             Hide likely spam
           </Toggle>
           <Toggle on={byRisk} onClick={() => setByRisk((v) => !v)}>
             {byRisk ? "Riskiest first" : "Newest first"}
           </Toggle>
+          <FeedFilters value={filters} onChange={setFilters} />
         </div>
-
-        <FeedFilters value={filters} onChange={setFilters} />
 
         {measuredOnly && needsMeasurement(filters) && (
           /* Said out loud, because a holder filter silently drops every token
@@ -502,12 +482,6 @@ export default function Feed() {
             stricter than the documented high band and also removes the upper
             half of the medium one. Describing the control's real behaviour
             rather than the band boundary. */}
-        <p className="measure mt-6 font-mono text-xs leading-relaxed text-fg-dim">
-          Spam risk runs 0–100: higher means the launch looks more
-          machine-generated. Under 15 is clean, 40 and over is high.{" "}
-          <span className="text-fg-muted">Hide likely spam</span> is stricter than that line — it
-          removes anything above 25. It is not a price forecast.
-        </p>
 
         <div>
           {/* Failure is checked BEFORE the null case. Ordered the other way,
@@ -546,7 +520,62 @@ export default function Feed() {
           </Link>
           .
         </p>
+        {/* Below the tape, not above it.
+            Five lines of mono explaining a scale sat between the controls and
+            the first row — ~95px of instruction, on every visit, for a reader
+            who mostly already knows. The scale still has to be stated
+            somewhere: nowhere else says 40 is high, or that the toggle is
+            stricter than the band it appears to name, and the RiskPill's own
+            reading is announced only to assistive tech. It reads as a footnote
+            to the table it describes, which is where a legend belongs. */}
+        <p className="mt-3 font-mono text-micro leading-relaxed text-fg-dim">
+          Spam risk runs 0–100: higher means the launch looks more machine-generated. Under 15 is
+          clean, 40 and over is high. <span className="text-fg-muted">Hide likely spam</span> is
+          stricter than that line — it removes anything above 25. It is not a price forecast.
+        </p>
       </section>
+      {/* ── 3. The judgement only this product makes ───────────────────── */}
+      <section className="mt-[5vh]">
+        <SectionHead
+          title="Worth looking at"
+          note={clusters ? `${clusters.length} listed` : "…"}
+        />
+        {/* Four lines of 14px prose cost ~110px of a scanning surface to
+            explain a heading that already says it. What survives is the part a
+            reader cannot infer — the ordering, and the limit of the claim. */}
+        <p className="mt-2 text-micro leading-relaxed text-fg-dim">
+          Ordered by how fast independent wallets are arriving. A statement about who is launching,
+          not a prediction about price.
+        </p>
+
+        {/* A grid, not a column. These are short comparable blocks, and one per
+            row left two thirds of the width empty while making the reader scroll
+            to compare the third cluster against the first. */}
+        <div className="mt-7 grid border-t border-edge lg:grid-cols-2 lg:gap-x-10 xl:grid-cols-3">
+          {failures >= 1 && clusters === null ? (
+            <EmptyState>
+              The intelligence API is not responding, so there is nothing to rank here yet.
+            </EmptyState>
+          ) : clusters === null ? (
+            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} h={110} />)
+          ) : clusters.length === 0 ? (
+            <EmptyState>
+              {includeSolo
+                ? "Nothing with two or more launches in this window. The indexer may still be warming up."
+                : "No cluster right now has more than one wallet launching into it — every active one is a single address repeating itself. Turn on one-wallet clusters below to see them anyway."}
+            </EmptyState>
+          ) : (
+            clusters.map((t) => <ClusterRow key={t.id} theme={t} />)
+          )}
+        </div>
+
+        <div className="mt-5">
+          <Toggle on={includeSolo} onClick={() => setIncludeSolo((v) => !v)}>
+            Include one-wallet clusters
+          </Toggle>
+        </div>
+      </section>
+
     </Page>
   )
 }
@@ -612,17 +641,22 @@ function TheRead({
   ]
 
   return (
-    <div className="mt-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-y border-edge py-4">
-      <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+    /* One line, not a stat grid.
+       Stacked figure-over-label this ran to 79px of a first screen whose job is
+       to show a tape. Set on a single baseline the same four measurements read
+       as an instrument's status strip, which is what they are — and the row it
+       gives back is a row of launches. */
+    <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-y border-edge py-2.5">
+      <div className="flex flex-wrap items-baseline gap-x-7 gap-y-2">
         {cells.map((c) => (
-          <div key={c.l}>
-            <div className={`font-mono text-lg font-medium tabular-nums ${c.tone === "warn" ? "text-warn" : "text-fg"}`}>
+          <span key={c.l} className="flex items-baseline gap-x-2">
+            <span className={`font-mono text-sm font-medium tabular-nums ${c.tone === "warn" ? "text-warn" : "text-fg"}`}>
               {c.v}
-            </div>
-            <div className="mt-0.5 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+            </span>
+            <span className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
               {c.l}
-            </div>
-          </div>
+            </span>
+          </span>
         ))}
       </div>
       {/* Three states. `clusters == null` means the request failed or is in
@@ -695,7 +729,7 @@ function Search() {
   const open = q.trim().length >= 2
 
   return (
-    <form onSubmit={go} role="search" className="relative mt-5">
+    <form onSubmit={go} role="search" className="relative">
       <label htmlFor="feed-search" className="sr-only">
         Find a token by ticker, name or address
       </label>
@@ -725,7 +759,7 @@ function Search() {
         autoComplete="off"
         spellCheck={false}
         /* 16px minimum, or iOS Safari zooms the viewport on focus. */
-        className="w-full border border-edge bg-transparent px-4 py-2.5 font-mono text-base text-fg placeholder:text-fg-dim focus-visible:border-acid-500"
+        className="w-full border border-edge bg-transparent px-3 py-1.5 font-mono text-base text-fg placeholder:text-fg-dim focus-visible:border-acid-500"
       />
       {/* Counted out loud. Announced on a delay by the browser's own polite
           queue, which is right for a field somebody is still typing into. */}

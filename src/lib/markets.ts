@@ -50,6 +50,7 @@ export type Market = {
   volume5m: number | null
   volume1h: number | null
   priceChange5m: number | null
+  priceChange1h: number | null
   marketCap: number | null
   /** The market page, taken from the response. Never constructed by us. */
   url: string
@@ -142,6 +143,7 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         volume5m: num(pair?.volume?.m5),
         volume1h: num(pair?.volume?.h1),
         priceChange5m: num(pair?.priceChange?.m5),
+        priceChange1h: num(pair?.priceChange?.h1),
         marketCap: num(pair?.marketCap) ?? num(pair?.fdv),
         url: String(pair?.url || ""),
         dex: String(pair?.dexId || ""),

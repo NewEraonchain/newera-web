@@ -31,7 +31,11 @@ import type { ReactNode } from "react"
    plate above the masthead is one more row of the tape you cannot see. */
 const WIDTHS = {
   prose: "max-w-[62rem] pt-[13vh]",
-  app: "max-w-[var(--shell-max)] pt-[8vh]",
+  /* 5vh, not 8. An Operate surface earns no entrance: measured on the feed,
+     the first data row began at y=556 on a 1000px screen and only 227px of that
+     was content — the rest was gap. A tape you have to scroll to reach is not a
+     tape. Read surfaces keep their drop. */
+  app: "max-w-[var(--shell-max)] pt-[5vh]",
   narrow: "max-w-[46rem] pt-[13vh]",
 } as const
 

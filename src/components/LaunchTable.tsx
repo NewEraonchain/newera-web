@@ -2,29 +2,36 @@ import { Link } from "react-router-dom"
 import { ago } from "@/lib/api"
 import { judgeDistribution } from "@/lib/distributionVerdict"
 import type { Launch } from "@/lib/api"
-import { usd, type Market } from "@/lib/markets"
+import { type Market } from "@/lib/markets"
 import { FlagPill, RiskPill } from "@/components/intel"
 
-/* The tape, as columns.
+/* The tape, at reading density.
  *
- * Every launch used to render as a two-line block: identity on one line with
- * the age and score pushed to the far right, then a run-on sentence of
- * "$64k liquidity  $78k traded 24h  228 trades  +366% 24h". Nothing lined up
- * between one row and the next, so the only way to answer "which of these has
- * the most liquidity" was to read all of them. That is what made a page of
- * measurements read as an undifferentiated list.
+ * This was seven columns at a 66px row height, which put FIVE rows on a 1000px
+ * screen and left a 400px hole between a token's name and its first figure. A
+ * reader deciding what is worth their time had to open a token page to find
+ * out — which is the opposite of what a tape is for.
  *
- * The figures are the same figures. Putting them in aligned, right-set,
- * tabular columns is the whole change, and it is what a scanning reader needs:
- * the eye travels one column, not thirty labels.
+ * Density here is not a style. `/app` is an Operate surface: the visitor is
+ * completing a task, and scanability outranks expression. Every column earns
+ * its place by answering a question somebody asks before committing money —
+ * is it fresh, is it moving, can I get out, who holds it, does it look
+ * manufactured — and a row that answers those is a row nobody has to click.
  *
- * A real <table>, not a grid of divs — this list is genuinely tabular, and the
- * previous markup announced nothing about rows or columns to a screen reader.
+ * Three deliberate mechanics:
  *
- * Columns arrive with width rather than wrapping. Identity, age and risk are
- * the irreducible row and are always present; depth and volume appear when
- * there is room to align them. Nothing is hidden that changes the meaning of
- * what stays.
+ * `table-auto`, not `table-fixed`. Fixed shares were what produced the hole:
+ * declaring a percentage per column spreads the leftover width instead of
+ * letting the numbers pack. Auto sizing plus `whitespace-nowrap` lets each
+ * column hug its content, and the identity cell takes the slack.
+ *
+ * Columns drop from the least decisive inward as the viewport narrows, so the
+ * phone keeps age, identity, liquidity and risk — the irreducible row — and
+ * nothing that stays changes meaning because something else left.
+ *
+ * A missing figure is an em dash, never a zero. "0 holders" is a claim about
+ * the token; "we have not measured it" is a gap in our coverage, and a row that
+ * renders them identically tells the reader something false.
  */
 
 export type Row = { launch: Launch; market?: Market }
@@ -34,8 +41,45 @@ export type Row = { launch: Launch; market?: Market }
    never scrolls vertically, a sticky header inside it can never move. It looked
    like a feature and was inert. */
 const HEAD =
-  "py-2 text-left font-mono text-micro font-normal uppercase tracking-[0.12em] text-fg-dim"
-const NUM = "py-3 pl-4 text-right font-mono text-xs tabular-nums"
+  "whitespace-nowrap px-1.5 sm:px-2 py-2 text-right font-mono text-micro font-normal uppercase tracking-[0.1em] text-fg-dim"
+const HEAD_L = HEAD.replace("text-right", "text-left")
+const NUM = "whitespace-nowrap px-1.5 sm:px-2 py-0 text-right font-mono text-micro tabular-nums"
+
+/** Compact money. A tape column has no room for "$1,234,567". */
+const short = (n: number | null | undefined): string => {
+  if (n === null || n === undefined) return "—"
+  const a = Math.abs(n)
+  if (a >= 1_000_000) return `$${(n / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}M`
+  if (a >= 1_000) return `$${(n / 1_000).toFixed(a >= 10_000 ? 0 : 1)}k`
+  if (a >= 1) return `$${n.toFixed(0)}`
+  return `$${n.toFixed(2)}`
+}
+
+/** Price needs significant figures, not magnitude — these run to 1e-9. */
+const price = (n: number | null | undefined): string => {
+  if (n === null || n === undefined) return "—"
+  if (n >= 1) return `$${n.toFixed(2)}`
+  if (n >= 0.01) return `$${n.toFixed(4)}`
+  return `$${n.toPrecision(2)}`
+}
+
+/* Percentage change, monochrome.
+ *
+ * Acid and danger are this product's own verdicts — acid means "this looks
+ * organic", danger means "this looks manufactured". Spending them on a price a
+ * venue reported would have a reader scanning the tape and reading green as our
+ * judgement of the token. The sign carries direction, and it survives
+ * colour-blindness, which a hue does not. */
+function Pct({ v }: { v: number | null | undefined }) {
+  if (v === null || v === undefined) return <span className="text-fg-dim">—</span>
+  const s = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(1)
+  return (
+    <span className={v === 0 ? "text-fg-dim" : "text-fg-muted"}>
+      {v > 0 ? "+" : ""}
+      {s}%
+    </span>
+  )
+}
 
 export function LaunchTable({
   rows,
@@ -49,35 +93,28 @@ export function LaunchTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      {/* table-fixed, with a declared share per column. Left to `auto`, the
-          browser sizes every column to its content and hands ALL the leftover
-          width to the one flexible cell — which put a 400px hole between a
-          token's name and its liquidity at 1920, and made the numbers read as
-          a separate right-hand block rather than as that row's figures.
-          Hidden columns simply drop out and the remaining shares renormalise. */}
-      {/* The minimum tracks the columns that are actually visible. A flat
-          `min-w-[42rem]` forced a 672px table inside a 390px phone even though
-          only Age, Token and Risk render there — a horizontal scrollbar over
-          mostly empty space, for no gain. */}
-      <table className="w-full table-fixed border-collapse sm:min-w-[32rem] lg:min-w-[46rem]">
+      <table className="w-full table-auto border-collapse">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-edge">
-            <th scope="col" className={`${HEAD} w-[6%] pr-4`}>Age</th>
-            <th scope="col" className={`${HEAD} w-[30%]`}>Token</th>
-            <th scope="col" className={`${HEAD} hidden w-[14%] pl-4 text-right lg:table-cell`}>Liquidity</th>
-            <th scope="col" className={`${HEAD} hidden w-[14%] pl-4 text-right lg:table-cell`}>Traded 24h</th>
-            {/* "Trades 5m", not "Trades". A 24-hour count cannot distinguish a
-                token trading right now from one that finished yesterday, and
-                that is the only thing this column is scanned for. */}
-            <th scope="col" className={`${HEAD} hidden w-[11%] pl-4 text-right xl:table-cell`}>Trades 5m</th>
-            <th scope="col" className={`${HEAD} hidden w-[12%] pl-4 text-right sm:table-cell`}>24h</th>
-            <th scope="col" className={`${HEAD} w-[9%] pl-4 text-right`}>Risk</th>
+          <tr className="border-b border-edge-strong">
+            <th scope="col" className={HEAD_L}>Age</th>
+            <th scope="col" className={`${HEAD_L} w-full`}>Token</th>
+            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Price</th>
+            <th scope="col" className={`${HEAD} hidden lg:table-cell`}>MCap</th>
+            <th scope="col" className={HEAD}>Liq</th>
+            <th scope="col" className={`${HEAD} hidden md:table-cell`}>Vol 24h</th>
+            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>5m</th>
+            <th scope="col" className={`${HEAD} hidden lg:table-cell`}>1h</th>
+            <th scope="col" className={`${HEAD} hidden sm:table-cell`}>24h</th>
+            <th scope="col" className={`${HEAD} hidden md:table-cell`}>TX 5m</th>
+            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Holders</th>
+            <th scope="col" className={`${HEAD} hidden xl:table-cell`}>Top10</th>
+            <th scope="col" className={HEAD}>Risk</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(({ launch, market }) => (
-            <TapeRow
+            <LaunchRow
               key={launch.address}
               launch={launch}
               market={market}
@@ -90,7 +127,7 @@ export function LaunchTable({
   )
 }
 
-function TapeRow({
+function LaunchRow({
   launch,
   market,
   marketStatus,
@@ -101,117 +138,110 @@ function TapeRow({
 }) {
   const risky = launch.riskScore >= 40
   const traded = !!market?.liquidityUsd
-  const chg = market?.priceChange24h ?? null
   const live = (market?.txns5m ?? 0) > 0
-
-  /* Monochrome on purpose. This was acid for a rise and danger for a fall,
-     which spends the two colours the product reserves for its own judgement —
-     acid means "this looks organic", danger means "this looks manufactured" —
-     on a price a venue reported. A reader scanning the table saw green and read
-     it as our verdict on the token. The sign is already printed, so direction
-     survives the colour going away, and it survives colour-blindness too. */
-  const tone = chg === null ? "text-fg-dim" : "text-fg-muted"
-
-  /* Same ladder as the token page, from one module, so a row and the page it
-     opens can never disagree about the same token. One badge at most: a row is
-     scanned, not read, and a second badge competes with the first. A token we
-     have not measured gets nothing, because silence is the honest rendering of
-     "we have not looked". */
-  const verdict = launch.distribution ? judgeDistribution(launch.distribution) : null
-  const distTone =
-    verdict?.severity === "bad"
-      ? "text-danger"
-      : verdict?.severity === "warn"
-        ? "text-warn"
-        : "text-fg-dim"
+  const d = launch.distribution
+  const verdict = d ? judgeDistribution(d) : null
 
   /* "No market" is the product's central claim about most of these rows, so it
-     is written out once across the market columns rather than repeated as four
-     dashes that say nothing. A pending or failed lookup must never render as
-     that claim — those are different sentences. */
-  const marketNote =
-    marketStatus === "loading" ? "checking…" : marketStatus === "down" ? "unavailable" : "no market yet"
+     is written once in the depth column rather than repeated as eight dashes.
+     A pending or failed lookup must never render as that claim. */
+  const note =
+    marketStatus === "loading" ? "…" : marketStatus === "down" ? "?" : "—"
+
+  const cell = (v: string | null, extra = "") =>
+    traded ? <span className={extra}>{v}</span> : <span className="text-fg-dim">{note}</span>
 
   return (
     <tr className={`scan-tr border-b border-edge ${risky ? "is-risky" : ""}`}>
-      <td className="py-3 pl-3 pr-4 align-baseline font-mono text-micro tabular-nums text-fg-dim">
+      <td className="whitespace-nowrap px-1.5 py-0 font-mono text-micro tabular-nums text-fg-dim sm:px-2">
         {ago(launch.ageSeconds)}
       </td>
 
-      <td className="py-3 align-baseline">
+      {/* Identity takes the slack, and the flags sit inline rather than on a
+          second line — a second line is what doubled the row height and halved
+          how much of the tape a reader could see at once. */}
+      <td className="px-1.5 py-0 sm:px-2">
         <Link
           to={`/app/token/${launch.address}`}
-          className="-my-1 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1"
+          className="flex min-w-0 items-baseline gap-x-2 py-2"
         >
-          <span className="font-mono text-sm font-semibold text-fg">{launch.symbol || "—"}</span>
-          <span className="min-w-0 flex-1 truncate text-sm text-fg-dim">{launch.name}</span>
-        </Link>
-        {/* The distribution warning, in the badge row rather than a new column.
-            The table is already six columns wide and the point of this is not a
-            figure to compare across rows — it is a flag that says "this one is
-            held by almost nobody" before you open it. Only shown when it is
-            actually adverse: a healthy spread needs no badge, and a token we
-            have not measured gets nothing at all, because silence is the honest
-            rendering of "we have not looked". */}
-        {verdict?.badge && (
-          <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className={`font-mono text-micro font-semibold ${distTone}`}>
+          {/* The name truncates; it does NOT grow. `flex-1` on it consumed the
+              cell's slack and shoved the flags to the far right edge, so a COPY
+              marker floated a screen-width away from the token it describes.
+              Flags belong against the name they qualify. */}
+          <span className="font-mono text-xs font-semibold text-fg">{launch.symbol || "—"}</span>
+          {/* The cap is responsive. A flat 26ch let the identity cell alone
+              exceed a 320px viewport once age, liquidity and risk were beside
+              it, and `whitespace-nowrap` on the numerics means the table cannot
+              absorb that by wrapping. */}
+          <span className="min-w-0 max-w-[7ch] truncate text-micro text-fg-dim sm:max-w-[18ch] lg:max-w-[26ch]">
+            {launch.name}
+          </span>
+          {(launch.spoofFlags || []).slice(0, 1).map((f) => (
+            <FlagPill key={f} flag={f} />
+          ))}
+          {launch.dupeCount > 0 &&
+            !(launch.spoofFlags || []).some(
+              (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
+            ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
+          {verdict?.badge && (
+            <span
+              className={`whitespace-nowrap font-mono text-micro font-semibold ${
+                verdict.severity === "bad" ? "text-danger" : "text-warn"
+              }`}
+            >
               {verdict.badge}
             </span>
-          </span>
-        )}
-        {(launch.spoofFlags?.length || launch.dupeCount > 0 || launch.devBuyEth > 0) && (
-          <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {(launch.spoofFlags || []).slice(0, 2).map((f) => (
-              <FlagPill key={f} flag={f} />
-            ))}
-            {launch.dupeCount > 0 &&
-              !(launch.spoofFlags || []).some(
-                (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
-              ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
-            {launch.devBuyEth > 0 && (
-              <span
-                className="font-mono text-micro text-fg-dim"
-                title={`Creator committed ${launch.devBuyEth} ETH at launch`}
-              >
-                {launch.devBuyEth.toFixed(2)}Ξ staked
-              </span>
-            )}
-          </span>
-        )}
+          )}
+        </Link>
       </td>
 
-      {/* Each market cell mirrors its own header's visibility. A colSpan cannot
-          work here — the column count changes at three breakpoints, so no single
-          span is correct at every width, and a wrong one drags the risk column
-          out of alignment on exactly one size. The claim about an absent market
-          rides in the leftmost market cell instead of collapsing the group. */}
-      <td className={`${NUM} hidden lg:table-cell ${traded ? "text-fg-muted" : "text-fg-dim"}`}>
-        {traded ? usd(market!.liquidityUsd) : marketNote}
+      <td className={`${NUM} hidden text-fg-muted xl:table-cell`}>
+        {cell(price(market?.priceUsd))}
       </td>
       <td className={`${NUM} hidden text-fg-muted lg:table-cell`}>
-        {traded ? usd(market!.volume24h) : "—"}
+        {cell(short(market?.marketCap))}
       </td>
-      {/* Live count in acid, a dead one left dim. This is the one place on the
-          row where colour is a judgement rather than decoration: it separates
-          "trading now" from "traded at some point today", which is the
-          distinction the whole section is ranked on. */}
-      <td className={`${NUM} hidden xl:table-cell ${live ? "text-acid-500" : "text-fg-dim"}`}>
-        {!traded
-          ? "—"
-          : market!.txns5m === null
-            ? "—"
-            : market!.txns5m > 0
-              ? market!.txns5m.toLocaleString("en-US")
-              : "0"}
+      <td className={`${NUM} ${traded ? "text-fg" : "text-fg-dim"}`}>
+        {cell(short(market?.liquidityUsd))}
       </td>
-      <td className={`${NUM} hidden sm:table-cell ${traded ? tone : "text-fg-dim"}`}>
-        {traded && chg !== null
-          ? `${chg >= 0 ? "+" : ""}${chg.toFixed(Math.abs(chg) >= 100 ? 0 : 1)}%`
-          : "—"}
+      <td className={`${NUM} hidden text-fg-muted md:table-cell`}>
+        {cell(short(market?.volume24h))}
       </td>
 
-      <td className="py-3 pl-4 text-right align-baseline">
+      <td className={`${NUM} hidden xl:table-cell`}>
+        {traded ? <Pct v={market?.priceChange5m} /> : <span className="text-fg-dim">{note}</span>}
+      </td>
+      <td className={`${NUM} hidden lg:table-cell`}>
+        {traded ? <Pct v={market?.priceChange1h} /> : <span className="text-fg-dim">{note}</span>}
+      </td>
+      <td className={`${NUM} hidden sm:table-cell`}>
+        {traded ? <Pct v={market?.priceChange24h} /> : <span className="text-fg-dim">{note}</span>}
+      </td>
+
+      {/* Liveness is the one place on the row where colour IS a judgement:
+          it separates "trading now" from "traded at some point today", which is
+          what the section is ranked on. */}
+      <td className={`${NUM} hidden md:table-cell ${live ? "text-acid-500" : "text-fg-dim"}`}>
+        {!traded || market?.txns5m === null || market?.txns5m === undefined
+          ? note
+          : market.txns5m.toLocaleString("en-US")}
+      </td>
+
+      <td className={`${NUM} hidden text-fg-muted xl:table-cell`}>
+        {d ? d.holders.toLocaleString("en-US") : <span className="text-fg-dim">—</span>}
+      </td>
+      <td className={`${NUM} hidden xl:table-cell`}>
+        {d && d.top10Pct !== null ? (
+          <span className={d.top10Pct >= 90 ? "text-danger" : "text-fg-muted"}>
+            {Math.round(d.top10Pct)}%
+          </span>
+        ) : (
+          <span className="text-fg-dim">—</span>
+        )}
+      </td>
+
+      <td className="whitespace-nowrap px-1.5 py-0 text-right sm:px-2">
         <RiskPill score={launch.riskScore} />
       </td>
     </tr>
