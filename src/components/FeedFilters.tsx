@@ -18,13 +18,19 @@ import { useEffect, useRef, useState } from "react"
  * the reader was looking at an unfiltered feed believing it was narrowed. That
  * is worse than a missing feature: it is a wrong answer delivered confidently.
  *
- * The three distribution filters depended on a `TokenDistribution` table that
- * was reverted after it took production down, so they cannot work until it
- * ships again. They are removed rather than left visible and inert, and they
- * come back with the table.
- *
  * Age is now implemented server-side, and the three market filters below were
  * already implemented and simply never exposed.
+ *
+ * THE DISTRIBUTION FILTERS ARE BACK, and this time there are columns behind
+ * them. They were pulled when they depended on a table that had been reverted;
+ * the answer now lives on `TokenLaunch`, written by a bounded watcher pass.
+ *
+ * They come with a caveat the panel states rather than hides: the pass only
+ * measures RECENT launches, because the read replays transfers from the launch
+ * block and costs 25s+ on an old token against 1-3s on a fresh one. So these
+ * four can only ever match what has been measured, `needsMeasurement` says so,
+ * and the feed prints a line above the tape explaining what is excluded.
+ * Silently returning a narrower world is the failure being avoided.
  *
  * STRUCTURE. Every row is the same shape — a label, one line saying what the
  * number means, then a single row of mutually exclusive chips. No row mixes two
@@ -42,6 +48,10 @@ export type Filters = {
   minLiquidity: number | null
   minVolume: number | null
   minMcap: number | null
+  minHolders: number | null
+  maxTop10: number | null
+  maxDevHolds: number | null
+  devSold: boolean | null
 }
 
 export const EMPTY: Filters = {
@@ -50,6 +60,10 @@ export const EMPTY: Filters = {
   minLiquidity: null,
   minVolume: null,
   minMcap: null,
+  minHolders: null,
+  maxTop10: null,
+  maxDevHolds: null,
+  devSold: null,
 }
 
 const KEY = "newera_feed_filters"
@@ -70,6 +84,10 @@ export function loadFilters(): Filters {
       minLiquidity: num(p.minLiquidity),
       minVolume: num(p.minVolume),
       minMcap: num(p.minMcap),
+      minHolders: num(p.minHolders),
+      maxTop10: num(p.maxTop10),
+      maxDevHolds: num(p.maxDevHolds),
+      devSold: typeof p.devSold === "boolean" ? p.devSold : null,
     }
   } catch {
     return EMPTY
@@ -83,6 +101,10 @@ export function filtersToQuery(f: Filters): string {
   if (f.minLiquidity !== null) p.set("minLiquidity", String(f.minLiquidity))
   if (f.minVolume !== null) p.set("minVolume", String(f.minVolume))
   if (f.minMcap !== null) p.set("minMcap", String(f.minMcap))
+  if (f.minHolders !== null) p.set("minHolders", String(f.minHolders))
+  if (f.maxTop10 !== null) p.set("maxTop10", String(f.maxTop10))
+  if (f.maxDevHolds !== null) p.set("maxDevHolds", String(f.maxDevHolds))
+  if (f.devSold !== null) p.set("devSold", f.devSold ? "1" : "0")
   const s = p.toString()
   return s ? `&${s}` : ""
 }
@@ -90,10 +112,15 @@ export function filtersToQuery(f: Filters): string {
 export const activeCount = (f: Filters) =>
   Object.values(f).filter((v) => v !== null).length
 
-/* Nothing here needs a distribution read any more, so nothing can be hidden by
-   one. Kept exported because the feed still asks, and answering "no" honestly
-   is better than the caller guessing. */
-export const needsMeasurement = (_f: Filters) => false
+/* Whether this set can only match tokens we have already measured.
+ *
+ * The distribution columns are null until the watcher has replayed a token's
+ * transfers, and it only does that for recent launches — the replay costs 25s+
+ * on an old one. So these four filters silently exclude most of the index, and
+ * the feed has to say so. Answering this wrong is what made them untrustworthy
+ * before: they appeared to work and quietly returned a narrower world. */
+export const needsMeasurement = (f: Filters) =>
+  f.minHolders !== null || f.maxTop10 !== null || f.maxDevHolds !== null || f.devSold !== null
 
 /** One row of mutually exclusive choices. Clicking the active one clears it. */
 function Row({
@@ -295,14 +322,54 @@ export default function FeedFilters({
             />
           </Group>
 
-          {/* Named, not silently absent. Someone who used the holder filters
-              yesterday will look for them, and "removed because it was lying to
-              you" is the only honest thing to say. */}
-          <p className="measure mt-5 border-t border-edge pt-4 text-micro leading-relaxed text-fg-dim">
-            Holder, concentration and deployer filters are temporarily gone. They were sending
-            parameters the API silently discarded, so they showed as active while changing nothing.
-            They return with the distribution index.
-          </p>
+          <Group title="Distribution">
+            <Row
+              label="Holders"
+              hint="Wallets holding, excluding the pool and the contract. Under five and there is nobody to sell to."
+              value={value.minHolders}
+              onChange={(v) => set("minHolders", v)}
+              options={[
+                { label: "10+", value: 10 },
+                { label: "50+", value: 50 },
+                { label: "200+", value: 200 },
+              ]}
+            />
+            <Row
+              label="Concentration"
+              hint="Share held by the largest ten wallets. Above 90% a handful of them can move the price alone."
+              value={value.maxTop10}
+              onChange={(v) => set("maxTop10", v)}
+              options={[
+                { label: "under 50%", value: 50 },
+                { label: "under 70%", value: 70 },
+                { label: "under 90%", value: 90 },
+              ]}
+            />
+            <Row
+              label="Deployer holds"
+              hint="What the wallet that created the token still holds, as a share of supply."
+              value={value.maxDevHolds}
+              onChange={(v) => set("maxDevHolds", v)}
+              options={[
+                { label: "under 5%", value: 5 },
+                { label: "under 20%", value: 20 },
+              ]}
+            />
+            {/* Its own row, not a chip wedged among the ranges above. The old
+                panel put this on/off control beside two range chips that looked
+                identical and behaved differently, which is what made the whole
+                thing read as disorganised. */}
+            <Row
+              label="Deployer sold"
+              hint="Whether the creator has sent out more than they received back."
+              value={value.devSold === null ? null : value.devSold ? 1 : 0}
+              onChange={(v) => set("devSold", v === null ? null : v === 1)}
+              options={[
+                { label: "has not sold", value: 0 },
+                { label: "has sold", value: 1 },
+              ]}
+            />
+          </Group>
         </div>
       )}
     </div>
