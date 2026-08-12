@@ -45,8 +45,17 @@ const WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73"
 const MAX_PAGES = 4
 /** Transactions to price. Each costs one request, so this is the page's budget. */
 const MAX_TRADES = 120
-/** Concurrent transaction reads. Enough to be quick, few enough to be polite. */
-const CONCURRENCY = 6
+/* Concurrent transaction reads.
+ *
+ * Was 6, which is what a public explorer answers with 503 and 500. Observed in
+ * the browser: the balance call failed, the first transfers page failed, and
+ * the page reported "the explorer is not answering" for a wallet that reads
+ * perfectly one request at a time. Node did not reproduce it — a single script
+ * run is nothing like a page opening every call at once.
+ *
+ * Three, with backoff below. A portfolio that takes six seconds and is right
+ * beats one that takes two and is empty. */
+const CONCURRENCY = 3
 
 export type Position = {
   address: string
@@ -86,6 +95,26 @@ export type PortfolioResult = {
   failed: boolean
 }
 
+/* One fetch, retried when the explorer pushes back.
+ *
+ * 429 and 5xx from a public endpoint mean "slow down", not "this wallet has no
+ * history" — and treating them as the latter is how a portfolio silently
+ * renders empty. Every read here goes through this. */
+async function getJson<T>(url: string, tries = 3): Promise<T | null> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url)
+      if (r.ok) return (await r.json()) as T
+      // 4xx that is not a rate limit is a real answer: stop asking.
+      if (r.status !== 429 && r.status < 500) return null
+    } catch {
+      // Network-level failure. Also worth one more try.
+    }
+    await new Promise((res) => setTimeout(res, 350 * 2 ** i))
+  }
+  return null
+}
+
 const lower = (s: unknown) => String(s ?? "").toLowerCase()
 const big = (s: unknown) => {
   try {
@@ -105,14 +134,21 @@ type RawTransfer = {
   timestamp?: string
 }
 
-async function walk(path: string, wallet: string, maxPages: number) {
+async function walk(
+  path: string,
+  wallet: string,
+  maxPages: number
+): Promise<{ items: RawTransfer[]; complete: boolean }> {
   const items: RawTransfer[] = []
   let next: Record<string, string> | null = null
   for (let read = 0; read < maxPages; read++) {
-    const qs = next ? "?" + new URLSearchParams(next).toString() : ""
-    const r = await fetch(`${EXPLORER}/addresses/${wallet}/${path}${qs}`)
-    if (!r.ok) break
-    const j = (await r.json()) as { items?: RawTransfer[]; next_page_params?: Record<string, string> | null }
+    /* Both annotated. Without them TypeScript walks qs -> next -> j -> qs
+       and gives up with an implicit-any, because the page parameters that build
+       the URL are also what the response hands back. */
+    const qs: string = next ? "?" + new URLSearchParams(next).toString() : ""
+    type Page = { items?: RawTransfer[]; next_page_params?: Record<string, string> | null }
+    const j: Page | null = await getJson<Page>(`${EXPLORER}/addresses/${wallet}/${path}${qs}`)
+    if (!j) break
     items.push(...(j.items || []))
     next = j.next_page_params || null
     if (!next) return { items, complete: true }
@@ -203,6 +239,50 @@ function readTrade(items: RawTransfer[], wallet: string, ethFromInternal: bigint
   return trade
 }
 
+/* What the wallet holds, from one request.
+ *
+ * Split out from the reconstruction because it answers a different question at
+ * a different cost: this is "what do I own" in about a second, and the cost
+ * basis is "what did it cost me" in thirty. Rendering the first while the
+ * second runs is the difference between a page and a spinner. */
+export async function loadBalances(wallet: string): Promise<{ positions: Position[]; failed: boolean }> {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) return { positions: [], failed: true }
+  const b = await getJson<unknown[]>(`${EXPLORER}/addresses/${wallet}/token-balances`)
+  if (b === null) return { positions: [], failed: true }
+
+  const positions: Position[] = []
+  for (const row of (Array.isArray(b) ? b : []) as { token?: Record<string, string>; value?: string }[]) {
+    const t = row.token
+    if (!t?.address_hash) continue
+    const address = lower(t.address_hash)
+    if (address === WETH) continue
+    const balance = big(row.value)
+    if (balance === 0n) continue
+    const decimals = Number(t.decimals ?? 18)
+    positions.push({
+      address,
+      symbol: t.symbol || "?",
+      name: t.name || "",
+      decimals,
+      balance,
+      amount: toNumber(balance, decimals),
+      ethSpent: 0,
+      ethReceived: 0,
+      boughtAmount: 0,
+      soldAmount: 0,
+      avgCostEth: null,
+      realisedEth: 0,
+      untracedAmount: 0,
+      /* Nothing has been reconstructed yet, so every figure below is unknown
+         rather than zero. The page must not read this state as "you paid
+         nothing" — which is why the flag starts true. */
+      costIncomplete: true,
+    })
+  }
+  positions.sort((x, y) => y.amount - x.amount)
+  return { positions, failed: false }
+}
+
 export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
   const empty: PortfolioResult = {
     positions: [],
@@ -218,14 +298,14 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
   let own: { items: RawTransfer[]; complete: boolean }
   let internal: { items: RawTransfer[]; complete: boolean }
   try {
-    const [b, t, i] = await Promise.all([
-      fetch(`${EXPLORER}/addresses/${wallet}/token-balances`).then((r) => (r.ok ? r.json() : [])),
-      walk("token-transfers", wallet, MAX_PAGES),
-      walk("internal-transactions", wallet, 2),
-    ])
+    /* Sequential, not Promise.all. Three simultaneous openers is how the
+       burst starts, and the balances are the one call the page cannot render
+       without — it goes first and alone. */
+    const b = await getJson<unknown[]>(`${EXPLORER}/addresses/${wallet}/token-balances`)
+    if (b === null) return empty
     balancesRaw = Array.isArray(b) ? b : []
-    own = t
-    internal = i
+    own = await walk("token-transfers", wallet, MAX_PAGES)
+    internal = await walk("internal-transactions", wallet, 2)
   } catch {
     return empty
   }
@@ -256,10 +336,9 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
   }
 
   const trades = await mapLimit(candidates, CONCURRENCY, async (tx) => {
-    const r = await fetch(`${EXPLORER}/transactions/${tx}/token-transfers`)
-    if (!r.ok) return null
-    const items = ((await r.json()) as { items?: RawTransfer[] }).items || []
-    return readTrade(items, wallet, ethByTx.get(tx) || 0n)
+    const j = await getJson<{ items?: RawTransfer[] }>(`${EXPLORER}/transactions/${tx}/token-transfers`)
+    if (!j) return null
+    return readTrade(j.items || [], wallet, ethByTx.get(tx) || 0n)
   })
 
   /* Oldest first. A weighted average is order-dependent, and running it

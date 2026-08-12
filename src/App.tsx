@@ -30,6 +30,7 @@ const ThemeDetail = lazy(() => import("@/pages/ThemeDetail"))
 const Creator = lazy(() => import("@/pages/Creator"))
 const Token = lazy(() => import("@/pages/Token"))
 const Account = lazy(() => import("@/pages/Account"))
+const Portfolio = lazy(() => import("@/pages/Portfolio"))
 const HowItWorks = lazy(() => import("@/pages/content").then((m) => ({ default: m.HowItWorks })))
 const Themes = lazy(() => import("@/pages/content").then((m) => ({ default: m.Themes })))
 const Detection = lazy(() => import("@/pages/content").then((m) => ({ default: m.Detection })))
@@ -78,6 +79,7 @@ const TITLES: Record<string, string> = {
   "/about": "About · NewEra",
   "/contact": "Contact · NewEra",
   "/account": "Account · NewEra",
+  "/portfolio": "Portfolio · NewEra",
   "/terms": "Terms · NewEra",
   "/privacy": "Privacy · NewEra",
   "/risk": "Risk · NewEra",
@@ -399,6 +401,7 @@ const router = createBrowserRouter([
       { path: "/about", element: <About /> , errorElement: <RouteError /> },
       { path: "/contact", element: <Contact /> , errorElement: <RouteError /> },
       { path: "/account", element: <Account /> , errorElement: <RouteError /> },
+      { path: "/portfolio", element: <Portfolio />, errorElement: <RouteError /> },
       { path: "/terms", element: <Terms /> , errorElement: <RouteError /> },
       { path: "/privacy", element: <Privacy /> , errorElement: <RouteError /> },
       { path: "/risk", element: <Risk /> , errorElement: <RouteError /> },

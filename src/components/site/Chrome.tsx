@@ -15,6 +15,7 @@ import { isOnboarded, openOnboarding, ONBOARD_DONE_EVENT } from "@/lib/onboardin
 
 const NAV = [
   { to: "/app", label: "Live feed" },
+  { to: "/portfolio", label: "Portfolio" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/detection", label: "Detection" },
   { to: "/themes", label: "Clusters" },
@@ -280,7 +281,7 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
         className="flex items-baseline gap-4 font-display text-[13vw] font-extrabold uppercase leading-[0.92] tracking-[-0.03em]"
         style={{ fontStretch: "72%" }}
       >
-        <span className="font-mono text-[11px] font-normal tracking-[0.12em] text-fg-dim">06</span>
+        <span className="font-mono text-[11px] font-normal tracking-[0.12em] text-fg-dim">07</span>
         Account
       </Link>
     ) : (
@@ -293,7 +294,7 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
         className="flex items-baseline gap-4 text-left font-display text-[13vw] font-extrabold uppercase leading-[0.92] tracking-[-0.03em] text-acid-500"
         style={{ fontStretch: "72%" }}
       >
-        <span className="font-mono text-[11px] font-normal tracking-[0.12em] text-fg-dim">06</span>
+        <span className="font-mono text-[11px] font-normal tracking-[0.12em] text-fg-dim">07</span>
         Get started
       </button>
     )
@@ -305,7 +306,7 @@ function AccountEntry({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: (
       viewTransition
       className="group py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white"
     >
-      <span className="mr-1.5 opacity-60">06</span>
+      <span className="mr-1.5 opacity-60">07</span>
       <span className="opacity-70 group-hover:opacity-100">Account</span>
     </Link>
   ) : (

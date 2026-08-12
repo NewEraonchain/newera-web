@@ -31,6 +31,11 @@ export type Market = {
   symbol: string
   name: string
   priceUsd: number | null
+  /* Price in the pool QUOTE currency, which on this chain is ETH.
+     The portfolio reconstructs cost basis in ETH because no verifiable
+     ETH/USD history exists here, so a dollar price cannot close that loop —
+     this can. */
+  priceNative: number | null
   liquidityUsd: number | null
   volume24h: number | null
   priceChange24h: number | null
@@ -132,6 +137,7 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         symbol: String(pair?.baseToken?.symbol || ""),
         name: String(pair?.baseToken?.name || ""),
         priceUsd: num(pair?.priceUsd),
+        priceNative: num(pair?.priceNative),
         liquidityUsd,
         volume24h: num(pair?.volume?.h24),
         priceChange24h: num(pair?.priceChange?.h24),
