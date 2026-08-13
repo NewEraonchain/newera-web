@@ -193,16 +193,26 @@ console.log("\n6. the swap panel announces what happened")
     for (const href of hrefs) {
       const t = await open(href)
       await wait(4500)
-      const r = await t.evaluate(() => ({
-        live: document.querySelectorAll("[aria-live], [role='status'], [role='alert']").length,
-        routable: document.querySelectorAll("[aria-pressed]").length > 0,
-        group: !!document.querySelector("[role='group'][aria-labelledby], [role='group'][aria-label]"),
-        pressed: document.querySelectorAll("[aria-pressed]").length,
-        small: [...document.querySelectorAll("[aria-pressed]")]
-          .map((b) => b.getBoundingClientRect())
-          .filter((b) => b.height < 24 || b.width < 24)
-          .map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`),
-      }))
+      /* Scoped to the swap panel's own controls, not to every `aria-pressed`
+         on the page. That selector was a proxy for "the panel rendered", and it
+         stopped being one the moment anything else on a token page announced a
+         pressed state — a watch star did it, and this section then measured
+         that star against the swap panel's rules and failed a page whose panel
+         was not even there. */
+      const r = await t.evaluate(() => {
+        const groups = [...document.querySelectorAll("[role='group'][aria-labelledby], [role='group'][aria-label]")]
+        const controls = groups.flatMap((g) => [...g.querySelectorAll("[aria-pressed]")])
+        return {
+          live: document.querySelectorAll("[aria-live], [role='status'], [role='alert']").length,
+          routable: controls.length > 0,
+          group: groups.length > 0,
+          pressed: controls.length,
+          small: controls
+            .map((b) => b.getBoundingClientRect())
+            .filter((b) => b.height < 24 || b.width < 24)
+            .map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`),
+        }
+      })
       tried++
       // Every token page must announce SOMETHING — at minimum the routing
       // verdict, which replaces a panel that was still deciding.

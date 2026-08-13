@@ -11,6 +11,7 @@ import DistributionPanel from "@/components/Distribution"
 import { getDecimals, poolFromLabels, resolveRoute, type Pool } from "@/lib/swap"
 import { getPoolAddress, v4Source, type TradeSource } from "@/lib/trades"
 import { CONTRACTS } from "@/lib/chain"
+import { isTokenWatched, toggleTokenWatch } from "@/lib/tokenwatch"
 
 /* One token: everything about it, the tape, and the trade.
  *
@@ -61,6 +62,11 @@ export default function Token() {
      switches to buy does not have the URL argue with them on the next render. */
   const [search] = useSearchParams()
   const wantsSell = search.get("side") === "sell"
+  /* Most arrivals here are from a link somebody sent, which is exactly the
+     moment a reader decides whether to keep an eye on a token — and the feed's
+     star is a page away. Read once per address; the toggle owns it after that. */
+  const [watched, setWatched] = useState(() => isTokenWatched(address))
+  useEffect(() => setWatched(isTokenWatched(address)), [address])
   const [data, setData] = useState<TokenDetail | null>(null)
   const [indexState, setIndexState] = useState<"loading" | "ok" | "missing" | "down">("loading")
 
@@ -197,6 +203,25 @@ export default function Token() {
         </h1>
         {name && name !== symbol && <span className="text-base text-fg-muted">{name}</span>}
         {launch && <RiskPill score={launch.riskScore} />}
+        {usable && (
+          <button
+            type="button"
+            onClick={() => {
+              toggleTokenWatch(address)
+              setWatched(isTokenWatched(address))
+            }}
+            aria-pressed={watched}
+            /* py-1.5 rather than a bare text chip: 24px is the floor a touch
+               target has to clear, and this one sits in a heading row where
+               everything else is text. */
+            className={`chip px-1 py-1.5 font-mono text-micro uppercase tracking-[0.12em] ${
+              watched ? "text-acid-500" : "text-fg-dim hover:text-fg"
+            }`}
+          >
+            <span aria-hidden="true">{watched ? "★" : "☆"}</span>{" "}
+            {watched ? "Watching" : "Watch"}
+          </button>
+        )}
       </div>
 
       {/* The address as selectable text, which it never was — it existed only

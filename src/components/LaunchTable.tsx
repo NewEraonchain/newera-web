@@ -211,6 +211,8 @@ export function LaunchTable({
   caption,
   sort,
   onSort,
+  watched,
+  onToggleWatch,
 }: {
   rows: Row[]
   marketStatus?: "ok" | "loading" | "down"
@@ -219,6 +221,11 @@ export function LaunchTable({
   /** The key the SERVER is ordering by. Absent means the table is unsorted. */
   sort?: SortKey
   onSort?: (k: SortKey) => void
+  /* The reader's own list. Both or neither: without a handler the column is
+     not rendered at all, so the tables that have nothing to do with a
+     watchlist — a theme's launches, a creator's — are untouched. */
+  watched?: Set<string>
+  onToggleWatch?: (address: string) => void
 }) {
   const th = (label: string, className: string, sortKey?: SortKey, align?: "left" | "right") => (
     <Th
@@ -248,6 +255,11 @@ export function LaunchTable({
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-edge-strong">
+            {onToggleWatch && (
+              <th scope="col" className={`${HEAD_L} w-0`}>
+                <span className="sr-only">Watching</span>
+              </th>
+            )}
             {th("Age", HEAD_L, "new", "left")}
             {/* Two different ages, because they answer different questions.
                 "Age" is how long the token has existed; "Pool" is how long it
@@ -278,6 +290,8 @@ export function LaunchTable({
               launch={launch}
               market={market}
               marketStatus={marketStatus}
+              watched={watched?.has(launch.address.toLowerCase())}
+              onToggleWatch={onToggleWatch}
             />
           ))}
         </tbody>
@@ -290,10 +304,14 @@ function LaunchRow({
   launch,
   market,
   marketStatus,
+  watched,
+  onToggleWatch,
 }: {
   launch: Launch
   market?: Market
   marketStatus: "ok" | "loading" | "down"
+  watched?: boolean
+  onToggleWatch?: (address: string) => void
 }) {
   const risky = launch.riskScore >= 40
   const traded = !!market?.liquidityUsd
@@ -312,6 +330,28 @@ function LaunchRow({
 
   return (
     <tr className={`scan-tr border-b border-edge ${risky ? "is-risky" : ""}`}>
+      {/* The reader's own mark, and the only cell in this table that records a
+          decision rather than a measurement. Acid because it is a state they
+          set, like a pressed chip — never because the token deserves it. */}
+      {onToggleWatch && (
+        <td className="px-1 py-0">
+          <button
+            type="button"
+            onClick={() => onToggleWatch(launch.address)}
+            aria-pressed={!!watched}
+            /* px-2 clears the 24px touch floor on the narrow axis; the row's
+               own height covers the other one. */
+            className={`chip px-2 py-2 text-xs leading-none ${
+              watched ? "text-acid-500" : "text-fg-dim/50 hover:text-fg"
+            }`}
+          >
+            <span className="sr-only">
+              {watched ? "Stop watching" : "Watch"} {launch.symbol || launch.address}
+            </span>
+            <span aria-hidden="true">{watched ? "★" : "☆"}</span>
+          </button>
+        </td>
+      )}
       <td className="whitespace-nowrap px-1.5 py-0 font-mono text-micro tabular-nums text-fg-dim sm:px-2">
         {ago(launch.ageSeconds)}
       </td>

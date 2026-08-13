@@ -4,6 +4,7 @@ import { getJSON, ago } from "@/lib/api"
 import type { Launch, Stats, Theme } from "@/lib/api"
 import { Toggle, Skeleton, EmptyState } from "@/components/intel"
 import { LaunchTable, type SortKey } from "@/components/LaunchTable"
+import { readTokenWatch, toggleTokenWatch } from "@/lib/tokenwatch"
 import { Page } from "@/components/shell"
 import { useMarkets, type Market } from "@/lib/markets"
 import { useStatsState } from "@/lib/useStats"
@@ -117,6 +118,13 @@ export default function Feed() {
   /* The ordering the SERVER applies. Persisted because it is a workspace, not a
      navigation step — someone who watches liquidity wants liquidity next time. */
   const [sort, setSort] = useState<SortKey>(() => loadSort())
+  /* The reader's own list, and whether the tape is currently narrowed to it.
+     Kept in this browser — see lib/tokenwatch.ts for why it is not an account
+     feature. The set is what the table reads; the array is what the query
+     asks for, and the order of that array is the order they were starred. */
+  const [watchedList, setWatchedList] = useState<string[]>(() => readTokenWatch())
+  const [watchOnly, setWatchOnly] = useState(false)
+  const watched = useMemo(() => new Set(watchedList), [watchedList])
   /* How many rows PAST the first page are being held. Kept as a count rather
      than a page number because the poll re-fetches from zero: the ordering keys
      are mutable — liquidity changes between requests — so a cursor would skip
@@ -189,27 +197,41 @@ export default function Feed() {
          because the poll refetches every twelve seconds and these sort keys
          move — asking for page 2 again after liquidity shifted would repeat or
          drop rows, while re-asking for the whole visible span cannot. */
-      getJSON<{
-        items: Launch[]
-        measuredOnly?: boolean
-        total?: number
-      }>(
-        `/intel/feed?limit=${Math.min(MAX_ROWS, PAGE + more)}&sort=${sort}${
-          hideRisky && filters.maxRisk === null ? "&maxRisk=25" : ""
-        }${filtersToQuery(filters)}`
-      ),
+      /* WATCHING IS A SET, NOT AN ORDERING, so it cannot be a sort key and
+         cannot go through the feed query at all: the index has no idea which
+         tokens this browser starred. The bulk lookup answers by address in one
+         request, and ordering it in the browser is honest here for the same
+         reason it is honest on the portfolio — these ARE all the rows, not a
+         window onto more of them. */
+      watchOnly
+        ? watchedList.length
+          ? getJSON<{ items: Launch[] }>(`/intel/tokens?addresses=${watchedList.join(",")}`)
+          : Promise.resolve({ items: [] as Launch[] })
+        : getJSON<{
+            items: Launch[]
+            measuredOnly?: boolean
+            total?: number
+          }>(
+            `/intel/feed?limit=${Math.min(MAX_ROWS, PAGE + more)}&sort=${sort}${
+              hideRisky && filters.maxRisk === null ? "&maxRisk=25" : ""
+            }${filtersToQuery(filters)}`
+          ),
     ])
 
     const nextThemes = t.status === "fulfilled" ? t.value.items : null
     const nextLaunches = f.status === "fulfilled" ? f.value.items : null
     // The API says when a filter restricted the answer to measured tokens.
     if (f.status === "fulfilled") {
-      setMeasuredOnly(f.value.measuredOnly === true)
+      /* The bulk lookup answers with items and nothing else — no filter was
+         applied to it and its total IS its length — so both of these read as
+         absent rather than as a claim. */
+      const answer = f.value as { measuredOnly?: boolean; total?: number }
+      setMeasuredOnly(answer.measuredOnly === true)
       /* The size of the whole query, not of this page. Without it the reader
          cannot tell "that is everything" from "the request came back short",
          which is the confusion the old rolling window created: fifteen rows and
          no way to know a hundred thousand launches sat behind them. */
-      setTotal(typeof f.value.total === "number" ? f.value.total : null)
+      setTotal(typeof answer.total === "number" ? answer.total : null)
     }
 
     /* Decided out here, not inside a state updater. Queueing `setPending` from
@@ -233,7 +255,7 @@ export default function Feed() {
     const failed = [t, f].filter((r) => r.status === "rejected").length
     setFailures((n) => (failed === 2 ? n + 1 : 0))
     setLoadingMore(false)
-  }, [hideRisky, filters, sort, more])
+  }, [hideRisky, filters, sort, more, watchOnly, watchedList])
 
   const applyPending = useCallback(() => {
     setPending((p) => {
@@ -318,8 +340,57 @@ export default function Feed() {
   /* The server already ordered these. Re-sorting here would reorder only the
      rows the browser holds, which is the difference between ranking the chain
      and ranking a page — and it would silently disagree with the column header
-     claiming to be active. */
-  const tape = launches
+     claiming to be active.
+
+     The watchlist is the one exception, and it is not an exception to the rule
+     so much as a case where the rule does not bite: the bulk lookup returns
+     EVERY row in the set, so ordering it here orders all of it. The same
+     argument the portfolio's sortable headers rest on. */
+  const tape = useMemo(() => {
+    if (!watchOnly || !launches) return launches
+    const at = (l: Launch): number | null => {
+      const m = l.market
+      switch (sort) {
+        case "new":
+          return -l.ageSeconds
+        case "pooled":
+          return l.pool?.pooledAt ? new Date(l.pool.pooledAt).getTime() : null
+        case "price":
+          return m?.priceUsd ?? null
+        case "mcap":
+          return m?.marketCapUsd ?? null
+        case "liquidity":
+          return m?.liquidityUsd ?? null
+        case "volume":
+          return m?.volume24hUsd ?? null
+        case "change5m":
+          return m?.change5m ?? null
+        case "change1h":
+          return m?.change1h ?? null
+        case "change24h":
+          return m?.change24h ?? null
+        case "txns5m":
+          return m?.txns5m ?? null
+        case "chainvol":
+          return l.chainVolEth24h ?? null
+        case "risk":
+          return l.riskScore
+        default:
+          return null
+      }
+    }
+    return [...launches].sort((a, b) => {
+      const x = at(a)
+      const y = at(b)
+      /* Unknown sorts last rather than as zero — a token whose liquidity has
+         not been measured has not been judged, and the feed's own server-side
+         ordering makes the same promise with `nulls: "last"`. */
+      if (x === null && y === null) return 0
+      if (x === null) return 1
+      if (y === null) return -1
+      return y - x
+    })
+  }, [launches, watchOnly, sort])
 
   /* Which of these actually have a market. Keyed off the tape's addresses, so
      one batched call covers both the section below and every row. */
@@ -502,6 +573,11 @@ export default function Feed() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Beside the other control that narrows the SET, not among the
+                chips that choose an ordering. */}
+            <Toggle on={watchOnly} onClick={() => setWatchOnly((v) => !v)}>
+              ★ Watchlist{watchedList.length ? ` (${watchedList.length})` : ""}
+            </Toggle>
             <Toggle on={hideRisky} onClick={() => setHideRisky((v) => !v)}>
               Hide likely spam
             </Toggle>
@@ -555,12 +631,22 @@ export default function Feed() {
             <EmptyState>
               Lost contact with the intelligence API. The rows below are the last good read.
             </EmptyState>
+          ) : tape.length === 0 && watchOnly ? (
+            /* An empty watchlist is not an empty chain, and the difference is
+               the whole reason this branch exists rather than falling through
+               to "nothing matches these filters". */
+            <EmptyState>
+              Nothing on your watchlist yet. The star at the left of any row keeps a token here —
+              the list lives in this browser and is never sent anywhere.
+            </EmptyState>
           ) : tape.length === 0 ? (
             <EmptyState>Nothing tradable matches these filters yet.</EmptyState>
           ) : (
             <LaunchTable
               rows={rows}
               marketStatus={marketStatus}
+              watched={watched}
+              onToggleWatch={(a) => setWatchedList(toggleTokenWatch(a))}
               sort={sort}
               onSort={(k) => {
                 setSort(k)
@@ -576,7 +662,10 @@ export default function Feed() {
             The feed used to be a rolling window of the newest rows with no way
             past it — every launch older than the window was unreachable, which
             is why it looked like the chain had produced fifteen tokens. */}
-        {tape && tape.length > 0 && (
+        {/* Not in the watchlist view: there is no "more" to load, because the
+            set is exactly what somebody starred, and "12 of 84,000 tradable"
+            would describe a query this view never ran. */}
+        {tape && tape.length > 0 && !watchOnly && (
           <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
             <p className="font-mono text-micro uppercase tracking-[0.1em] text-fg-dim">
               {total === null
