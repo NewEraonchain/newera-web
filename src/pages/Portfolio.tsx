@@ -314,6 +314,7 @@ function WalletBar({
   onToggleSave,
   onAdd,
   onConnect,
+  showConnect = true,
 }: {
   connected: string | null
   active: string | null
@@ -322,6 +323,11 @@ function WalletBar({
   onToggleSave: (address: string) => void
   onAdd: (address: string, label: string) => boolean
   onConnect: () => void
+  /* Off where the page already offers connecting in its own words. The first
+     version rendered a second "Connect wallet" chip directly under the block
+     button that does the same thing, and under a heading — "or read any
+     address" — that promises the opposite. */
+  showConnect?: boolean
 }) {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState("")
@@ -346,11 +352,11 @@ function WalletBar({
         >
           {shortAddr(connected)} <span className="opacity-60">· yours</span>
         </button>
-      ) : (
+      ) : showConnect ? (
         <button type="button" onClick={onConnect} className={chip(false)}>
           Connect wallet
         </button>
-      )}
+      ) : null}
 
       {list.map((w) => (
         <span key={w.address} className="inline-flex items-stretch">
@@ -691,6 +697,7 @@ export default function Portfolio() {
             onToggleSave={toggleSave}
             onAdd={addWatched}
             onConnect={onConnect}
+            showConnect={false}
           />
         </div>
         {err && <p className="mt-4 text-sm text-warn">{err}</p>}
