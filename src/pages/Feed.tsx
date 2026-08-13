@@ -563,7 +563,10 @@ export default function Feed() {
                    what this row must stop reading as — the hairline under it is
                    the same mark the aperture makes on a hovered row, and one
                    marker per state is the rule everywhere else here. */
-                className={`chip px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] ${
+                /* py-1.5, not py-1: at py-1 these measured 23px tall — one
+                   pixel under the touch floor, on the row a phone user taps
+                   most. */
+                className={`chip px-2.5 py-1.5 font-mono text-micro uppercase tracking-[0.1em] ${
                   sort === s.id ? "text-acid-500" : "text-fg-dim hover:text-fg"
                 }`}
               >

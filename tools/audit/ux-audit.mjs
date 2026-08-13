@@ -79,7 +79,11 @@ for (const route of ROUTES) {
          is how the two real ones sat unfixed for weeks: a suite that cries
          wolf gets skimmed. A link alone in its own block has no such excuse
          and is still reported. */
-      if ((rect.width < 24 || rect.height < 24) && label) {
+      /* A 1x1 box is not a target anybody aims at — it is the skip link,
+         visually hidden until it takes focus, and it was reported on every
+         route on the site. Judge it at the size it has when it can be hit. */
+      const hidden = rect.width <= 1 && rect.height <= 1
+      if (!hidden && (rect.width < 24 || rect.height < 24) && label) {
         const block = el.closest("p,li,td,th,dd,dt,h1,h2,h3,figcaption")
         const blockText = block ? block.innerText.trim().replace(/\s+/g, " ") : ""
         const inlineInSentence = !!block && blockText.length > label.trim().length + 3

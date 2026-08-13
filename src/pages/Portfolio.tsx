@@ -192,7 +192,9 @@ function Th({
         type="button"
         onClick={() => onSort(sortKey)}
         aria-label={`Sort by ${label.toLowerCase()}`}
-        className={`chip inline-flex items-center gap-1 uppercase tracking-[0.1em] hover:text-fg ${
+        /* See the note on LaunchTable's Th: the cell's padding belongs to the
+           control, or the target is only as tall as the word. */
+        className={`chip -my-2 inline-flex items-center gap-1 py-2 uppercase tracking-[0.1em] hover:text-fg ${
           isActive ? "text-acid-500" : ""
         } ${align === "right" ? "flex-row-reverse" : ""}`}
       >

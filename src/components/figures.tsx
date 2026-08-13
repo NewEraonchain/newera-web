@@ -37,14 +37,28 @@ const still = () =>
    failing, not the data being thin. */
 export function ClusterField() {
   const [themes, setThemes] = useState<Theme[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState<{ c: number; row: number; n: number } | null>(null)
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let alive = true
-    getJSON<{ items: Theme[] }>("/intel/themes?limit=120")
-      .then((r) => alive && r.items?.length && setThemes(r.items))
-      .catch((e) => console.error("[ClusterField]", e))
+    /* 100, because that is what the endpoint allows. It asked for 120 and got
+       `400 querystring/limit must be <= 100` on every load, so this figure —
+       the drawn version of the claim in the paragraph above it — has been
+       absent from the landing page entirely, logging to a console nobody
+       reads. The audit that finally caught it looks for console errors, which
+       is the only trace a silent `return null` leaves. */
+    getJSON<{ items: Theme[] }>("/intel/themes?limit=100")
+      .then((r) => {
+        if (!alive) return
+        if (r.items?.length) setThemes(r.items)
+        else setFailed(true)
+      })
+      .catch((e) => {
+        console.error("[ClusterField]", e)
+        if (alive) setFailed(true)
+      })
     return () => {
       alive = false
     }
@@ -104,6 +118,16 @@ export function ClusterField() {
     return () => ctx.revert()
   }, [grid])
 
+  /* A failed read says so rather than leaving a gap where a figure was
+     promised. Nothing here is a claim about the chain — which is the whole
+     point of saying it out loud. */
+  if (failed && !grid)
+    return (
+      <p className="measure text-sm leading-relaxed text-fg-dim">
+        This figure is drawn from the live index, which is not answering right now. That is a
+        lookup failure on our side, not a statement about what is launching.
+      </p>
+    )
   if (!themes || !grid) return null
 
   return (

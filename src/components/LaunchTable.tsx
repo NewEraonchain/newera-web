@@ -189,7 +189,11 @@ function Th({
         <button
           type="button"
           onClick={() => onSort!(sortKey!)}
-          className={`chip inline-flex items-center gap-1 uppercase tracking-[0.1em] hover:text-fg ${
+          /* The padding belongs to the cell, so the control claimed 15px of a
+             31px row and a thumb had to hit the text itself. Taking the cell's
+             padding into the button changes nothing visually and makes the
+             target the whole heading. */
+          className={`chip -my-2 inline-flex items-center gap-1 py-2 uppercase tracking-[0.1em] hover:text-fg ${
             isActive ? "text-acid-500" : ""
           } ${align === "right" ? "flex-row-reverse" : ""}`}
         >
