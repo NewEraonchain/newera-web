@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import { getJSON, shortAddr } from "@/lib/api"
 import type { Launch } from "@/lib/api"
 import { currentAddress, connectForTrading, isRejection } from "@/lib/wallet"
+import { readWatchlist, watch, unwatch, isAddress, type Watched } from "@/lib/watchlist"
 import {
   loadBalances,
   loadPortfolio,
@@ -297,6 +298,136 @@ function TradeHistory({ p }: { p: Position }) {
 const ACTION =
   "chip whitespace-nowrap border border-edge-strong px-3 py-1.5 text-center font-mono text-micro uppercase tracking-[0.1em] hover:border-edge-strong"
 
+/* The wallets this browser knows about, and the way between them.
+ *
+ * The original ask was "see their holdings, manage them, manage their wallets".
+ * Reading one wallet was the first two thirds; this is the last, and it stays
+ * inside the same constraint as the rest of the page — the list lives in this
+ * browser and never reaches our server. A connected wallet always appears, even
+ * when it was never saved, because the one address a reader is certain to want
+ * is the one they hold the keys to. */
+function WalletBar({
+  connected,
+  active,
+  saved,
+  onOpen,
+  onToggleSave,
+  onAdd,
+  onConnect,
+}: {
+  connected: string | null
+  active: string | null
+  saved: Watched[]
+  onOpen: (address: string | null) => void
+  onToggleSave: (address: string) => void
+  onAdd: (address: string, label: string) => boolean
+  onConnect: () => void
+}) {
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState("")
+  const [label, setLabel] = useState("")
+  const [bad, setBad] = useState(false)
+
+  const chip = (on: boolean) =>
+    `chip whitespace-nowrap border px-2.5 py-1.5 font-mono text-micro uppercase tracking-[0.1em] ${
+      on ? "border-acid-500 text-acid-500" : "border-edge text-fg-dim hover:text-fg"
+    }`
+
+  const mine = connected?.toLowerCase() || null
+  const list = saved.filter((w) => w.address !== mine)
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      {connected ? (
+        <button
+          type="button"
+          onClick={() => onOpen(null)}
+          className={chip(!active || active === mine)}
+        >
+          {shortAddr(connected)} <span className="opacity-60">· yours</span>
+        </button>
+      ) : (
+        <button type="button" onClick={onConnect} className={chip(false)}>
+          Connect wallet
+        </button>
+      )}
+
+      {list.map((w) => (
+        <span key={w.address} className="inline-flex items-stretch">
+          <button
+            type="button"
+            onClick={() => onOpen(w.address)}
+            className={`${chip(active === w.address)} border-r-0`}
+          >
+            {w.label || shortAddr(w.address)}
+          </button>
+          {/* Forget sits ON the chip rather than behind a menu: a watchlist you
+              cannot prune is one that fills with dead addresses. */}
+          <button
+            type="button"
+            onClick={() => onToggleSave(w.address)}
+            aria-label={`Stop watching ${w.label || shortAddr(w.address)}`}
+            className={`${chip(active === w.address)} border-l-0 px-2 hover:text-danger`}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </span>
+      ))}
+
+      {/* The address being read right now, which nobody has saved yet. */}
+      {active && active !== mine && !saved.some((w) => w.address === active) && (
+        <button type="button" onClick={() => onToggleSave(active)} className={chip(false)}>
+          + save {shortAddr(active)}
+        </button>
+      )}
+
+      {adding ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (onAdd(draft, label)) {
+              setDraft("")
+              setLabel("")
+              setAdding(false)
+              setBad(false)
+            } else setBad(true)
+          }}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+            placeholder="0x…"
+            aria-label="Wallet address to watch"
+            aria-invalid={bad}
+            className={`w-[22ch] border-b bg-transparent py-1 font-mono text-micro text-fg placeholder:text-fg-dim focus:border-acid-500 ${
+              bad ? "border-danger" : "border-edge"
+            }`}
+          />
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            maxLength={24}
+            placeholder="name (optional)"
+            aria-label="A name for this wallet"
+            className="w-[16ch] border-b border-edge bg-transparent py-1 font-mono text-micro text-fg placeholder:text-fg-dim focus:border-acid-500"
+          />
+          <button type="submit" className={chip(false)}>
+            Watch it
+          </button>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setAdding(true)} className={chip(false)}>
+          + watch a wallet
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function Portfolio() {
   const [params, setParams] = useSearchParams()
   /* A wallet you are WATCHING outranks the one you connected, because it was
@@ -333,7 +464,32 @@ export default function Portfolio() {
      no reason to. */
   const [dustPref, setDustPref] = useState<boolean | null>(null)
   const [open, setOpen] = useState<string | null>(null)
-  const [watchInput, setWatchInput] = useState("")
+  const [saved, setSaved] = useState<Watched[]>(() => readWatchlist())
+
+  /* Switching wallets is a URL change, not a mode. That keeps one code path
+     for "which address is this page about" and leaves every view of it
+     shareable — including the one you got to by clicking a chip. */
+  const openWallet = useCallback(
+    (a: string | null) => {
+      if (a && a.toLowerCase() !== connected?.toLowerCase()) setParams({ address: a.toLowerCase() })
+      else setParams({})
+    },
+    [connected, setParams]
+  )
+
+  const toggleSave = useCallback((a: string) => {
+    setSaved(readWatchlist().some((w) => w.address === a.toLowerCase()) ? unwatch(a) : watch(a))
+  }, [])
+
+  const addWatched = useCallback(
+    (a: string, label: string) => {
+      if (!isAddress(a)) return false
+      setSaved(watch(a, label))
+      openWallet(a)
+      return true
+    },
+    [openWallet]
+  )
 
   useEffect(() => {
     document.title = "Portfolio · NewEra"
@@ -411,17 +567,6 @@ export default function Portfolio() {
     } catch (e) {
       if (!isRejection(e)) setErr("Could not connect that wallet.")
     }
-  }
-
-  const onWatch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const a = watchInput.trim().toLowerCase()
-    if (!/^0x[a-f0-9]{40}$/.test(a)) {
-      setErr("That is not an address. It should be 0x followed by 40 hex characters.")
-      return
-    }
-    setErr(null)
-    setParams({ address: a })
   }
 
   /* Live prices for exactly what is held. `useMarkets` already batches and
@@ -532,31 +677,22 @@ export default function Portfolio() {
         </button>
 
         {/* Reading a wallet needs no key, so requiring one to look was a habit
-            rather than a constraint. This is also the whole of "watch another
-            wallet": the address is in the URL, so it is shareable and it comes
-            back on reload. */}
-        <form onSubmit={onWatch} className="mt-8 border-t border-edge pt-5">
-          <label
-            htmlFor="watch-address"
-            className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim"
-          >
+            rather than a constraint — and the address goes in the URL, so any
+            view of this page is shareable and survives a reload. */}
+        <div className="mt-8 border-t border-edge pt-5">
+          <p className="font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
             Or read any address
-          </label>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <input
-              id="watch-address"
-              value={watchInput}
-              onChange={(e) => setWatchInput(e.target.value)}
-              spellCheck={false}
-              autoComplete="off"
-              placeholder="0x…"
-              className="min-w-0 flex-1 border-b border-edge bg-transparent py-1.5 font-mono text-sm text-fg placeholder:text-fg-dim focus:border-acid-500"
-            />
-            <button type="submit" className={`${ACTION} text-fg`}>
-              Read it
-            </button>
-          </div>
-        </form>
+          </p>
+          <WalletBar
+            connected={null}
+            active={null}
+            saved={saved}
+            onOpen={openWallet}
+            onToggleSave={toggleSave}
+            onAdd={addWatched}
+            onConnect={onConnect}
+          />
+        </div>
         {err && <p className="mt-4 text-sm text-warn">{err}</p>}
       </Page>
     )
@@ -591,17 +727,18 @@ export default function Portfolio() {
           >
             Refresh
           </button>
-          {watching && (
-            <button
-              type="button"
-              onClick={() => setParams({})}
-              className="chip font-mono text-micro uppercase tracking-[0.12em] text-fg-dim hover:text-fg"
-            >
-              Stop watching
-            </button>
-          )}
         </div>
       </div>
+
+      <WalletBar
+        connected={connected}
+        active={watching ? watched : null}
+        saved={saved}
+        onOpen={openWallet}
+        onToggleSave={toggleSave}
+        onAdd={addWatched}
+        onConnect={onConnect}
+      />
 
       {/* The four figures, in the unit they were actually earned in. No dollar
           conversion: see the note in lib/portfolio.ts — pricing a trade in
