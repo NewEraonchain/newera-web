@@ -31,11 +31,23 @@ export type Market = {
   symbol: string
   name: string
   priceUsd: number | null
-  /* Price in the pool QUOTE currency, which on this chain is ETH.
-     The portfolio reconstructs cost basis in ETH because no verifiable
-     ETH/USD history exists here, so a dollar price cannot close that loop —
-     this can. */
+  /* Price in THIS POOL'S quote currency, which is very often not ETH.
+     Read it with `quoteToken`, never on its own. */
   priceNative: number | null
+  /* Price in ETH, from the deepest ETH-quoted pool this token has — a
+   * different pool from the one every other figure here describes, and null
+   * when the token has no ETH pair at all.
+   *
+   * `priceNative` was being read as an ETH price because the comment here said
+   * it was one. On this chain it very often is not: tokens are paired against
+   * other tokens — MSFT, VIRTUAL, USAR, each of them quoting near 1.0 — and
+   * the deepest pool, which is the one every other field describes, is
+   * regularly one of those. Measured on `tornadoes`: the deepest pool is
+   * MSFT-quoted at priceNative 1.0000000000002560, so a wallet holding 66.7k
+   * of it had its portfolio headline read Ξ66,744 — against Ξ0.02 from its
+   * actual ETH pair. A fabricated six-figure balance on the one page whose
+   * whole job is telling somebody what they are worth. */
+  priceEth: number | null
   liquidityUsd: number | null
   volume24h: number | null
   priceChange24h: number | null
@@ -94,8 +106,18 @@ const num = (v: unknown): number | null => {
    one failure mode this product cannot afford. */
 export type MarketResult = { markets: Map<string, Market>; ok: boolean }
 
+/* What counts as ETH on this chain: the wrapper, and the zero address a v4 pool
+   uses for native ETH. Anything else quoting a pair is another token, however
+   much it looks like money. */
+const WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73"
+const NATIVE = "0x0000000000000000000000000000000000000000"
+const isEth = (a: string) => a === WETH || a === NATIVE
+
 export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
   const out = new Map<string, Market>()
+  /* Tracked apart from `out` because the ETH pool is usually NOT the deepest
+     one, so it never survives the comparison below. */
+  const eth = new Map<string, { liq: number; price: number }>()
   const unique = [...new Set(addresses.map((a) => a.toLowerCase()))]
   if (!unique.length) return { markets: out, ok: true }
 
@@ -120,6 +142,15 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
       const addr = String(pair?.baseToken?.address || "").toLowerCase()
       if (!addr) continue
       const liquidityUsd = num(pair?.liquidity?.usd)
+
+      const quote = String(pair?.quoteToken?.address || "").toLowerCase()
+      const native = num(pair?.priceNative)
+      if (isEth(quote) && native !== null) {
+        const liq = liquidityUsd ?? 0
+        const best = eth.get(addr)
+        if (!best || liq > best.liq) eth.set(addr, { liq, price: native })
+      }
+
       const prev = out.get(addr)
       // A token can have several pools. The deepest one is the market that
       // matters, and it is the one a handoff should point at.
@@ -137,7 +168,9 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         symbol: String(pair?.baseToken?.symbol || ""),
         name: String(pair?.baseToken?.name || ""),
         priceUsd: num(pair?.priceUsd),
-        priceNative: num(pair?.priceNative),
+        priceNative: native,
+        // Filled after every pair has been seen; see below.
+        priceEth: null,
         liquidityUsd,
         volume24h: num(pair?.volume?.h24),
         priceChange24h: num(pair?.priceChange?.h24),
@@ -154,11 +187,19 @@ export async function fetchMarkets(addresses: string[]): Promise<MarketResult> {
         url: String(pair?.url || ""),
         dex: String(pair?.dexId || ""),
         labels: Array.isArray(pair?.labels) ? pair.labels.map(String) : [],
-        quoteToken: String(pair?.quoteToken?.address || "").toLowerCase(),
+        quoteToken: quote,
         pairAddress: String(pair?.pairAddress || ""),
       })
     }
   }
+
+  /* Only now, because the ETH pool for a token can appear in any chunk and in
+     any order relative to the pool that won `out`. */
+  for (const [addr, m] of out) {
+    const e = eth.get(addr)
+    m.priceEth = e ? e.price : isEth(m.quoteToken) ? m.priceNative : null
+  }
+
   return { markets: out, ok }
 }
 
@@ -182,6 +223,14 @@ export function useMarkets(addresses: string[] | null): MarketResult | null {
       setResult(cache.result)
       return
     }
+
+    /* In flight is null, which is what this hook's own contract says and what
+       it was not doing: on a key change it went on returning the PREVIOUS
+       list's result until the new one landed. Consumers read that as a settled
+       answer about addresses it had never been asked about — the portfolio
+       folded every position into "no market" for a beat, because a settled
+       result missing your token means exactly that. */
+    setResult(null)
 
     fetchMarkets(addresses)
       .then((r) => {

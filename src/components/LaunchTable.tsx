@@ -105,7 +105,7 @@ function linkLabel(l: Launch): string {
   return `Token ${l.address.slice(0, 6)}…${l.address.slice(-4)}`
 }
 
-function TokenMark({ src, symbol }: { src: string | null; symbol: string }) {
+export function TokenMark({ src, symbol }: { src: string | null; symbol: string }) {
   const [failed, setFailed] = useState(false)
   const letter = (symbol || "?").replace(/[^\p{L}\p{N}]/gu, "").slice(0, 1) || "?"
 

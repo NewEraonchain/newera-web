@@ -47,15 +47,23 @@ export default function SwapPanel({
   pool,
   venueUrl,
   venueName,
+  initialSide = "buy",
 }: {
   token: string
   symbol: string
   pool: Pool
   venueUrl?: string | null
   venueName?: string | null
+  /* Which tab the panel opens on. Set from `?side=` so a reader arriving from
+     their own portfolio — where every token is one they already hold — lands on
+     the tab for the thing they came to do. The default stays buy. */
+  initialSide?: Side
 }) {
-  const [side, setSide] = useState<Side>("buy")
-  const [amount, setAmount] = useState("0.05")
+  const [side, setSide] = useState<Side>(initialSide)
+  /* The default amount is denominated in whatever is being spent, so it only
+     makes sense on a buy: 0.05 of a token whose supply is in the billions is
+     not a trade anyone meant to make. */
+  const [amount, setAmount] = useState(initialSide === "buy" ? "0.05" : "")
   const [slippage, setSlippage] = useState(1)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoting, setQuoting] = useState(false)

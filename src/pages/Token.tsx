@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
 import type { Launch, TokenDetail } from "@/lib/api"
 import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/components/intel"
@@ -55,6 +55,12 @@ const ZERO = "0x0000000000000000000000000000000000000000"
 export default function Token() {
   const { address = "" } = useParams()
   const usable = IS_ADDRESS.test(address) && address.toLowerCase() !== ZERO
+  /* `?side=sell` arrives from the portfolio, where every row is something the
+     reader already holds. Read once for the panel's opening tab and never
+     written back — the tab is the panel's own state after that, so a reader who
+     switches to buy does not have the URL argue with them on the next render. */
+  const [search] = useSearchParams()
+  const wantsSell = search.get("side") === "sell"
   const [data, setData] = useState<TokenDetail | null>(null)
   const [indexState, setIndexState] = useState<"loading" | "ok" | "missing" | "down">("loading")
 
@@ -245,6 +251,7 @@ export default function Token() {
               pool={pool}
               venueUrl={market.url}
               venueName={market.dex}
+              initialSide={wantsSell ? "sell" : "buy"}
             />
           </div>
         )}

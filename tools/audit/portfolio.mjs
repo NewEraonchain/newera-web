@@ -97,6 +97,35 @@ console.log("\n5. unrealised is null without a cost, not zero")
   }
 }
 
+console.log("\n6. the trades behind the average are kept, dated and ordered")
+{
+  const withTrades = r.positions.filter((p) => p.trades.length > 0)
+  ok(
+    r.tradesPriced === 0 || withTrades.length > 0,
+    `positions carry their own movements (${withTrades.length} with history)`
+  )
+
+  /* The bug this exists to catch: the transaction endpoint does not return a
+     timestamp, so every trade came back dated "" — which silently disabled the
+     oldest-first sort that a weighted average depends on, and priced sales
+     against buys that had not happened yet. Undated trades are not a display
+     problem, they are a wrong number. */
+  const undated = withTrades.flatMap((p) =>
+    p.trades.filter((t) => !t.at || Number.isNaN(Date.parse(t.at))).map((t) => `${p.symbol} ${t.tx.slice(0, 10)}`)
+  )
+  ok(undated.length === 0, `every movement is dated${undated.length ? ` — ${undated.slice(0, 3).join(", ")}` : ""}`)
+
+  const misordered = withTrades.filter((p) =>
+    p.trades.some((t, i) => i > 0 && Date.parse(t.at) > Date.parse(p.trades[i - 1].at))
+  )
+  ok(misordered.length === 0, "each position's movements read newest first")
+
+  const priceless = withTrades.flatMap((p) =>
+    p.trades.filter((t) => (t.kind === "buy" || t.kind === "sell") && !(t.eth > 0)).map((t) => `${p.symbol} ${t.kind}`)
+  )
+  ok(priceless.length === 0, "a movement called a buy or a sell always carries its ETH leg")
+}
+
 console.log("\ntop positions:")
 for (const p of r.positions.slice(0, 6)) {
   const cost = p.avgCostEth === null ? "no cost traced" : `avg Ξ${p.avgCostEth.toExponential(2)}/tok`

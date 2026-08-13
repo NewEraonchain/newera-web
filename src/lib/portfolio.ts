@@ -57,6 +57,23 @@ const MAX_TRADES = 120
  * beats one that takes two and is empty. */
 const CONCURRENCY = 3
 
+/* One movement of one token, from the wallet's point of view.
+ *
+ * Kept per position because the reconstruction already knows it: the walk reads
+ * every transaction to derive the average, and throwing the individual trades
+ * away left the page asserting a cost basis with nothing to show behind it. A
+ * number a reader cannot check is a number they have to trust, and this is the
+ * one page where they arrived to check. */
+export type PositionTrade = {
+  at: string
+  tx: string
+  /** buy and sell are priced; `in` and `out` moved with no traceable ETH leg. */
+  kind: "buy" | "sell" | "in" | "out"
+  amount: number
+  /** ETH that changed hands. Null on an untraced movement. */
+  eth: number | null
+}
+
 export type Position = {
   address: string
   symbol: string
@@ -82,6 +99,9 @@ export type Position = {
   untracedAmount: number
   /** True when the cost shown is a floor rather than the answer. */
   costIncomplete: boolean
+
+  /** Newest first, so a row opens on the most recent thing that happened. */
+  trades: PositionTrade[]
 }
 
 export type PortfolioResult = {
@@ -131,6 +151,8 @@ type RawTransfer = {
   from?: { hash?: string }
   to?: { hash?: string }
   transaction_hash?: string
+  /** Present on /transactions, where the transfer's own hash is the tx's. */
+  hash?: string
   timestamp?: string
 }
 
@@ -145,7 +167,10 @@ async function walk(
     /* Both annotated. Without them TypeScript walks qs -> next -> j -> qs
        and gives up with an implicit-any, because the page parameters that build
        the URL are also what the response hands back. */
-    const qs: string = next ? "?" + new URLSearchParams(next).toString() : ""
+    /* The path may already carry a query — `transactions?filter=from` does —
+       so the page parameters join it rather than starting a second one. */
+    const sep = path.includes("?") ? "&" : "?"
+    const qs: string = next ? sep + new URLSearchParams(next).toString() : ""
     type Page = { items?: RawTransfer[]; next_page_params?: Record<string, string> | null }
     const j: Page | null = await getJson<Page>(`${EXPLORER}/addresses/${wallet}/${path}${qs}`)
     if (!j) break
@@ -176,6 +201,7 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R
 
 type Trade = {
   at: string
+  tx: string
   token: string
   symbol: string
   name: string
@@ -188,7 +214,12 @@ type Trade = {
 }
 
 /** Price one transaction by its full transfer list. */
-function readTrade(items: RawTransfer[], wallet: string, ethFromInternal: bigint): Trade | null {
+function readTrade(
+  items: RawTransfer[],
+  wallet: string,
+  ethFromInternal: bigint,
+  tx: string
+): Trade | null {
   const me = lower(wallet)
   let weth = 0n
   const ours = new Map<string, Trade>()
@@ -217,6 +248,7 @@ function readTrade(items: RawTransfer[], wallet: string, ethFromInternal: bigint
     else
       ours.set(addr, {
         at: String(t.timestamp || ""),
+        tx,
         token: addr,
         symbol: t.token?.symbol || "?",
         name: t.token?.name || "",
@@ -277,13 +309,23 @@ export async function loadBalances(wallet: string): Promise<{ positions: Positio
          rather than zero. The page must not read this state as "you paid
          nothing" — which is why the flag starts true. */
       costIncomplete: true,
+      trades: [],
     })
   }
   positions.sort((x, y) => y.amount - x.amount)
   return { positions, failed: false }
 }
 
-export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
+/* Progress is reported because the walk is LONG.
+ *
+ * A hundred and twenty transactions at three at a time against a public
+ * explorer that answers in its own time is a minute of a page saying
+ * "reconstructing" and nothing else — and a message that does not change is
+ * indistinguishable from one that is stuck. The count is the cheapest possible
+ * proof that something is still happening. */
+export type Progress = (done: number, total: number) => void
+
+export async function loadPortfolio(wallet: string, onProgress?: Progress): Promise<PortfolioResult> {
   const empty: PortfolioResult = {
     positions: [],
     tradesPriced: 0,
@@ -297,6 +339,7 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
   let balancesRaw: unknown[]
   let own: { items: RawTransfer[]; complete: boolean }
   let internal: { items: RawTransfer[]; complete: boolean }
+  let sent: { items: RawTransfer[]; complete: boolean }
   try {
     /* Sequential, not Promise.all. Three simultaneous openers is how the
        burst starts, and the balances are the one call the page cannot render
@@ -306,8 +349,33 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
     balancesRaw = Array.isArray(b) ? b : []
     own = await walk("token-transfers", wallet, MAX_PAGES)
     internal = await walk("internal-transactions", wallet, 2)
+    /* filter=from, so all four pages are transactions this wallet SENT rather
+       than a mixed list where received transfers crowd out the ones that
+       matter. Four pages of sent transactions comfortably outreaches the
+       hundred and twenty the walk below will price. */
+    sent = await walk("transactions?filter=from", wallet, MAX_PAGES)
   } catch {
     return empty
+  }
+
+  /* WHICH TRANSACTIONS THIS WALLET ACTUALLY SENT.
+   *
+   * A trade is something you did. Tokens can arrive in a transaction you had
+   * nothing to do with, and pricing those by the ETH in them charges you for a
+   * stranger's trade. Measured on the audit wallet: its ONE priced position was
+   * 0.007433 USDG that arrived out of somebody's arbitrage — four separate WETH
+   * legs inside it, summing to 0.1154, none of them the wallet's. The page
+   * reported a Ξ0.115 cost and a Ξ0.115 unrealised loss on a dust balance the
+   * wallet never bought, and it was the largest figure on the page.
+   *
+   * The sum-every-WETH-leg rule is what made a buy priceable at all — the
+   * router moves the ETH, not you — so it stays. It is now confined to
+   * transactions this wallet signed, where the money moved really is yours.
+   * Everything else is recorded as an arrival with no cost, which is what it
+   * is. The narrower rule is also cheaper: fewer transactions to fetch. */
+  const sentTx = new Set<string>()
+  for (const t of sent.items) {
+    if (lower(t.from?.hash) === me && t.hash) sentTx.add(lower(t.hash))
   }
 
   /* Native ETH per transaction, signed. Only used when a transaction has no
@@ -326,24 +394,66 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
      Newest first from the explorer, so the cap keeps recent trades. */
   const candidates: string[] = []
   const seen = new Set<string>()
+  /* WHEN each transaction happened, taken from the wallet's own transfer list.
+   *
+   * Not from the transaction's transfer list, which is where it was being read
+   * and which does not carry one: every trade came back with an empty
+   * timestamp. Two things broke on that. The visible one was a dash where the
+   * date goes. The one that mattered is that the weighted average is
+   * ORDER-DEPENDENT and the sort that puts trades oldest-first had nothing to
+   * sort on — so it kept the explorer's newest-first order and priced every
+   * sale against buys that, in that ordering, had not happened yet. */
+  const tsByTx = new Map<string, string>()
+  /* Movements from a transaction the wallet did not send. Read straight off the
+     transfer list — no request of their own, because there is nothing to price
+     in them. They still count: they explain a holding whose cost is missing. */
+  const arrivals: Trade[] = []
   for (const t of own.items) {
-    if (lower(t.token?.address_hash) === WETH) continue
     const tx = lower(t.transaction_hash)
-    if (!tx || seen.has(tx)) continue
+    if (tx && t.timestamp && !tsByTx.has(tx)) tsByTx.set(tx, String(t.timestamp))
+    const addr = lower(t.token?.address_hash)
+    if (!tx || !addr || addr === WETH) continue
+
+    if (!sentTx.has(tx)) {
+      const value = big(t.total?.value)
+      const delta = lower(t.to?.hash) === me ? value : lower(t.from?.hash) === me ? -value : 0n
+      if (delta === 0n) continue
+      arrivals.push({
+        at: String(t.timestamp || ""),
+        tx,
+        token: addr,
+        symbol: t.token?.symbol || "?",
+        name: t.token?.name || "",
+        decimals: Number(t.token?.decimals ?? 18),
+        tokenDelta: delta,
+        eth: 0n,
+        priceable: false,
+      })
+      continue
+    }
+
+    if (seen.has(tx)) continue
     seen.add(tx)
     candidates.push(tx)
     if (candidates.length >= MAX_TRADES) break
   }
 
+  let done = 0
+  onProgress?.(0, candidates.length)
   const trades = await mapLimit(candidates, CONCURRENCY, async (tx) => {
     const j = await getJson<{ items?: RawTransfer[] }>(`${EXPLORER}/transactions/${tx}/token-transfers`)
+    onProgress?.(++done, candidates.length)
     if (!j) return null
-    return readTrade(j.items || [], wallet, ethByTx.get(tx) || 0n)
+    const t = readTrade(j.items || [], wallet, ethByTx.get(tx) || 0n, tx)
+    if (t) t.at = tsByTx.get(tx) || t.at
+    return t
   })
 
   /* Oldest first. A weighted average is order-dependent, and running it
      backwards prices every sale against buys that had not happened yet. */
-  const ordered = trades.filter((t): t is Trade => !!t).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
+  const ordered = [...trades.filter((t): t is Trade => !!t), ...arrivals].sort((a, b) =>
+    a.at < b.at ? -1 : a.at > b.at ? 1 : 0
+  )
 
   type Acc = Omit<Position, "balance" | "amount">
   const acc = new Map<string, Acc>()
@@ -366,22 +476,32 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
         realisedEth: 0,
         untracedAmount: 0,
         costIncomplete: false,
+        trades: [],
       }
       acc.set(t.token, a)
     }
 
     const amount = toNumber(t.tokenDelta < 0n ? -t.tokenDelta : t.tokenDelta, t.decimals)
+    const inbound = t.tokenDelta > 0n
     if (!t.priceable) {
       untraced++
-      if (t.tokenDelta > 0n) {
-        a.untracedAmount += amount
-        a.costIncomplete = true
-      }
+      /* Recorded even though it is not priced. A reader looking at a cost that
+         covers less than they hold needs to see the movement that explains the
+         gap, and "arrived, no ETH leg" is the explanation. */
+      a.trades.push({ at: t.at, tx: t.tx, kind: inbound ? "in" : "out", amount, eth: null })
+      /* Either direction breaks the arithmetic, so either direction marks the
+         position partial. An untraced arrival means part of the holding has no
+         cost; an untraced departure means profit was taken that realised does
+         not include. Only the first of those was being flagged, so a wallet
+         that sold through a batched call read as complete. */
+      a.costIncomplete = true
+      if (inbound) a.untracedAmount += amount
       continue
     }
 
     priced++
     const eth = toNumber(t.eth, 18)
+    a.trades.push({ at: t.at, tx: t.tx, kind: inbound ? "buy" : "sell", amount, eth })
     if (t.tokenDelta > 0n) {
       a.ethSpent += eth
       a.boughtAmount += amount
@@ -422,6 +542,9 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
       realisedEth: a?.realisedEth ?? 0,
       untracedAmount: a?.untracedAmount ?? 0,
       costIncomplete: (a?.costIncomplete ?? false) || !own.complete || a?.avgCostEth == null,
+      /* The walk runs oldest-first because a weighted average has to; a reader
+         opening a row wants the opposite. Reversed once, here. */
+      trades: a ? a.trades.slice().reverse() : [],
     })
   }
 
@@ -432,7 +555,11 @@ export async function loadPortfolio(wallet: string): Promise<PortfolioResult> {
     positions,
     tradesPriced: priced,
     tradesUntraced: untraced,
-    historyComplete: own.complete && candidates.length < MAX_TRADES,
+    /* `sent.complete` too: a transaction list that ran out of pages means some
+       trades were filed as arrivals purely because we never saw the wallet
+       send them, which understates the cost exactly the way a truncated
+       transfer walk does. */
+    historyComplete: own.complete && sent.complete && candidates.length < MAX_TRADES,
     failed: false,
   }
 }

@@ -534,6 +534,53 @@ p { text-wrap: pretty; }
   transform: scaleY(1);
 }
 
+/* An open row stays lit while its detail is showing, and the detail beneath it
+   is the same object rather than a new one — so the hairline runs unbroken down
+   both. Without this an expanded row goes dark the moment the pointer leaves,
+   and the panel below it looks like it belongs to nothing. */
+.scan-tr.is-open,
+.scan-tr.is-open + .detail-tr {
+  background: rgba(255, 255, 255, 0.022);
+}
+.scan-tr.is-open > td:first-child::before,
+.detail-tr > td:first-child::before {
+  transform: scaleY(1);
+}
+.detail-tr > td:first-child {
+  position: relative;
+}
+.detail-tr > td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--color-acid-500);
+}
+
+/* A figure that is COMING, not one that is missing.
+ *
+ * The cost basis takes about thirty seconds to reconstruct and the columns that
+ * depend on it were rendering an em dash — which is this table's own notation
+ * for "we looked and there is nothing". Reporting "no cost" for half a minute
+ * on a wallet that plainly paid for its tokens is worse than showing nothing at
+ * all, so waiting gets a mark of its own that no settled figure uses.
+ *
+ * Rests visible rather than fading in from zero: under reduced motion the
+ * pulse is cut to a single frame, and a bar that starts transparent would stay
+ * transparent. */
+.cell-pending {
+  display: inline-block;
+  width: 3ch;
+  height: 0.45em;
+  vertical-align: 0.05em;
+  background: rgba(255, 255, 255, 0.07);
+  animation: cell-wait 1600ms ease-in-out infinite;
+}
+@keyframes cell-wait {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
 /* High risk keeps its gutter marker, offset so a hover hairline sits beside the
    warning rather than over it — the same reason `.scan-row::before` is at 2px. */
 .scan-tr.is-risky > td:first-child::after {
