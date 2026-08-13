@@ -72,7 +72,13 @@ const price = (n: number | null | undefined): string => {
  * judgement of the token. The sign carries direction, and it survives
  * colour-blindness, which a hue does not. */
 function Pct({ v }: { v: number | null | undefined }) {
-  if (v === null || v === undefined) return <span className="text-fg-dim">—</span>
+  if (v === null || v === undefined || !Number.isFinite(v)) return <span className="text-fg-dim">—</span>
+  /* Above ten thousand percent the digits stop being information. A pool that
+     opened at a millionth of its current price reports a real change of
+     1.4e+23%, and `toFixed` hands back exponent notation for anything past
+     1e21 — so the tape was rendering `+1.4083641144521061e+23%` in a column
+     four characters wide. Everything past the clamp says the same thing. */
+  if (v >= 10_000) return <span className="text-fg-muted">&gt;+9,999%</span>
   const s = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(1)
   return (
     <span className={v === 0 ? "text-fg-dim" : "text-fg-muted"}>

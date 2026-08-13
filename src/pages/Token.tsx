@@ -81,6 +81,10 @@ export default function Token() {
 
   const markets = useMarkets(useMemo(() => (usable ? [address] : []), [address, usable]))
   const market = markets?.markets.get(address.toLowerCase())
+  /* Only set when the token has no ETH market at all — see lib/markets.ts. It
+     is the difference between "nobody trades this" and "nobody trades this
+     against ETH", and only the second one is ever true here. */
+  const otherQuote = markets?.otherQuotes.get(address.toLowerCase())
   const marketState = markets === null ? "loading" : markets.ok ? "ok" : "down"
 
   /* Which protocol holds the market decides whether we can route the trade at
@@ -220,7 +224,7 @@ export default function Token() {
         )}
       </div>
 
-      <TheMarket market={market} state={marketState} pool={launch?.pool} />
+      <TheMarket market={market} state={marketState} pool={launch?.pool} otherQuote={otherQuote} />
 
       {/* Two rails, because deciding and acting are one task.
           Stacked, the trade panel sat a full screen above the chart it is a
@@ -275,9 +279,12 @@ function TheMarket({
   market,
   state,
   pool,
+  otherQuote,
 }: {
   market?: Market
   state: "loading" | "ok" | "down"
+  /* The deepest pool this token has when none of them is quoted in ETH. */
+  otherQuote?: { symbol: string; liquidityUsd: number | null; url: string }
   /* What the CHAIN says, as opposed to what a market aggregator says. These
      answer different questions and this section had only ever asked the second
      one — see the no-market branch below. */
@@ -324,6 +331,37 @@ function TheMarket({
      * We index pool creation ourselves, from the chain, so we know better. When
      * a pool exists the page says what is actually true: it trades, and we
      * cannot price it yet. */
+    /* A token whose pools are all quoted in another token. It HAS a market and
+       has depth; what it does not have is anything ETH can reach, so we can
+       neither price it in the unit this site uses nor route a trade to it.
+       Saying "we cannot price it yet" here would blame our coverage for a fact
+       about the pool, and saying "nobody can trade this" would be false. */
+    if (otherQuote) {
+      return (
+        <section className="mt-[6vh] border-y border-edge py-7">
+          <p className="max-w-[52ch] text-[clamp(1.05rem,1.7vw,1.35rem)] leading-[1.5] text-fg">
+            This trades against {otherQuote.symbol}, not ETH.
+          </p>
+          <p className="measure mt-3 text-sm leading-relaxed text-fg-dim">
+            Its deepest pool{otherQuote.liquidityUsd ? ` holds ${usd(otherQuote.liquidityUsd)} and` : ""}{" "}
+            is quoted in {otherQuote.symbol}. Every figure on this site is denominated in ETH and
+            every trade we build pays in ETH, so there is no price to show here and nothing to
+            route — you would need {otherQuote.symbol} to buy it.
+          </p>
+          {otherQuote.url && (
+            <a
+              href={otherQuote.url}
+              target="_blank"
+              rel="noreferrer"
+              className="scan-link mt-4 inline-block font-mono text-micro uppercase tracking-[0.12em] text-fg-dim"
+            >
+              See the pool on the venue ↗
+            </a>
+          )}
+        </section>
+      )
+    }
+
     if (pool) {
       return (
         <section className="mt-[6vh] border-y border-edge py-7">
@@ -365,7 +403,13 @@ function TheMarket({
   ]
 
   const figures = chg === null ? cells : [...cells, {
-    v: `${chg >= 0 ? "+" : ""}${chg.toFixed(chg >= 100 || chg <= -100 ? 0 : 1)}%`,
+    /* Clamped for the same reason as the tape's column: past ten thousand
+       percent `toFixed` returns exponent notation and the digits mean nothing
+       anyway. See the note on `Pct` in LaunchTable. */
+    v:
+      chg >= 10_000
+        ? ">+9,999%"
+        : `${chg >= 0 ? "+" : ""}${chg.toFixed(chg >= 100 || chg <= -100 ? 0 : 1)}%`,
     l: "24h",
     tone,
   }]
