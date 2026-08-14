@@ -423,6 +423,25 @@ function LaunchRow({
             !(launch.spoofFlags || []).some(
               (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
             ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
+          {/* WHAT MADE IT, where it is worth saying: identical deployed
+              bytecode across MORE THAN ONE wallet is a factory or a shared
+              script, and it is the only marker on this row that survives a
+              deployer with a clean history and an original name.
+
+              Deliberately not coloured as a verdict. Every launchpad here is a
+              factory, so the common case is "made with the same tool" — the
+              number is the finding, and the reader decides what twenty-eight
+              unrelated wallets deploying one contract means. */}
+          {launch.code?.siblings != null &&
+            launch.code.siblings > 1 &&
+            (launch.code.deployers ?? 0) > 1 && (
+              <span
+                className="whitespace-nowrap font-mono text-micro text-fg-dim"
+                title={`${launch.code.siblings} tokens share this exact bytecode, deployed by ${launch.code.deployers} different wallets`}
+              >
+                ×{launch.code.siblings}
+              </span>
+            )}
           {verdict?.badge && (
             <span
               className={`whitespace-nowrap font-mono text-micro font-semibold ${

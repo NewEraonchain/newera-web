@@ -131,6 +131,19 @@ export type Launch = {
     devSold: boolean
     measuredAt: string
   } | null
+  /* What MADE it — the hash of the deployed runtime bytecode, which is the one
+     thing about a launch the deployer did not type. `siblings` counts tokens
+     carrying the same code and `deployers` counts the distinct wallets behind
+     them: thirty from one wallet is somebody with a script, thirty from
+     twenty-eight wallets is a factory serving strangers. Both null means nobody
+     counted, which is not the same as "this code is unique". */
+  code: {
+    hash: string
+    size: number | null
+    implementation: string | null
+    siblings: number | null
+    deployers: number | null
+  } | null
 }
 
 export type ThemeStatus = "EMERGING" | "HOT" | "SATURATED" | "DECAYING"

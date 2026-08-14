@@ -249,6 +249,46 @@ export default function Token() {
         )}
       </div>
 
+      {/* WHAT MADE IT.
+          Stated in a sentence rather than as a badge, because the number is the
+          whole finding and it means different things at different sizes: two
+          tokens sharing code is a coincidence, thirty across twenty-eight
+          wallets is a machine. Nothing here calls that bad — every launchpad on
+          this chain is a factory — but it is the one fact about a launch that a
+          fresh wallet and an original name cannot hide. */}
+      {launch?.code?.siblings != null && launch.code.siblings > 1 && (
+        <p className="measure mt-5 text-sm leading-relaxed text-fg-muted">
+          <span className="text-fg">
+            {launch.code.siblings.toLocaleString("en-US")} tokens
+          </span>{" "}
+          carry byte-for-byte identical code to this one
+          {launch.code.deployers != null && launch.code.deployers > 1 ? (
+            <>
+              , deployed by{" "}
+              <span className="text-fg">{launch.code.deployers.toLocaleString("en-US")} different wallets</span> —
+              so it came out of a factory or a shared script rather than being written for this token
+            </>
+          ) : (
+            <> , all from the same wallet</>
+          )}
+          .
+          {launch.code.implementation && (
+            <>
+              {" "}It is a minimal proxy pointing at{" "}
+              <a
+                href={`${EXPLORER}/address/${launch.code.implementation}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="scan-link text-acid-500"
+              >
+                {shortAddr(launch.code.implementation)} ↗
+              </a>
+              , which is what the clones actually run.
+            </>
+          )}
+        </p>
+      )}
+
       <TheMarket market={market} state={marketState} pool={launch?.pool} otherQuote={otherQuote} />
 
       {/* Two rails, because deciding and acting are one task.
