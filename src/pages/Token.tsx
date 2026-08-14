@@ -271,6 +271,41 @@ export default function Token() {
         )}
       </div>
 
+      {/* THE SHARPEST OF THE METADATA CHECKS.
+          This token imitates another one AND points at that one's own links —
+          the identical string, not a similar handle. Somebody has built a page
+          that sends a buyer to the real project's socials from a listing for
+          the fake. Placed above everything else on the page because no figure
+          below it matters if this is true. */}
+      {launch?.identity?.socialsMatchTarget && launch.impersonates && (
+        <div className="mt-6 border-l border-danger py-3 pl-4">
+          <p className="measure text-sm leading-relaxed text-fg-muted">
+            <span className="font-semibold text-danger">
+              Its links are the other token's links.
+            </span>{" "}
+            This launch imitates{" "}
+            <Link to={`/app/token/${launch.impersonates.address}`} className="scan-link text-fg">
+              {launch.impersonates.symbol}
+            </Link>{" "}
+            and publishes the same socials, character for character — so anyone
+            checking the project behind this token is shown the real one's.
+          </p>
+        </div>
+      )}
+
+      {/* THE SAME PITCH, UNDER OTHER TOKENS.
+          The name is the field a copier changes; the description is the one
+          they forget. */}
+      {launch?.identity?.descriptionShared != null && launch.identity.descriptionShared > 1 && (
+        <p className="measure mt-6 text-sm leading-relaxed text-fg-muted">
+          <span className="text-fg">
+            {launch.identity.descriptionShared.toLocaleString("en-US")} launches
+          </span>{" "}
+          carry word-for-word the same description as this one, after folding case and
+          punctuation.
+        </p>
+      )}
+
       {/* THE TICKER'S OWN HISTORY.
           A transaction indexer cannot show this: the launches that used this
           string and never traded are invisible to anything that begins at the

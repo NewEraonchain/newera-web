@@ -150,6 +150,23 @@ export type Launch = {
     liquidityUsd: number | null
     live: boolean
   } | null
+  /* Read as evidence rather than as decoration. `descriptionShared` counts
+     launches whose description normalises to the same text — the same paragraph
+     under forty tokens is one script, and the name checks miss it because the
+     name is the field a copier does change. `socialsMatchTarget` is the
+     sharpest: this launch imitates something AND points at that something's own
+     links. */
+  identity: {
+    descriptionShared: number | null
+    socialsMatchTarget: boolean
+  } | null
+  /* How it was born — present from block zero, unlike `distribution`, which is
+     a replay of what happened after. */
+  genesis: {
+    recipients: number | null
+    topSharePct: number | null
+    supplyZeros: number | null
+  } | null
   code: {
     hash: string
     size: number | null
