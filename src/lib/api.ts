@@ -137,6 +137,19 @@ export type Launch = {
      them: thirty from one wallet is somebody with a script, thirty from
      twenty-eight wallets is a factory serving strangers. Both null means nobody
      counted, which is not the same as "this code is unique". */
+  /* What this launch appears to be imitating, and what that target is worth
+     RIGHT NOW — liquidity is read live rather than stored, so the warning
+     separates a copy of something dead from a copy of something with money in
+     it. Null when the index found no earlier launch of the same identity that
+     ever traded, which is the ordinary case for a duplicate. */
+  impersonates: {
+    address: string
+    symbol: string
+    name: string
+    launchedAt: string
+    liquidityUsd: number | null
+    live: boolean
+  } | null
   code: {
     hash: string
     size: number | null

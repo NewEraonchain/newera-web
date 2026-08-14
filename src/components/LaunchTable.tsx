@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { ago } from "@/lib/api"
 import { judgeDistribution } from "@/lib/distributionVerdict"
 import type { Launch } from "@/lib/api"
-import { type Market } from "@/lib/markets"
+import { usd, type Market } from "@/lib/markets"
 import { FlagPill, RiskPill } from "@/components/intel"
 
 /* The tape, at reading density.
@@ -423,6 +423,20 @@ function LaunchRow({
             !(launch.spoofFlags || []).some(
               (f) => f === "NAME_COLLISION" || f === "SYMBOL_COLLISION"
             ) && <span className="font-mono text-micro font-semibold text-warn">COPY</span>}
+          {/* A copy is a fact; a copy of something with money in it is a
+              warning, and only the second one earns the danger colour. The
+              amount is the whole point — it is what a reader stands to lose by
+              buying the wrong one of two identical tickers. */}
+          {launch.impersonates?.live && (launch.impersonates.liquidityUsd ?? 0) >= 1000 && (
+            <span
+              className="whitespace-nowrap font-mono text-micro font-semibold text-danger"
+              title={`Imitates ${launch.impersonates.symbol}, which holds ${usd(
+                launch.impersonates.liquidityUsd
+              )} of liquidity`}
+            >
+              SPOOFS {usd(launch.impersonates.liquidityUsd)}
+            </span>
+          )}
           {/* WHAT MADE IT, where it is worth saying: identical deployed
               bytecode across MORE THAN ONE wallet is a factory or a shared
               script, and it is the only marker on this row that survives a

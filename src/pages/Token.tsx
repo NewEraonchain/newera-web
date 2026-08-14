@@ -249,6 +249,51 @@ export default function Token() {
         )}
       </div>
 
+      {/* WHAT IT IS IMITATING.
+          Above the market block on purpose: if this token is a copy of one
+          holding real depth, that is the first thing a reader needs, before any
+          figure about the copy itself. The target's depth is read live, so a
+          target that has since gone quiet reads differently from one that has
+          not — and the link goes to the thing they probably meant. */}
+      {launch?.impersonates && (
+        <div
+          className={`mt-6 border-l py-3 pl-4 ${
+            launch.impersonates.live ? "border-danger" : "border-edge-strong"
+          }`}
+        >
+          <p className="measure text-sm leading-relaxed text-fg-muted">
+            {launch.impersonates.live ? (
+              <>
+                <span className="font-semibold text-danger">This imitates a token that is trading.</span>{" "}
+                An earlier launch with the same identity —{" "}
+                <Link
+                  to={`/app/token/${launch.impersonates.address}`}
+                  className="scan-link text-fg"
+                >
+                  {launch.impersonates.symbol}
+                </Link>{" "}
+                — holds{" "}
+                <span className="text-fg">{usd(launch.impersonates.liquidityUsd)}</span> of
+                liquidity. Buying the wrong one of two identical tickers is the mistake this page
+                exists to prevent.
+              </>
+            ) : (
+              <>
+                An earlier launch with the same identity —{" "}
+                <Link
+                  to={`/app/token/${launch.impersonates.address}`}
+                  className="scan-link text-fg"
+                >
+                  {launch.impersonates.symbol}
+                </Link>{" "}
+                — got a pool and no longer has liquidity in it. A copy of something already dead is
+                noise rather than an attack, which is why this says so rather than shouting.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* WHAT MADE IT.
           Stated in a sentence rather than as a badge, because the number is the
           whole finding and it means different things at different sizes: two
