@@ -262,6 +262,152 @@ export function useSeparation(): Separation | null {
   return sep
 }
 
+/* THE VALIDATION, PUBLISHED.
+ *
+ * Every band of the score against how often those launches were still being
+ * traded at the checkpoint, with n on every row, recomputed from the outcome
+ * table rather than quoted from a run somebody did once.
+ *
+ * A competitor can copy a feature in a sprint. Publishing numbers that might
+ * embarrass you is a different kind of commitment — and it makes this the only
+ * claim on the site a reader can check instead of accept. It follows that the
+ * page must be willing to show a bad number: nothing here filters for a
+ * flattering answer, and a band below the sample floor reports "too few" rather
+ * than a percentage that would read as a finding. */
+export type Scorecard = {
+  checkpoint: number
+  measuredAt: string
+  total: number
+  bands: {
+    band: string
+    label: string
+    detail: string
+    n: number
+    survived: number
+    survivalPct: number | null
+  }[]
+  lift: number | null
+  survivalMeans: string
+  caveat: string
+}
+
+export function useScorecard(): Scorecard | null | "failed" {
+  const [card, setCard] = useState<Scorecard | null | "failed">(null)
+  useEffect(() => {
+    let alive = true
+    getJSON<Scorecard>("/intel/scorecard")
+      .then((r) => alive && setCard(r))
+      .catch(() => alive && setCard("failed"))
+    return () => {
+      alive = false
+    }
+  }, [])
+  return card
+}
+
+export function Scorecard() {
+  const card = useScorecard()
+
+  if (card === "failed")
+    return (
+      <p className="text-sm leading-relaxed text-warn">
+        The scorecard is not available right now — this page draws it live from{" "}
+        <span className="font-mono text-xs">/intel/scorecard</span>, and rather than show a figure
+        from an earlier run it shows nothing.
+      </p>
+    )
+  if (!card) return <div className="h-24" aria-hidden />
+
+  const widest = Math.max(1, ...card.bands.map((b) => b.n))
+
+  return (
+    <div>
+      <table className="w-full border-collapse text-left">
+        <caption className="sr-only">
+          Spam-risk band against how often those launches were still trading at the{" "}
+          {card.checkpoint}-minute checkpoint
+        </caption>
+        <thead>
+          <tr className="border-b border-edge-strong">
+            {["Band", "Still trading", "Launches"].map((h, i) => (
+              <th
+                key={h}
+                scope="col"
+                className={`py-2 font-mono text-micro font-normal uppercase tracking-[0.1em] text-fg-dim ${
+                  i === 0 ? "text-left" : "text-right"
+                }`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {card.bands.map((b) => (
+            <tr key={b.band} className="border-b border-edge align-baseline">
+              <td className="py-3 pr-4">
+                <div className="text-sm text-fg">{b.label}</div>
+                <div className="measure mt-0.5 text-micro leading-relaxed text-fg-dim">
+                  {b.detail}
+                </div>
+              </td>
+              <td className="py-3 text-right">
+                {b.survivalPct === null ? (
+                  <span className="font-mono text-sm text-fg-dim">too few</span>
+                ) : (
+                  <span
+                    className={`font-display text-2xl font-bold leading-none ${
+                      b.band === "clean"
+                        ? "text-acid-500"
+                        : b.band === "high"
+                          ? "text-danger"
+                          : "text-fg"
+                    }`}
+                  >
+                    {b.survivalPct.toFixed(1)}%
+                  </span>
+                )}
+              </td>
+              <td className="py-3 text-right font-mono text-micro tabular-nums text-fg-dim">
+                {/* The bar is the sample size, not the result. A band measured
+                    on nine launches and one measured on nine hundred should not
+                    look equally solid. */}
+                <div className="flex items-center justify-end gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="block h-[3px] bg-[rgba(255,255,255,.18)]"
+                    style={{ width: `${Math.max(4, (b.n / widest) * 64)}px` }}
+                  />
+                  n={b.n.toLocaleString("en-US")}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {card.lift && (
+        <p className="mt-4 text-base leading-relaxed text-fg-muted">
+          A clean launch was <b className="text-fg">{card.lift.toFixed(1)}×</b> more likely to still
+          be trading than a high-risk one, from information available at block zero — no price, no
+          chart, no holders.
+        </p>
+      )}
+      <p className="measure mt-3 font-mono text-micro leading-relaxed text-fg-dim">
+        {card.survivalMeans} {card.caveat} Measured over{" "}
+        {card.total.toLocaleString("en-US")} launches at the {card.checkpoint}-minute checkpoint,{" "}
+        {new Date(card.measuredAt).toLocaleString("en-GB", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+        . Drawn live from <span className="text-fg-muted">/intel/scorecard</span>, which is public.
+      </p>
+    </div>
+  )
+}
+
 export function RiskHistogram() {
   const [items, setItems] = useState<Launch[] | null>(null)
   const sep = useSeparation()

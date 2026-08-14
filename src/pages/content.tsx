@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Article, Section, Step, Callout, Bullets, Mono, Terms, FootNote } from "@/components/site/Article"
-import { useSeparation } from "@/components/figures"
+import { useSeparation, Scorecard } from "@/components/figures"
 import { useStats } from "@/lib/useStats"
 import { getJSON, ago } from "@/lib/api"
 import type { Theme } from "@/lib/api"
@@ -276,6 +276,16 @@ export function Detection() {
             <span className="mt-1 text-acid-500">→ renders identically, different string, different token</span>
           </div>
         </Callout>
+      </Section>
+
+      <Section title="The scorecard">
+        <p>
+          Everything below is an argument. This is the check on it: every band of the spam score
+          against how often those launches were still being traded half an hour later, recomputed
+          from our own outcome sampling each time this page loads. It moves as the data does,
+          including against us.
+        </p>
+        <Scorecard />
       </Section>
 
       <Section title="What gets flagged">
