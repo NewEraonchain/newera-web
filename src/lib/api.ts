@@ -156,6 +156,13 @@ export type Launch = {
      name is the field a copier does change. `socialsMatchTarget` is the
      sharpest: this launch imitates something AND points at that something's own
      links. */
+  /* Why the score is that number: the factors that fired, what each
+     contributed, and the evidence for the weight. Null means the launch was
+     scored before this was recorded — which is NOT the same as "nothing
+     fired", and must not render as an empty breakdown. */
+  riskFactors:
+    | { key: string; points: number; label: string; detail: string }[]
+    | null
   identity: {
     descriptionShared: number | null
     socialsMatchTarget: boolean

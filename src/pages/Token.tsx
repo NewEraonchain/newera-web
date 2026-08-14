@@ -271,6 +271,45 @@ export default function Token() {
         )}
       </div>
 
+      {/* THE SCORE, SHOWING ITS WORKING.
+          A number nobody can interrogate gets trusted for about a week — then
+          somebody disagrees with one row, cannot check what drove it, and stops
+          reading the column. Every factor names its own evidence, so the weight
+          is arguable rather than asserted. */}
+      {launch?.riskFactors && launch.riskFactors.length > 0 && (
+        <details className="mt-6 border-l border-edge-strong pl-4">
+          <summary className="chip -my-1 cursor-pointer py-1 font-mono text-micro uppercase tracking-[0.12em] text-fg-dim">
+            Why this scores {launch.riskScore} — {launch.riskFactors.length}{" "}
+            {launch.riskFactors.length === 1 ? "factor" : "factors"}
+          </summary>
+          <ul className="mt-3 space-y-3">
+            {launch.riskFactors.map((f) => (
+              <li key={f.key} className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-3">
+                <span
+                  className={`font-mono text-sm tabular-nums ${
+                    f.points > 0 ? "text-danger" : "text-acid-500"
+                  }`}
+                >
+                  {f.points > 0 ? "+" : ""}
+                  {f.points}
+                </span>
+                <span className="min-w-0">
+                  <span className="text-sm text-fg">{f.label}</span>
+                  <span className="measure mt-0.5 block text-micro leading-relaxed text-fg-dim">
+                    {f.detail}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="measure mt-3 text-micro leading-relaxed text-fg-dim">
+            Points sum to the score, clamped to 0–100. Weights come from measured outcomes, not
+            from opinion: near-duplicate status carries 30 because flagged launches survived two to
+            three times less often across four samples. It is a spam measure, not a price forecast.
+          </p>
+        </details>
+      )}
+
       {/* THE SHARPEST OF THE METADATA CHECKS.
           This token imitates another one AND points at that one's own links —
           the identical string, not a similar handle. Somebody has built a page
