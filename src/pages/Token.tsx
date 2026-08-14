@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 import { getJSON, ago, shortAddr } from "@/lib/api"
-import type { Launch, TokenDetail } from "@/lib/api"
+import type { Launch, TokenDetail, TickerHistory } from "@/lib/api"
 import { EXPLORER, FLAG_TEXT, EmptyState, Skeleton, RiskPill } from "@/components/intel"
 import { Page, SectionHead } from "@/components/shell"
 import { useMarkets, usd, type Market } from "@/lib/markets"
@@ -67,6 +67,11 @@ export default function Token() {
      star is a page away. Read once per address; the toggle owns it after that. */
   const [watched, setWatched] = useState(() => isTokenWatched(address))
   useEffect(() => setWatched(isTokenWatched(address)), [address])
+  /* How many times this ticker has been used before, and how many of those
+     ever traded. Fetched separately from the launch because it is a question
+     about the STRING rather than about this token, and because a failure here
+     must not cost the page. */
+  const [ticker, setTicker] = useState<TickerHistory | null>(null)
   const [data, setData] = useState<TokenDetail | null>(null)
   const [indexState, setIndexState] = useState<"loading" | "ok" | "missing" | "down">("loading")
 
@@ -84,6 +89,23 @@ export default function Token() {
       })
       .catch((e: Error) => setIndexState(e.message.includes("404") ? "missing" : "down"))
   }, [address, usable])
+
+  /* Keyed on the SYMBOL, not the address: the same ticker on a different token
+     is the same question, so navigating between two impersonations of one name
+     reuses the answer rather than asking twice. Silent on failure — a page
+     without this line is a page; a page that breaks over it is not. */
+  useEffect(() => {
+    setTicker(null)
+    const symbol = data?.launch?.symbol
+    if (!symbol) return
+    let alive = true
+    getJSON<TickerHistory>(`/intel/ticker/${encodeURIComponent(symbol)}`)
+      .then((t) => alive && setTicker(t))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [data?.launch?.symbol])
 
   const markets = useMarkets(useMemo(() => (usable ? [address] : []), [address, usable]))
   const market = markets?.markets.get(address.toLowerCase())
@@ -248,6 +270,50 @@ export default function Token() {
           </a>
         )}
       </div>
+
+      {/* THE TICKER'S OWN HISTORY.
+          A transaction indexer cannot show this: the launches that used this
+          string and never traded are invisible to anything that begins at the
+          first trade. Every one of them is in our index because we begin at
+          the mint — so the honest headline is how many carried this ticker and
+          how few of them ever got as far as a market. */}
+      {ticker && ticker.total > 1 && (
+        <p className="measure mt-6 text-sm leading-relaxed text-fg-muted">
+          This ticker has been used{" "}
+          <span className="text-fg">{ticker.total.toLocaleString("en-US")} times</span>
+          {ticker.firstSeen && (
+            <>
+              {" "}since{" "}
+              {new Date(ticker.firstSeen).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+              })}
+            </>
+          )}
+          , by{" "}
+          <span className="text-fg">{ticker.deployers.toLocaleString("en-US")}</span>{" "}
+          {ticker.deployers === 1 ? "wallet" : "different wallets"}.{" "}
+          {ticker.pooled === 0 ? (
+            <>None of them ever got a pool.</>
+          ) : (
+            <>
+              <span className="text-fg">{ticker.pooled}</span> got a pool
+              {ticker.withLiquidity > 0 ? (
+                <>
+                  , and <span className="text-fg">{ticker.withLiquidity}</span> still showed
+                  liquidity when we last looked
+                </>
+              ) : (
+                <>, and none of them showed liquidity when we last looked</>
+              )}
+              .
+            </>
+          )}{" "}
+          <span className="text-fg-dim">
+            Matched on the normalised form, so lookalike characters count as the same ticker.
+          </span>
+        </p>
+      )}
 
       {/* WHAT IT IS IMITATING.
           Above the market block on purpose: if this token is a copy of one

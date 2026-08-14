@@ -280,3 +280,32 @@ export function ago(seconds: number): string {
 export function shortAddr(a?: string | null): string {
   return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : ""
 }
+
+/* Every launch that has ever used a ticker string, matched on the NORMALISED
+ * form so a homoglyph imitation counts as the same string rather than as its
+ * own history.
+ *
+ * This is the query a transaction indexer cannot answer: the tokens that used a
+ * ticker and never traded are invisible to anything that starts at the first
+ * trade. We hold them because we index from the mint. */
+export type TickerHistory = {
+  symbol: string
+  normalized: string
+  total: number
+  deployers: number
+  firstSeen: string | null
+  lastSeen: string | null
+  /** Ever got a pool. */
+  pooled: number
+  /** Has liquidity in our last measurement — a statement about the mirror as
+      much as about the tokens, which is why it is not called "alive". */
+  withLiquidity: number
+  notable: {
+    address: string
+    symbol: string
+    name: string
+    launchedAt: string
+    liquidityUsd: number | null
+    riskScore: number
+  }[]
+}
