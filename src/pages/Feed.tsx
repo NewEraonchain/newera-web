@@ -176,7 +176,7 @@ export default function Feed() {
        The figures are NOT fetched here any more — the shared poller owns them,
        so this loop asks for the two things only this page needs. */
     const [t, f] = await Promise.allSettled([
-      getJSON<{ items: Theme[] }>("/intel/themes?limit=24&organicOnly=1"),
+      getJSON<{ items: Theme[] }>("/intel/themes?limit=24&organicOnly=1&sort=forming"),
       /* The filters go to the DATABASE. Narrowing the thirty rows already in
          the browser would be a sort wearing a filter's clothes: ask for "over
          50 holders" and you would get however many of those thirty qualify,
@@ -823,6 +823,34 @@ function TheRead({
           </span>
         ))}
       </div>
+      {/* IS ANYTHING HAPPENING RIGHT NOW.
+          The strip above is the last hour; this is the last ten minutes against
+          what each cluster normally does. A campaign is a rate, not a size, and
+          the size figures cannot show one — twelve launches in ten minutes and
+          the same twelve across a day read identically in every other number on
+          this page.
+
+          Shown only above 3x, because a cluster ticking along at its own pace
+          is not news, and only where the reading is fresh: `at` null means
+          nobody measured it, which must never render as "quiet". */}
+      {(() => {
+        const forming = (clusters || []).filter(
+          (t) => t.velocity?.at && (t.velocity?.ratio ?? 0) >= 3 && (t.velocity?.last10m ?? 0) >= 3
+        )
+        if (!forming.length) return null
+        const top = forming[0]
+        return (
+          <p className="flex-none text-xs text-warn">
+            <span className="font-mono uppercase tracking-[0.12em]">forming now</span>{" "}
+            <Link to={`/app/theme/${top.slug}`} className="scan-link text-fg">
+              {top.label}
+            </Link>{" "}
+            {top.velocity!.last10m} launches in ten minutes,{" "}
+            {top.velocity!.ratio.toFixed(1)}× its usual rate
+            {forming.length > 1 && ` · ${forming.length - 1} more`}
+          </p>
+        )
+      })()}
       {/* Three states. `clusters == null` means the request failed or is in
           flight, and collapsing that into "no clusters" printed a finding about
           the chain that was really a network error. */}

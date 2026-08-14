@@ -239,6 +239,17 @@ export type Theme = {
   lastSeenAt: string
   ageMinutes: number
   samples: { symbol: string; name: string; address: string; riskScore: number }[]
+  /* IS THIS HAPPENING NOW. `last10m` against the rate this cluster has averaged
+     over its whole life: a campaign is a rate, not a size, and no count can tell
+     twelve launches in ten minutes from the same twelve spread across a day.
+     `at` null means nobody has measured it, which must never render as
+     "quiet". */
+  velocity?: {
+    last10m: number
+    baselinePer10m: number
+    ratio: number
+    at: string | null
+  }
 }
 
 export type Stats = {
