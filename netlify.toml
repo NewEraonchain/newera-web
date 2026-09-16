@@ -3,7 +3,7 @@
 # the deploy stage honours that over this file. So the "build" copies the site
 # into dist/ and we publish that, which satisfies both.
 [build]
-  command = "rm -rf dist && mkdir dist && find . -mindepth 1 -maxdepth 1 ! -name dist ! -name .git ! -name .gitignore ! -name netlify.toml ! -name node_modules -exec cp -r {} dist/ \;"
+  command = 'rm -rf dist && mkdir dist && find . -mindepth 1 -maxdepth 1 ! -name dist ! -name .git ! -name .gitignore ! -name netlify.toml ! -name node_modules -exec cp -r -t dist {} +'
   publish = "dist"
 
 [[headers]]
