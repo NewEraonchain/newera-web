@@ -1,5 +1,8 @@
 # v1 is a static site: real .html pages, no build step. Publish the repo root.
+# `command` is set explicitly so the build command saved in the Netlify
+# dashboard (`npm run build`, from the explorer era) cannot apply.
 [build]
+  command = "echo 'static site, nothing to build'"
   publish = "."
 
 [[headers]]
