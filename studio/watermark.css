@@ -1,0 +1,43 @@
+/* ============================================================
+   NewEra Studio — Preview watermark (CSS overlay)
+   On: marketplace (.mk-img), community (.cm-img), prompts (.pr-img).
+   NOT on collection (owned images stay clean).
+   Visual deterrent only — raw image URL still reachable.
+   Uses ::after (::before is the card texture placeholder).
+   ============================================================ */
+
+/* clip + stack the image area */
+.mk-img, .cm-img, .pr-img{position:relative;overflow:hidden}
+.mk-img > img, .cm-img > img, .pr-img > img{position:relative;z-index:1}
+
+/* repeating NewEra watermark above the image */
+.mk-img::after, .cm-img::after, .pr-img::after{
+  content:"NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra";
+  position:absolute;top:50%;left:50%;width:180%;height:180%;
+  transform:translate(-50%,-50%) rotate(-28deg);
+  z-index:5;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display,"Bricolage Grotesque",sans-serif);font-weight:700;
+  font-size:15px;letter-spacing:.12em;line-height:2.6;word-spacing:6px;
+  color:rgba(255,255,255,.22);text-align:center;overflow:hidden;
+  text-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+/* keep badges/tags above the watermark */
+.mk-badge, .cm-badge, .pr-tag{z-index:6}
+
+/* ===== lightbox large view ===== */
+/* wrap image + watermark so the mark is clipped to the image only */
+.lb-fig{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
+.lb-imgwrap{position:relative;display:inline-block;overflow:hidden;border-radius:16px;max-width:100%}
+.lb-img{position:relative;z-index:1;display:block}
+.lb-imgwrap::after{
+  content:"NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra · NewEra";
+  position:absolute;top:50%;left:50%;width:160%;height:160%;
+  transform:translate(-50%,-50%) rotate(-26deg);
+  z-index:5;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display,"Bricolage Grotesque",sans-serif);font-weight:700;
+  font-size:24px;letter-spacing:.14em;line-height:3;word-spacing:12px;
+  color:rgba(255,255,255,.2);text-align:center;overflow:hidden}
+.lb-close{z-index:6}
+.lb-cap{position:relative;z-index:6}

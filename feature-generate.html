@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How generating AI art works · NewEra</title>
+<meta name="description" content="A step-by-step look at how NewEra turns a text prompt into an AI image you own, including the on-chain payment, verification, and ownership." />
+
+<!-- social share (OpenGraph + Twitter) -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How generating AI art works · NewEra" />
+<meta property="og:description" content="From prompt to owned image: the full flow, explained simply." />
+<meta property="og:site_name" content="NewEra" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="How generating AI art works · NewEra" />
+<meta name="twitter:description" content="From prompt to owned image: the full flow, explained simply." />
+
+<!-- brand favicon (lime triangle) -->
+<link rel="icon" type="image/png" href="favicon logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="feature-generate.css" />
+</head>
+<body>
+  <div class="shell">
+
+    <!-- top bar -->
+    <header class="topbar">
+      <a href="index.html" class="logo">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 4 L27 26 H5 Z" stroke="#c7f03f" stroke-width="2.4" stroke-linejoin="round"/><path d="M16 13 L21 23 H11 Z" fill="#c7f03f"/></svg>
+        NewEra
+      </a>
+      <a href="index.html" class="home-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Home
+      </a>
+    </header>
+
+    <!-- hero -->
+    <section class="hero">
+      <p class="kicker">generating ai art</p>
+      <h1>You write a sentence. The chain does the rest.</h1>
+      <p class="standfirst">Type a prompt, approve a small payment, and a unique image is generated and tied to your wallet. Here is exactly what happens at each step: the plain version and what runs on-chain.</p>
+    </section>
+
+    <!-- SIGNATURE: transaction-trace flow -->
+    <div class="trace reveal">
+      <div class="trace-head"><span class="live"></span> tx trace · prompt → owned image</div>
+      <div class="trace-body">
+        <div class="tnode">
+          <div class="step-id">00 · input</div>
+          <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+          <b>Prompt</b><em>you describe it</em>
+        </div>
+        <div class="tnode">
+          <div class="step-id">01 · pay</div>
+          <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></div>
+          <b>10 NEA</b><em>wallet pays</em>
+        </div>
+        <div class="tnode">
+          <div class="step-id">02 · check</div>
+          <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <b>Verify</b><em>payment confirmed</em>
+        </div>
+        <div class="tnode">
+          <div class="step-id">03 · render</div>
+          <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-4 4 3 3-2 6 4"/><circle cx="9" cy="9" r="1.4"/></svg></div>
+          <b>Image</b><em>AI renders it</em>
+        </div>
+        <div class="tnode">
+          <div class="step-id">04 · own</div>
+          <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V8a7 7 0 0 1 14 0v3"/><rect x="4" y="11" width="16" height="9" rx="2"/></svg></div>
+          <b>Yours</b><em>held by wallet</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- steps -->
+    <section class="block">
+      <div class="block-lead reveal">
+        <h2>Each step, in detail</h2>
+        <p class="sub">The plain explanation on top, what actually runs underneath.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="num">01</div>
+          <div>
+            <h3>Write your prompt</h3>
+            <p class="plain">Type what you want to see: a subject, a style, a mood. Then press Generate.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>Nothing is created yet. The app builds a payment request first, because the network has to confirm you paid before anything is rendered.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">02</div>
+          <div>
+            <h3>Your wallet pays 10 NEA</h3>
+            <p class="plain">A prompt from your wallet asks you to approve the payment. You confirm with one tap.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>Two calls fire: an <span class="mono">approve</span> (you let the contract take 10 NEA), then <span class="mono">generate()</span>, which moves the NEA and logs a payment event. That produces a <b>transaction hash</b>: your receipt.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">03</div>
+          <div>
+            <h3>The payment is verified</h3>
+            <p class="plain">NewEra checks the payment really happened, so no one can generate for free.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>The server reads your transaction from the chain and confirms four things: it succeeded, hit the right contract, was exactly 10 NEA, and came from <b>your</b> wallet. The same receipt can't be used twice.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">04</div>
+          <div>
+            <h3>The AI renders your image</h3>
+            <p class="plain">With payment confirmed, your prompt becomes a new image, usually within seconds.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>The verified prompt is sent to the image model. The result is stored with your prompt and the payment receipt kept alongside it for provenance.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">05</div>
+          <div>
+            <h3>You own it</h3>
+            <p class="plain">The image lands in your gallery. Keep it, download it, or list it for sale.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>It's recorded with your <b>wallet address</b> as owner. Since the whole path (pay, verify, create) is logged, your claim is backed by a transaction anyone can look up.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- glossary -->
+    <section class="block">
+      <div class="block-lead reveal">
+        <h2>The words you'll see</h2>
+        <p class="sub">New to this? Here's the plain meaning of each term.</p>
+      </div>
+
+      <dl class="glossary">
+        <div class="term reveal">
+          <dt><span class="dot"></span>NEA</dt>
+          <dd>The platform's token. You spend it to generate (10 per image) and earn it by selling your work. It's the in-app currency, and it lives on the blockchain.</dd>
+        </div>
+        <div class="term reveal">
+          <dt><span class="dot"></span>Wallet</dt>
+          <dd>Your login and your vault in one. It holds your NEA and your images and proves who you are, with <b>no email or password</b>.</dd>
+        </div>
+        <div class="term reveal">
+          <dt><span class="dot"></span>On-chain</dt>
+          <dd>Recorded on the blockchain: a public, permanent log. Anyone can check it, and no one can quietly edit or delete it.</dd>
+        </div>
+        <div class="term reveal">
+          <dt><span class="dot"></span>Gas fee</dt>
+          <dd>A small network fee, paid in BNB, on every transaction. It's separate from the 10 NEA. You'll need a small amount of BNB for gas.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- why -->
+    <section class="block">
+      <div class="why reveal">
+        <h3>Why run it on-chain at all?</h3>
+        <div class="row"><span class="k">You own it</span><span class="v">The image is tied to your wallet and backed by an on-chain payment, so no platform can quietly take it from you.</span></div>
+        <div class="row"><span class="k">It's checkable</span><span class="v">Every payment is a real transaction. You, or anyone, can look it up and verify it.</span></div>
+        <div class="row"><span class="k">No middleman</span><span class="v">When you sell, the earnings settle straight to your wallet.</span></div>
+      </div>
+    </section>
+
+    <footer class="foot">NewEra · BNB Chain Mainnet · 2026</footer>
+  </div>
+
+  <script>
+    (function(){
+      var els=document.querySelectorAll('.reveal');
+      if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('seen');});return;}
+      var io=new IntersectionObserver(function(entries){
+        entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('seen');io.unobserve(en.target);}});
+      },{threshold:.12});
+      els.forEach(function(e){io.observe(e);});
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+/* ============================================================
+   NewEra Studio — Collection page
+   Loads AFTER styles.css. Premium NFT-style cards + a clean
+   hover action bar (List / Public / Prompt) over each image.
+   Overrides the base .col-card look. Design-system compliant.
+   ============================================================ */
+
+/* ===== topbar: slim ===== */
+.main > .topbar{display:flex !important;align-items:center;justify-content:flex-end !important;
+  padding:14px 32px;border-bottom:1px solid var(--line);
+  background:rgba(6,7,11,.6);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+.main > .topbar .credits{margin-left:0 !important}
+
+/* ===== content ===== */
+.col-wrap{flex:1;overflow-y:auto;padding:26px 32px 48px;position:relative;z-index:1;
+  scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.col-wrap::-webkit-scrollbar{width:10px}
+.col-wrap::-webkit-scrollbar-track{background:transparent}
+.col-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+.col-wrap::-webkit-scrollbar-thumb:hover{background:rgba(205,255,77,.35);background-clip:padding-box;border:3px solid transparent}
+
+.col-head{max-width:1200px;margin:0 auto 26px}
+
+/* ===== grid (NFT-style, roomy) ===== */
+.col-grid{max-width:1200px;margin:0 auto;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:26px}
+.col-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:14.5px;padding:56px 20px;
+  border:1px dashed var(--line);border-radius:16px}
+
+/* ===== card (premium) ===== */
+.col-card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);
+  border-radius:20px;overflow:hidden;
+  transition:transform .3s var(--ease),border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.col-card:hover{transform:translateY(-6px);border-color:rgba(205,255,77,.45);
+  box-shadow:0 18px 40px -22px rgba(0,0,0,.85)}
+
+.col-card .cc-img{position:relative;aspect-ratio:1/1;overflow:hidden;border-bottom:1px solid var(--line);
+  background:linear-gradient(135deg,#0a0c12,#05060a)}
+.col-card .cc-img::before{content:"";position:absolute;inset:0;z-index:0;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 10px,transparent 10px 20px)}
+.col-card .cc-img img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;display:block;
+  opacity:0;transition:transform .5s var(--ease),opacity .4s var(--ease)}
+.col-card .cc-img img.loaded{opacity:1}
+.col-card:hover .cc-img img{transform:scale(1.05)}
+
+.col-card .cc-meta{padding:16px 18px 18px}
+.col-card .cc-prompt{color:var(--text);font-size:13.5px;line-height:1.45;font-weight:500;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.col-card .cc-model{font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--dim);
+  margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
+.col-card .cc-model:empty{display:none}
+
+/* ============================================================
+   Hover action bar — List (.sell-cta) / Public (.pub-cta) /
+   Prompt (.sp-cta), injected by the sell / publish / sell-prompt
+   scripts. We override their absolute top-right stacking into a
+   clean bottom bar that fades up on hover. A gradient scrim keeps
+   the buttons readable over any image.
+   ============================================================ */
+
+/* readability scrim at the bottom of the image (only on hover) */
+.col-card .cc-img::after{content:"";position:absolute;inset:auto 0 0 0;height:44%;z-index:2;
+  background:linear-gradient(to top,rgba(4,5,8,.9),transparent);
+  opacity:0;transition:opacity .25s var(--ease);pointer-events:none}
+.col-card:hover .cc-img::after{opacity:1}
+
+/* shared: override the scripts' top-right positioning -> bottom row */
+.col-card .cc-img .sell-cta,
+.col-card .cc-img .pub-cta,
+.col-card .cc-img .sp-cta{
+  position:absolute;top:auto !important;z-index:4;
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--body);font-weight:600;font-size:11.5px;
+  border-radius:10px;padding:8px 11px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16) !important;
+  background:rgba(10,12,18,.9) !important;backdrop-filter:blur(6px);color:var(--text) !important;
+  opacity:0;transform:translateY(8px);transition:.22s var(--ease)}
+
+/* positions along the bottom */
+.col-card .cc-img .sell-cta{left:12px !important;right:auto !important;bottom:12px}
+.col-card .cc-img .pub-cta{left:12px !important;right:auto !important;bottom:52px}   /* sits above List */
+.col-card .cc-img .sp-cta{right:12px !important;left:auto !important;bottom:12px}
+
+/* reveal together on hover */
+.col-card:hover .cc-img .sell-cta,
+.col-card:hover .cc-img .pub-cta,
+.col-card:hover .cc-img .sp-cta{opacity:1;transform:translateY(0)}
+
+/* hover accent */
+.col-card .cc-img .sell-cta:hover,
+.col-card .cc-img .pub-cta:hover,
+.col-card .cc-img .sp-cta:hover{border-color:rgba(205,255,77,.6) !important;color:var(--acc) !important}
+
+/* public = active (lime) state */
+.col-card .cc-img .pub-cta.is-public{background:rgba(205,255,77,.14) !important;
+  border-color:rgba(205,255,77,.4) !important;color:var(--acc) !important}
+
+/* "listed" pill stays visible bottom-left, lime */
+.col-card .cc-img .sell-listed{
+  position:absolute;top:auto !important;left:12px !important;right:auto !important;bottom:12px;z-index:4;
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--acc);background:rgba(205,255,77,.12);border:1px solid rgba(205,255,77,.4);
+  border-radius:999px;padding:6px 11px}
+.col-card .cc-img .sell-listed i{width:6px;height:6px;border-radius:50%;background:var(--acc)}
+
+/* when listed, the public toggle drops to the row above the pill */
+.col-card .cc-img:has(.sell-listed) .pub-cta{bottom:52px}
+
+@media(max-width:900px){
+  .col-wrap{padding:12px 18px 34px}
+  .col-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+}

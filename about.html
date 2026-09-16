@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>About Â· NewEra</title>
+<meta name="description" content="NewEra is an on-chain AI art platform on BNB Chain. Learn why we're building a creator-owned economy where every generation, listing, and sale is a real on-chain transaction." />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* About page styles */
+  :root{
+    --bg:#06070b; --panel:#0d0f15; --line:#1c2030; --text:#e8ebf2;
+    --muted:#9aa3b5; --dim:#5b6478; --acc:#cdff4d; --ease:cubic-bezier(.22,1,.36,1);
+    --display:"Bricolage Grotesque",sans-serif; --body:"Hanken Grotesk",sans-serif; --mono:"JetBrains Mono",monospace;
+  }
+  .ab{max-width:980px;margin:0 auto;padding:54px 24px 10px}
+  .ab-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);
+    padding:6px 12px;border-radius:999px}
+  .ab-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--acc);display:inline-block}
+  .ab h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,5vw,56px);line-height:1.05;
+    margin:20px 0 0;color:var(--text);letter-spacing:-.02em}
+  .ab h1 .acc{color:var(--acc)}
+  .ab .lead{font-family:var(--body);font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted);
+    max-width:680px;margin:18px 0 0}
+
+  .ab-sec{max-width:720px;margin:54px auto 0;padding:0 24px}
+  .ab-sec .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--acc);display:block;margin-bottom:10px}
+  .ab-sec h2{font-family:var(--display);font-weight:600;font-size:clamp(22px,3vw,30px);color:var(--text);
+    margin:0 0 14px;letter-spacing:-.01em}
+  .ab-sec p{font-family:var(--body);font-size:16.5px;line-height:1.7;color:var(--muted);margin:0 0 16px}
+  .ab-sec p b{color:var(--text);font-weight:600}
+
+  .ab-grid{max-width:980px;margin:40px auto 0;padding:0 24px;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .ab-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+  .ab-card .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--acc);
+    background:rgba(205,255,77,.07);border:1px solid var(--line);margin-bottom:14px}
+  .ab-card h3{font-family:var(--display);font-weight:600;font-size:18px;color:var(--text);margin:0 0 8px}
+  .ab-card p{font-family:var(--body);font-size:14.5px;line-height:1.6;color:var(--muted);margin:0}
+
+  /* comparison */
+  .ab-cmp{max-width:840px;margin:34px auto 0;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .ab-cmp .col{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel)}
+  .ab-cmp .col.them{opacity:.78}
+  .ab-cmp .col h4{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    margin:0 0 14px;color:var(--muted)}
+  .ab-cmp .col.us h4{color:var(--acc)}
+  .ab-cmp ul{list-style:none;margin:0;padding:0}
+  .ab-cmp li{font-family:var(--body);font-size:14.5px;line-height:1.5;color:var(--muted);
+    padding:9px 0 9px 26px;position:relative;border-top:1px solid var(--line)}
+  .ab-cmp li:first-child{border-top:0}
+  .ab-cmp .col.us li{color:var(--text)}
+  .ab-cmp li::before{position:absolute;left:0;top:9px;font-family:var(--mono);font-size:13px}
+  .ab-cmp .them li::before{content:"\00d7";color:var(--dim)}
+  .ab-cmp .us li::before{content:"\2713";color:var(--acc)}
+  @media(max-width:680px){.ab-cmp{grid-template-columns:1fr}}
+
+  /* timeline */
+  .ab-time{max-width:720px;margin:34px auto 0;padding:0 24px}
+  .ab-time .row{display:flex;gap:18px;padding:0 0 22px;position:relative}
+  .ab-time .row::before{content:"";position:absolute;left:7px;top:18px;bottom:-4px;width:1px;background:var(--line)}
+  .ab-time .row:last-child::before{display:none}
+  .ab-time .dot{flex:0 0 auto;width:15px;height:15px;border-radius:50%;border:2px solid var(--line);
+    background:var(--bg);margin-top:3px;z-index:1}
+  .ab-time .row.now .dot{border-color:var(--acc);background:var(--acc);box-shadow:0 0 0 4px rgba(205,255,77,.12)}
+  .ab-time .c .ph{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--dim)}
+  .ab-time .row.now .c .ph{color:var(--acc)}
+  .ab-time .c h4{font-family:var(--display);font-weight:600;font-size:16.5px;color:var(--text);margin:3px 0 4px}
+  .ab-time .c p{font-family:var(--body);font-size:14px;line-height:1.55;color:var(--muted);margin:0}
+
+  .ab-note{max-width:720px;margin:44px auto 0;padding:22px 24px;border:1px solid var(--line);
+    border-left:3px solid var(--acc);border-radius:14px;background:var(--panel)}
+  .ab-note .k{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--acc);display:block;margin-bottom:8px}
+  .ab-note p{font-family:var(--body);font-size:15px;line-height:1.65;color:var(--muted);margin:0}
+
+  .ab-cta{max-width:720px;margin:44px auto 10px;padding:0 24px;display:flex;gap:14px;flex-wrap:wrap}
+  .ab-btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--body);font-weight:600;
+    font-size:15px;border-radius:12px;padding:13px 22px;text-decoration:none;transition:.16s var(--ease)}
+  .ab-btn.primary{background:var(--acc);color:#0a0c08;border:1px solid var(--acc)}
+  .ab-btn.primary:hover{filter:brightness(1.06)}
+  .ab-btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .ab-btn.ghost:hover{border-color:var(--acc);color:var(--acc)}
+
+  .ab-page-nav{display:flex;align-items:center;justify-content:space-between;max-width:1180px;margin:0 auto;padding:20px 24px}
+  .ab-page-nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;color:var(--text);text-decoration:none}
+  .ab-page-nav .nl{display:flex;gap:22px;align-items:center}
+  .ab-page-nav .nl a{font-family:var(--body);font-size:14.5px;color:var(--muted);text-decoration:none;transition:.15s}
+  .ab-page-nav .nl a:hover{color:var(--text)}
+  .ab-page-nav .cta{font-family:var(--body);font-weight:600;font-size:14px;color:#0a0c08;background:var(--acc);padding:10px 16px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+  @media(max-width:680px){.ab-page-nav .nl{display:none}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- top nav -->
+    <nav class="ab-page-nav">
+      <a href="index.html" class="brand">
+        <span class="logo">
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+            <path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/>
+          </svg>
+        </span>
+        NewEra
+      </a>
+      <div class="nl">
+        <a href="index.html#home">Explore</a>
+        <a href="index.html#create">Features</a>
+        <a href="studio/community.html">Creators</a>
+        <a href="studio/marketplace.html">Market</a>
+      </div>
+      <a href="studio/index.html" class="cta">Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </nav>
+
+    <!-- hero -->
+    <header class="ab">
+      <span class="ab-eyebrow"><i></i> About NewEra</span>
+      <h1>The image was the easy part.<br>We're building <span class="acc">the rest</span>.</h1>
+      <p class="lead">NewEra is an on-chain AI art platform on BNB Chain. You generate images, own them with your wallet, and sell your work, or the prompt behind it, in a creator-owned market. Every meaningful action settles as a real transaction.</p>
+    </header>
+
+    <!-- mission -->
+    <section class="ab-sec">
+      <span class="tag">Our mission</span>
+      <h2>A creation economy that creators actually own</h2>
+      <p>We want a place where making something with AI also means owning it, and where the value you create flows back to you instead of into a platform you can't see into. Not rented output on someone's server, but assets that live on a ledger anyone can check.</p>
+    </section>
+
+    <!-- problem (detailed) -->
+    <section class="ab-sec">
+      <span class="tag">The problem</span>
+      <h2>Why we're building this</h2>
+      <p>There's a quiet problem with the AI tools everyone uses. You type a prompt, you get an image, and then it lives on someone else's server. The prompt you spent time refining disappears into a text box. The platform shows you numbers you can't verify, behind a subscription you can't question. You made something, but you don't really <b>own</b> anything.</p>
+      <p>The creation is real, but everything around it is rented. NewEra is our answer to that, when a generation is a transaction, when a sale is a transaction, when ownership actually moves on-chain, the platform stops being a place you visit and becomes a ledger you're part of.</p>
+    </section>
+
+    <!-- three principles -->
+    <div class="ab-grid">
+      <div class="ab-card">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18"/><circle cx="16.5" cy="13.8" r="1.3" fill="currentColor" stroke="none"/></svg></div>
+        <h3>Creation you own</h3>
+        <p>Generate an image and it's tied to your wallet. List it, and if it sells, ownership transfers on-chain and leaves the market. Verifiable, and yours.</p>
+      </div>
+      <div class="ab-card">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="3"/><path d="M9 18l-2 4v-4M9 11h7M9 14h4"/></svg></div>
+        <h3>Sell the prompt</h3>
+        <p>A good prompt is a skill. On NewEra you can list the prompt behind an image, keep it locked, and buyers unlock it only after they pay.</p>
+      </div>
+      <div class="ab-card">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h3>Proof over hype</h3>
+        <p>Every number on NewEra maps to something that actually happened on-chain. No vanity metrics. Sale splits are enforced by the contract itself.</p>
+      </div>
+    </div>
+
+    <!-- how we're different -->
+    <section class="ab-sec" style="margin-bottom:0">
+      <span class="tag">How we're different</span>
+      <h2>Most AI tools vs NewEra</h2>
+    </section>
+    <div class="ab-cmp">
+      <div class="col them">
+        <h4>Typical AI tool</h4>
+        <ul>
+          <li>Output lives on the company's servers</li>
+          <li>Your prompt vanishes after you use it</li>
+          <li>Dashboard numbers you can't verify</li>
+          <li>Monthly subscription, locked-in</li>
+          <li>No real ownership of what you make</li>
+        </ul>
+      </div>
+      <div class="col us">
+        <h4>NewEra</h4>
+        <ul>
+          <li>Every action settles on-chain</li>
+          <li>Sell the prompt as its own asset</li>
+          <li>Numbers map to real transactions</li>
+          <li>Pay per action, no lock-in</li>
+          <li>Ownership tied to your wallet</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- how a sale works -->
+    <section class="ab-sec">
+      <span class="tag">Under the hood</span>
+      <h2>How a sale works</h2>
+      <p>When someone buys your work, the payment is split automatically by a smart contract, with no middleman touching it. 95% goes straight to you as the creator, and a 5% platform fee supports NewEra. You don't have to trust us to do the math, the contract does it in the open.</p>
+    </section>
+
+    <!-- values -->
+    <section class="ab-sec" style="margin-bottom:0">
+      <span class="tag">What we believe</span>
+      <h2>The principles we build on</h2>
+    </section>
+    <div class="ab-grid">
+      <div class="ab-card">
+        <h3>Honesty by default</h3>
+        <p>We'd rather under-claim than inflate. If a number isn't real and checkable, it doesn't go on the platform.</p>
+      </div>
+      <div class="ab-card">
+        <h3>Creators come first</h3>
+        <p>The economics are built so the people making the work keep the majority of what it earns.</p>
+      </div>
+      <div class="ab-card">
+        <h3>Open and verifiable</h3>
+        <p>On-chain means anyone can audit what happened. No hidden ledgers, no trust required.</p>
+      </div>
+    </div>
+
+    <!-- timeline -->
+    <section class="ab-sec" style="margin-bottom:0">
+      <span class="tag">The journey</span>
+      <h2>Where we are, and where we're headed</h2>
+    </section>
+    <div class="ab-time">
+      <div class="row">
+        <span class="dot"></span>
+        <div class="c"><span class="ph">Foundations</span><h4>Contracts &amp; core loop</h4><p>Token, generation, and marketplace contracts deployed. Generate, list, buy, and sell-the-prompt working end to end.</p></div>
+      </div>
+      <div class="row now">
+        <span class="dot"></span>
+        <div class="c"><span class="ph">Now · Mainnet</span><h4>Live on BNB Chain Mainnet</h4><p>Experience the full platform on mainnet, refining the studio, marketplace, and rewards before mainnet.</p></div>
+      </div>
+      <div class="row">
+        <span class="dot"></span>
+        <div class="c"><span class="ph">Next</span><h4>Mainnet launch</h4><p>Bringing NewEra to mainnet, real ownership and real on-chain settlement for every creator.</p></div>
+      </div>
+      <div class="row">
+        <span class="dot"></span>
+        <div class="c"><span class="ph">Beyond</span><h4>A growing creator economy</h4><p>More ways to create, more ways to earn, and a market that anyone can build on and audit.</p></div>
+      </div>
+    </div>
+
+    <!-- honest status note -->
+    <div class="ab-note">
+      <span class="k">Where we are</span>
+      <p>NewEra is currently live on <b>BNB Chain Mainnet</b>, live with real on-chain NEA. We're still building, and we're not going to pretend otherwise. If the idea of owning, and earning from, what you create resonates with you, this is a good moment to follow along.</p>
+    </div>
+
+    <!-- community / cta -->
+    <section class="ab-sec">
+      <span class="tag">Come along</span>
+      <h2>Build the early days with us</h2>
+      <p>We share progress, launch news, and the thinking behind NewEra as we go. Follow along, ask questions, and help shape what this becomes.</p>
+    </section>
+    <div class="ab-cta">
+      <a href="studio/index.html" class="ab-btn primary">Launch App
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+      <a href="https://x.com/New_EraAI" target="_blank" rel="noopener" class="ab-btn ghost">Follow on X</a>
+      <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener" class="ab-btn ghost">Read the blog</a>
+    </div>
+
+    <!-- ===== footer ===== -->
+<footer class="site-foot">
+  <div class="foot-wrap">
+    <div class="foot-top">
+      <button class="backtop" id="backtop">Back to top
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </button>
+    </div>
+    <div class="foot-main">
+      <div class="foot-brand">
+        <div class="foot-tag">Create with AI.<br><b>Own it on-chain.</b></div>
+        <div class="foot-social">
+          <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+          <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+          <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+          <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+          <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+        </div>
+      </div>
+<div class="foot-col">
+        <h4>Product</h4>
+        <a href="#create">Explore</a>
+        <a href="#stack">How it works</a>
+         <a href="studio/marketplace.html">Marketplace</a>
+        <a href="feature-generate.html">Generate AI art</a>
+      </div>
+      <div class="foot-col">
+        <h4>Resources</h4>
+        <a href="docs.html">Docs</a>
+        <a href="https://neweraai.mintlify.site/introduction">Whitepaper</a>
+        <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </div>
+  </div>
+  <div class="foot-glow"></div>
+  <div class="foot-mark">NEWERA</div>
+  <div class="foot-bottom">
+    <div class="foot-bar">
+      <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+      <span class="cr">&copy; 2026 NewEra &middot; Built on BNB Chain Mainnet</span>
+    </div>
+  </div>
+</footer>
+
+  </div>
+
+  <script>
+    document.getElementById('backtop')?.addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+  </script>
+</body>
+</html>

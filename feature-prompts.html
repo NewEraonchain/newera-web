@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How prompt trading works · NewEra</title>
+<meta name="description" content="How selling prompts on NewEra works: list a prompt with its text hidden, and when someone buys it the content unlocks and the payment splits on-chain." />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How prompt trading works · NewEra" />
+<meta property="og:description" content="Sell the recipe, not just the picture. Prompts stay hidden until bought." />
+<meta property="og:site_name" content="NewEra" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="How prompt trading works · NewEra" />
+<meta name="twitter:description" content="Sell the recipe, not just the picture. Prompts stay hidden until bought." />
+
+<link rel="icon" type="image/png" href="favicon logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="feature-generate.css" />
+<link rel="stylesheet" href="feature-prompts.css" />
+</head>
+<body>
+  <div class="shell">
+
+    <header class="topbar">
+      <a href="index.html" class="logo">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 4 L27 26 H5 Z" stroke="#c7f03f" stroke-width="2.4" stroke-linejoin="round"/><path d="M16 13 L21 23 H11 Z" fill="#c7f03f"/></svg>
+        NewEra
+      </a>
+      <a href="index.html" class="home-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Home
+      </a>
+    </header>
+
+    <section class="hero">
+      <p class="kicker">trading prompts</p>
+      <h1>Sell the recipe, not just the picture.</h1>
+      <p class="standfirst">A great prompt is worth as much as the image it makes. On NewEra you list a prompt together with the image it produces. Buyers see the image and judge the quality, but the prompt text stays hidden until they buy it, then it unlocks and your share settles on-chain.</p>
+    </section>
+
+    <!-- SIGNATURE: image visible, prompt locked -> unlocked -->
+    <div class="lockcard reveal">
+      <div class="lock-head"><span class="live"></span> a listed prompt · the image you can see, the prompt you unlock</div>
+      <div class="lock-grid">
+
+        <div class="lock-side">
+          <div class="lock-state"><span class="ls-ic locked">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          </span> Before buying</div>
+
+          <!-- result image always visible -->
+          <div class="lock-preview">
+            <img class="lp-art" src="images/prompt-preview.jpeg" alt="Mountain temple at golden hour" />
+            <span class="lp-tag">result preview</span>
+          </div>
+
+          <p class="lock-title">"Mountain temple at golden hour"</p>
+
+          <!-- prompt hidden -->
+          <div class="lock-body blurred">
+            <span>ultra-detailed, volumetric god-rays, 85mm, shot on film, muted earth tones, fog rolling through pine, reflection in still water…</span>
+          </div>
+          <div class="lock-foot">You see the image · the prompt stays hidden</div>
+        </div>
+
+        <div class="lock-side unlocked">
+          <div class="lock-state"><span class="ls-ic open">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>
+          </span> After buying</div>
+
+          <!-- same image -->
+          <div class="lock-preview">
+            <img class="lp-art" src="images/prompt-preview.jpeg" alt="Mountain temple at golden hour" />
+            <span class="lp-tag">result preview</span>
+          </div>
+
+          <p class="lock-title">"Mountain temple at golden hour"</p>
+
+          <!-- prompt revealed -->
+          <div class="lock-body">
+            <span>ultra-detailed, volumetric god-rays, 85mm, shot on film, muted earth tones, fog rolling through pine, reflection in still water, symmetrical composition, warm rim light</span>
+          </div>
+          <div class="lock-foot open">Unlocked · the full prompt is yours</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="block">
+      <div class="block-lead reveal">
+        <h2>How a prompt sale works</h2>
+        <p class="sub">Listing keeps your text private until it's paid for.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="num">01</div>
+          <div>
+            <h3>List a prompt with its result image</h3>
+            <p class="plain">Add the image this prompt creates, give it a title, and set a price in NEA. The image is public; the prompt text stays hidden.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>The marketplace shows the result image, title, and a short preview to everyone, so buyers can judge the quality. The actual prompt text is held back until a purchase is confirmed.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">02</div>
+          <div>
+            <h3>A buyer pays for it</h3>
+            <p class="plain">A buyer sees the title, decides it's worth it, and confirms the price from their wallet.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>The buyer's wallet runs an <span class="mono">approve</span> then <span class="mono">buy()</span> on the contract, moving the NEA in a single transaction and producing a receipt.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">03</div>
+          <div>
+            <h3>The payment splits on-chain</h3>
+            <p class="plain">The price is divided automatically: 95% to you, 5% platform fee.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>The same 80/15/5 split as the image marketplace, written into the contract. Each share transfers in the same transaction that completes the sale.</p></div>
+        </div>
+
+        <div class="step reveal">
+          <div class="num">04</div>
+          <div>
+            <h3>The text unlocks for the buyer</h3>
+            <p class="plain">Once payment is verified, the full prompt is revealed to the buyer to copy and use.</p>
+          </div>
+          <div class="meta"><span class="label">runs</span><p>NewEra confirms the purchase transaction on-chain, records the sale, and reveals the full prompt text to that buyer only. Your 95% is already in your wallet.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-lead reveal">
+        <h2>Why prompts are worth selling</h2>
+        <p class="sub">The wording is the skill. Here's why it has value.</p>
+      </div>
+
+      <dl class="glossary">
+        <div class="term reveal">
+          <dt><span class="dot"></span>The prompt is the craft</dt>
+          <dd>Getting a model to produce a specific look takes experiment and taste. A proven prompt saves the buyer that work, so it has real value on its own.</dd>
+        </div>
+        <div class="term reveal">
+          <dt><span class="dot"></span>See the result, not the recipe</dt>
+          <dd>Buyers can see the image the prompt produces, so they know the quality they're getting. The prompt text itself only reveals after purchase, so you sell it without giving it away.</dd>
+        </div>
+        <div class="term reveal">
+          <dt><span class="dot"></span>Sell it again and again</dt>
+          <dd>A prompt isn't used up when it sells. The same listing can be bought by many people, and you earn your share on every sale.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="block">
+      <div class="why reveal">
+        <h3>What you should know</h3>
+        <div class="row"><span class="k">You keep 95%</span><span class="v">The same creator share as images, settled to your wallet the moment a prompt sells.</span></div>
+        <div class="row"><span class="k">Preview is public</span><span class="v">Title and a short teaser are visible to all; the full text is not, until someone buys.</span></div>
+        <div class="row"><span class="k">Buyers get usage</span><span class="v">A buyer can read and use the prompt themselves. They don't get the right to resell your listing.</span></div>
+      </div>
+    </section>
+
+    <footer class="foot">NewEra · BNB Chain Mainnet · 2026</footer>
+  </div>
+
+  <script>
+    (function(){
+      var els=document.querySelectorAll('.reveal');
+      if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('seen');});return;}
+      var io=new IntersectionObserver(function(entries){
+        entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('seen');io.unobserve(en.target);}});
+      },{threshold:.12});
+      els.forEach(function(e){io.observe(e);});
+    })();
+  </script>
+</body>
+</html>

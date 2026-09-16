@@ -1,0 +1,14 @@
+/* ============================================================
+   NewEra Studio — Download control on owned image cards
+   Loads AFTER styles.css + sell.css on collection.html /
+   profile.html. Sits at the image's bottom-right corner.
+   ============================================================ */
+.dl-cta{position:absolute;bottom:10px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;
+  background:rgba(6,7,11,.72);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  font-family:var(--body);font-weight:600;font-size:12.5px;padding:8px 12px;cursor:pointer;
+  opacity:0;transform:translateY(4px);transition:.18s var(--ease)}
+.col-card:hover .dl-cta{opacity:1;transform:translateY(0)}
+.dl-cta:hover{border-color:rgba(205,255,77,.45);color:var(--acc)}
+.dl-cta svg{flex:0 0 auto}
+@media (hover:none){ .dl-cta{opacity:1;transform:none} }
+.dl-cta:disabled{opacity:.5;cursor:default}

@@ -1,0 +1,35 @@
+/* ============================================================
+   NewEra · Marketplace page — split-bar additions
+   (loads after feature-generate.css; reuses all base tokens)
+   ============================================================ */
+
+/* the 80/15/5 ledger bar — signature element */
+.split-card{margin:46px 0 10px;border:1px solid var(--hair);border-radius:14px;background:var(--surface);overflow:hidden}
+.split-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--hair);font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-mute);letter-spacing:.02em}
+.split-head .live{width:7px;height:7px;border-radius:50%;background:var(--lime)}
+
+.split-bar{display:flex;height:96px;margin:20px;border-radius:10px;overflow:hidden;gap:3px}
+.split-bar .seg{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 18px;min-width:0;overflow:hidden}
+.split-bar .seg .pct{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(20px,4vw,34px);line-height:1}
+.split-bar .seg .who{font-size:12.5px;font-weight:600;margin-top:5px;white-space:nowrap}
+.seg-creator{background:var(--lime);color:var(--lime-ink)}
+.seg-treasury{background:#3a4250;color:#eef1f4}
+.seg-burn{background:#2a1416;color:#ff9ba6;align-items:center;padding:0 6px}
+.seg-burn .who{font-size:10.5px}
+
+.split-legend{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:0 20px 22px}
+.split-legend .lg{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--hair);padding-top:14px}
+.split-legend .lg .sw{width:14px;height:14px;border-radius:4px;margin-bottom:4px}
+.split-legend .lg .sw-creator{background:var(--lime)}
+.split-legend .lg .sw-treasury{background:#3a4250}
+.split-legend .lg .sw-burn{background:#7a2d33}
+.split-legend .lg b{font-family:"Bricolage Grotesque",sans-serif;font-size:15px;font-weight:600;color:var(--ink)}
+.split-legend .lg em{font-style:normal;font-size:13px;color:var(--ink-mute);line-height:1.45}
+
+@media(max-width:620px){
+  .split-bar{height:auto;flex-direction:column;gap:6px}
+  .split-bar .seg{flex:none !important;padding:16px 18px;flex-direction:row;align-items:center;gap:12px;justify-content:flex-start}
+  .split-bar .seg .who{margin-top:0}
+  .seg-burn{align-items:center}
+  .split-legend{grid-template-columns:1fr}
+}

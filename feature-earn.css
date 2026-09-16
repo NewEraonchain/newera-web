@@ -1,0 +1,28 @@
+/* ============================================================
+   NewEra · Earn page — ways-to-earn additions
+   (loads after feature-generate.css; reuses all base tokens)
+   ============================================================ */
+
+.ways{margin:46px 0 10px;border:1px solid var(--hair);border-radius:14px;background:var(--surface);overflow:hidden}
+.ways-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--hair);font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-mute);letter-spacing:.02em}
+.ways-head .live{width:7px;height:7px;border-radius:50%;background:var(--lime)}
+
+.ways-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.way{padding:24px 20px;border-right:1px solid var(--hair)}
+.way:last-child{border-right:0}
+.way-ic{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--hair);color:var(--lime);margin-bottom:16px}
+.way-amt{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1;color:var(--lime);margin-bottom:10px}
+.way b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:15.5px;font-weight:600;color:var(--ink)}
+.way em{font-style:normal;display:block;font-size:13px;color:var(--ink-mute);margin-top:5px;line-height:1.45}
+
+@media(max-width:760px){
+  .ways-grid{grid-template-columns:1fr 1fr}
+  .way{border-bottom:1px solid var(--hair)}
+  .way:nth-child(2){border-right:0}
+  .way:nth-child(3),.way:nth-child(4){border-bottom:0}
+}
+@media(max-width:430px){
+  .ways-grid{grid-template-columns:1fr}
+  .way{border-right:0;border-bottom:1px solid var(--hair)}
+  .way:last-child{border-bottom:0}
+}

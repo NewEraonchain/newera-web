@@ -1,53 +1,398 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NewEra · Launch intelligence for Robinhood Chain</title>
-    <!-- "block zero" led the description, which is the site's most internal
-         term aimed at people who have not arrived yet. -->
-    <meta name="description" content="See what is launching on Robinhood Chain before it has a price. Clusters as they form, copies and ticker impersonation flagged, from the moment a token is created." />
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NewEra · AI Creation On-Chain</title>
+<meta name="description" content="NewEra is an on-chain AI art platform on BNB Chain. Generate AI images from a prompt, own them with your wallet, and sell your work or prompts in a creator-owned marketplace." />
 
-    <!-- Pasting a cluster link produced an unlabelled card: no og tags existed
-         at all, and a cluster URL is the thing most likely to be shared. Per-route
-         titles are set at runtime; these are the static fallbacks a crawler and
-         an unfurler see. -->
-    <!-- Absolute, not root-relative. Several unfurlers (and Twitter in
-         particular) will not resolve a relative og:image against the page URL,
-         so "/og.png" silently produced a card with no image. -->
-    <link rel="canonical" href="https://neweraai.xyz/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="NewEra" />
-    <meta property="og:url" content="https://neweraai.xyz/" />
-    <meta property="og:title" content="NewEra · Launch intelligence for Robinhood Chain" />
-    <meta property="og:description" content="See what is launching on Robinhood Chain before it has a price. Clusters as they form, copies and ticker impersonation flagged, from the moment a token is created." />
-    <meta property="og:image" content="https://neweraai.xyz/og.png" />
-    <meta property="og:image:width" content="2400" />
-    <meta property="og:image:height" content="1260" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="NewEra · Launch intelligence for Robinhood Chain" />
-    <meta name="twitter:description" content="See what is launching on Robinhood Chain before it has a price." />
-    <meta name="twitter:image" content="https://neweraai.xyz/og.png" />
-  </head>
-  <body>
-    <!--
-      THESIS: You cannot see what is launching; this can. The page is a dark
-      plane where content resolves only where the index is looking — refusing
-      the near-black-plus-neon dashboard the category always ships.
-      OWN-WORLD: The void, and an aperture. Type at plate scale in Anybody, set
-      live on its width axis; mono for data; ruled records, never cards. Lime is
-      signal only — risk, liveness, the band's edges, the primary action.
-      STORY: Everything here is unresolved until the instrument passes over it.
-      One live cluster proves the mechanism. Now open the feed.
-      FIRST VIEWPORT: Type anchored hard to the lower left at 15vw, running past
-      the right edge; a band of legibility tracking the pointer; a numbered mono
-      index instead of a navbar; the reticle carrying the live block height.
-      FORM: Aperture, candidate 7 of 7, direction seed key 34f3db55.
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the
-      finish review, the verdict, and DESIGN.md
-    -->
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<meta property="og:type" content="website" />
+<meta property="og:title" content="NewEra · AI Creation On-Chain" />
+<meta property="og:description" content="Generate, own, and sell AI art on-chain. A creator-owned economy on BNB Chain." />
+<meta property="og:site_name" content="NewEra" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="NewEra · AI Creation On-Chain" />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<meta name="twitter:description" content="Generate, own, and sell AI art on-chain. A creator-owned economy on BNB Chain." />
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <!-- hero -->
+    <main class="hero" id="home">
+      <div class="hero-left">
+        <nav class="nav">
+          <div class="brand">
+            <span class="logo">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/>
+                <path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/>
+              </svg>
+            </span>
+            NewEra
+          </div>
+<div class="nav-links">
+  <a href="#home" class="on">Explore</a>
+  <a href="#create">Features</a>
+  <a href="studio/community.html">Creators</a>
+  <a href="studio/marketplace.html">Market</a>
+</div>
+          <a href="#" class="nav-cta">Connect wallet
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="13.8" r="1.15" fill="currentColor" stroke="none"/></svg>
+          </a>
+        </nav>
+        <div class="hero-body">
+        <div class="eyebrow" data-rv><span class="pulse"></span> AI &times; On-chain creator economy</div>
+        <h1 class="headline" data-rv>
+          The Future of<br>
+          AI Creation Is <span class="acc-word">On-Chain<svg class="squiggle" viewBox="0 0 300 24" preserveAspectRatio="none"><path d="M5 15 C60 4 110 22 165 12 S270 6 295 13"/></svg></span>
+        </h1>
+        <p class="bio" data-rv>Generate, monetize, and trade AI-generated content in a creator-owned economy.</p>
+
+        <div class="cta" data-rv>
+          <a href="studio/index.html" class="btn primary" id="launchApp" data-nw-skip="1">Launch App
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </a>
+<a href="#ecosystem" class="btn ghost" onclick="event.preventDefault();document.getElementById('ecosystem').scrollIntoView({behavior:'smooth'});">
+  <span class="play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+  View Ecosystem
+</a>
+        </div>
+
+        <div class="features" data-rv>
+          <div class="feat">
+            <span class="feat-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg></span>
+            <div><div class="feat-t">Generate with AI</div><div class="feat-s">Create art, audio &amp; media from a prompt.</div></div>
+          </div>
+          <div class="feat">
+            <span class="feat-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.2c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2-1.1 1.8-2.5 1.8-2.5.6-2.5 1.8 1.1 2 2.5 2 2.5-.8 2.5-2"/></svg></span>
+            <div><div class="feat-t">Own &amp; monetize</div><div class="feat-s">Your output is tied to your wallet instantly.</div></div>
+          </div>
+          <div class="feat">
+            <span class="feat-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></span>
+            <div><div class="feat-t">Trade &amp; earn</div><div class="feat-s">A liquid market for creators &amp; collectors.</div></div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="hero-right" data-rv>
+        <div class="tilegrid" id="tiles"></div>
+      </div>
+    </main>
+
+    <!-- ===== stats ===== -->
+    <section class="stats" id="ecosystem">
+      <div class="stats-intro" data-rv>
+        <span class="eyebrow"><i></i> Live on BNB Chain Mainnet</span>
+        <h2>An economy that runs <span class="acc">on-chain</span></h2>
+        <p>Every generation, listing, and sale settles as a real transaction, with no vanity metrics, just what the network has actually done.</p>
+      </div>
+      <div class="stats-grid">
+
+        <div class="stat-card" data-rv>
+          <div class="stat-top">
+            <div class="stat-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <span class="stat-live"><i></i> live</span>
+          </div>
+          <div class="stat-num" data-to="0">0</div>
+          <div class="stat-lab">Total images generated</div>
+        </div>
+
+        <div class="stat-card" data-rv>
+          <div class="stat-top">
+            <div class="stat-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></svg></div>
+            <span class="stat-live"><i></i> live</span>
+          </div>
+          <div class="stat-num" data-to="0">0</div>
+          <div class="stat-lab">Total images for sale</div>
+        </div>
+
+        <div class="stat-card" data-rv>
+          <div class="stat-top">
+            <div class="stat-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11a3 3 0 0 1 3 3v13l-4-3H4z"/><path d="M8 9h7M8 12h5"/></svg></div>
+            <span class="stat-live"><i></i> live</span>
+          </div>
+          <div class="stat-num" data-to="0">0</div>
+          <div class="stat-lab">Total prompts for sale</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== How it works ===== -->
+    <div class="hiw-head">
+      <h2>How <span class="acc">NewEra</span> Works</h2>
+      <p>Generate, own, and trade AI art, fully on-chain.</p>
+      <div class="hiw-hint">Scroll to walk through the 4 steps
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <section class="stack" id="stack">
+      <div class="stack-pin">
+        <article class="s-card">
+          <div class="sc-left">
+            <div class="sc-top"><span>Step 01 / 04</span><span class="b2"><i></i>NewEra</span></div>
+            <div class="sc-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18"/><circle cx="16.5" cy="13.8" r="1.3" fill="currentColor" stroke="none"/></svg></div>
+            <div class="sc-num">01</div>
+            <div class="sc-points"><span>MetaMask login</span><span>BNB Chain network</span><span>Wallet = your identity</span></div>
+          </div>
+          <div class="sc-right">
+            <div class="sc-ey">Get started</div>
+            <h2>Connect Your Wallet</h2>
+            <p>Sign in with MetaMask, no email or password. Your wallet is your identity. New users get a one-time welcome bonus to start creating.</p>
+            <div class="sc-stat"><span class="big">50<i>NEA</i></span><span class="lab">welcome bonus</span></div>
+          </div>
+        </article>
+        <article class="s-card">
+          <div class="sc-left">
+            <div class="sc-top"><span>Step 02 / 04</span><span class="b2"><i></i>NewEra</span></div>
+            <div class="sc-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg></div>
+            <div class="sc-num">02</div>
+            <div class="sc-points"><span>Prompt to image</span><span>Paid on-chain</span><span>Instant ownership</span></div>
+          </div>
+          <div class="sc-right">
+            <div class="sc-ey">Create</div>
+            <h2>Generate AI Art</h2>
+            <p>Write a prompt and hit generate. Each image is paid on-chain and instantly tied to your wallet the moment it's made, you own it.</p>
+            <div class="sc-stat"><span class="big">10<i>NEA</i></span><span class="lab">per image</span></div>
+          </div>
+        </article>
+        <article class="s-card">
+          <div class="sc-left">
+            <div class="sc-top"><span>Step 03 / 04</span><span class="b2"><i></i>NewEra</span></div>
+            <div class="sc-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></svg></div>
+            <div class="sc-num">03</div>
+            <div class="sc-points"><span>Set your own price</span><span>Images or prompts</span><span>On-chain listings</span></div>
+          </div>
+          <div class="sc-right">
+            <div class="sc-ey">Sell</div>
+            <h2>List &amp; Sell</h2>
+            <p>List your images or prompts on the marketplace at your own price. Every listing is recorded on the blockchain, transparent and tamper-proof.</p>
+            <div class="sc-stat"><span class="big">0<i>%</i></span><span class="lab">listing fee, your price</span></div>
+          </div>
+        </article>
+        <article class="s-card">
+          <div class="sc-left">
+            <div class="sc-top"><span>Step 04 / 04</span><span class="b2"><i></i>NewEra</span></div>
+            <div class="sc-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.6c0-1.1 1.1-1.9 2.5-1.9s2.5.8 2.5 1.9-1.1 1.7-2.5 1.7-2.5.6-2.5 1.7 1.1 1.9 2.5 1.9 2.5-.8 2.5-1.9"/></svg></div>
+            <div class="sc-num">04</div>
+            <div class="sc-points"><span>Auto smart-contract split</span><span>Straight to your wallet</span><span>No middleman</span></div>
+          </div>
+          <div class="sc-right">
+            <div class="sc-ey">Earn</div>
+            <h2>Earn On-Chain</h2>
+            <p>When someone buys your work, the payment auto-splits via smart contract and lands straight in your wallet instantly, with no middleman.</p>
+            <div class="sc-stat"><span class="big">80<i>%</i></span><span class="lab">goes to you</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+    <!-- ===== features / what you can do ===== -->
+    <section class="feature-sec" id="create">
+      <div class="features-intro">
+        <span class="eyebrow"><i></i> Features</span>
+        <h2>What you can do on <span class="acc">NewEra</span></h2>
+        <p>From a single prompt to on-chain earnings, the whole creator loop lives here.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="fcard light">
+          <div class="fc-top">
+            <h3>Generate <mark>AI art</mark> from a prompt</h3>
+            <span class="fc-icon"><svg width="54" height="54" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="9" width="34" height="27" rx="4"/><path d="M7 29l9-8 7 6 5-4 13 10"/><circle cx="16" cy="18" r="2.3"/><path d="M38 4l1.2 3.4L43 9l-3.8 1.6L38 14l-1.2-3.4L33 9l3.8-1.6z" fill="currentColor" stroke="none"/></svg></span>
+          </div>
+          <a href="feature-generate.html" class="fc-more"><span class="circ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span> Learn more</a>
+        </div>
+        <div class="fcard dark">
+          <div class="fc-top">
+            <h3>Sell on the <mark>marketplace</mark></h3>
+            <span class="fc-icon"><svg width="54" height="54" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M41 27 27 41a3 3 0 0 1-4.24 0L6.4 24.6A3 3 0 0 1 5.6 22.5V9a3 3 0 0 1 3-3h13.5a3 3 0 0 1 2.12.88l16.36 16.36a3 3 0 0 1 0 4.26z"/><circle cx="15.5" cy="15.5" r="2.6" fill="currentColor" stroke="none"/></svg></span>
+          </div>
+          <a href="feature-marketplace.html" class="fc-more"><span class="circ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span> Learn more</a>
+        </div>
+        <div class="fcard dark">
+          <div class="fc-top">
+            <h3>Trade your best <mark>prompts</mark></h3>
+            <span class="fc-icon"><svg width="54" height="54" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="9" width="36" height="25" rx="6"/><path d="M16 34l-4 7v-7"/><path d="M14 18h20M14 25h12"/></svg></span>
+          </div>
+          <a href="feature-prompts.html" class="fc-more"><span class="circ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span> Learn more</a>
+        </div>
+        <div class="fcard light">
+          <div class="fc-top">
+            <h3>Earn <mark>on-chain</mark>, no middleman</h3>
+            <span class="fc-icon"><svg width="54" height="54" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="24" cy="13" rx="13" ry="5.4"/><path d="M11 13v9c0 3 5.8 5.4 13 5.4s13-2.4 13-5.4v-9"/><path d="M11 22v9c0 3 5.8 5.4 13 5.4s13-2.4 13-5.4v-9"/></svg></span>
+          </div>
+          <a href="feature-earn.html" class="fc-more"><span class="circ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span> Learn more</a>
+        </div>
+      </div>
+    </section>
+    <!-- ===== gallery / moving railway ===== -->
+    <section class="gallery" id="market">
+      <div class="gallery-head">
+        <h2>Selected &amp; popular <span class="acc">creations</span><br>on NewEra right now</h2>
+        <p>A live stream of what creators are listing across the network.</p>
+      </div>
+      <div class="rail">
+        <div class="rail-track" id="railTrack"></div>
+      </div>
+    </section>
+    <!-- ===== news & updates ===== -->
+    <section class="news">
+      <div class="news-top">
+        <h2>News &amp; Updates</h2>
+        <div class="news-nav">
+          <button id="newsPrev" aria-label="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button id="newsNext" aria-label="Next"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+      <div class="news-row" id="newsRow">
+        <div class="news-loading" id="newsLoading">Loading the latest from NewEra…</div>
+      </div>
+    </section>
+    <!-- ===== FAQ ===== -->
+    <section class="faq">
+      <div class="faq-head">
+        <span class="eyebrow"><i></i> FAQ</span>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq-wrap">
+        <div class="faq-item">
+          <div class="faq-q">Do I need a crypto wallet?<span class="pl"></span></div>
+          <div class="faq-a">Yes. You need MetaMask (or any compatible Web3 wallet) to connect. Your wallet is your login, with no email or password required.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What is NEA and how do I get it?<span class="pl"></span></div>
+          <div class="faq-a">NEA is the platform's token (ERC-20 on BNB Chain). New users get a 50 NEA welcome bonus on their first connect, and you earn more by selling your work and through referrals. You use NEA to generate images and trade on the marketplace.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How much does it cost to generate an image?<span class="pl"></span></div>
+          <div class="faq-a">Each image costs 10 NEA, paid on-chain when you generate.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do earnings work when I sell?<span class="pl"></span></div>
+          <div class="faq-a">Every sale is split automatically by a smart contract: 95% goes to you (the creator), and 5% is a platform fee. Your share is sent straight to your wallet.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Do I really own my images?<span class="pl"></span></div>
+          <div class="faq-a">Your generated images are tied to your wallet, and your payment is recorded on-chain. Your claim to each image is backed by a verifiable transaction.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Is this real money right now?<span class="pl"></span></div>
+          <div class="faq-a">NewEra is currently live on BNB Chain Mainnet, with real on-chain NEA.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== finale arc CTA ===== -->
+    <section class="finale">
+      <div class="fglow"></div>
+      <div class="arc" id="arc">
+        <div class="arc-center">
+          <h2>Start your <span class="acc">on-chain</span> creation</h2>
+          <p>Connect your wallet, generate your first AI image, and own it forever, all in one place.</p>
+          <a href="#" class="btn primary">Connect Wallet
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="13.8" r="1.15" fill="currentColor" stroke="none"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== footer ===== -->
+ <footer class="site-foot">
+      <div class="foot-wrap">
+        <div class="foot-top">
+          <button class="backtop" id="backtop">Back to top
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </button>
+        </div>
+        <div class="foot-main">
+          <div class="foot-brand">
+            <div class="foot-tag">Create with AI.<br><b>Own it on-chain.</b></div>
+            <div class="foot-social">
+              <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+              <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+              <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+              <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+              <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+            </div>
+          </div>
+          <div class="foot-col">
+            <h4>Product</h4>
+            <a href="index.html#create">Explore</a>
+            <a href="index.html#stack">How it works</a>
+            <a href="studio/marketplace.html">Marketplace</a>
+            <a href="feature-generate.html">Generate AI art</a>
+          </div>
+          <div class="foot-col">
+            <h4>Resources</h4>
+            <a href="docs.html">Docs</a>
+            <a href="https://neweraai.mintlify.site/introduction">Whitepaper</a>
+            <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+          </div>
+          <div class="foot-col">
+            <h4>Company</h4>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+          </div>
+          <div class="foot-col">
+            <h4>Legal</h4>
+            <a href="legal.html">Legal center</a>
+            <a href="terms.html">Terms of Use</a>
+            <a href="risk.html">Risk Statement</a>
+            <a href="privacy.html">Privacy Policy</a>
+          </div>
+        </div>
+        <div class="foot-glow"></div>
+        <div class="foot-mark">NEWERA</div>
+        <div class="foot-bottom">
+          <div class="foot-bar">
+            <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+            <span class="cr">&copy; 2026 NewEra &middot; Built on BNB Chain Mainnet</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <script type="module" src="wallet.js"></script>
+  <script src="script.js"></script>
+
+  <script>
+    /* Launch App: connect first if needed, then open dashboard */
+    (function(){
+      var launch = document.getElementById('launchApp');
+      if(!launch) return;
+      launch.addEventListener('click', function(e){
+        e.preventDefault();
+        var addr = localStorage.getItem('newera_address');
+        if (addr) {
+          window.location.href = 'studio/index.html';
+        } else {
+          var connectBtn = document.querySelector('[data-nw-btn]');
+          if (connectBtn) connectBtn.click();
+          var check = setInterval(function(){
+            if (localStorage.getItem('newera_address')) {
+              clearInterval(check);
+              window.location.href = 'studio/index.html';
+            }
+          }, 600);
+          setTimeout(function(){ clearInterval(check); }, 120000);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+</body>
 </html>

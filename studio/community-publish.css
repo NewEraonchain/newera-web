@@ -1,0 +1,23 @@
+/* ============================================================
+   NewEra Studio — Make public (community) control
+   Loads AFTER studio styles.css + sell.css on collection.html
+   and profile.html. Adds a "Make public" toggle on owned cards.
+   Sits just below the sell button so both fit on the image.
+   ============================================================ */
+
+/* public toggle button (appears on hover, under the sell button) */
+.pub-cta{position:absolute;top:46px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;
+  background:rgba(12,14,21,.86);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  font-family:var(--body);font-weight:600;font-size:12.5px;padding:8px 12px;cursor:pointer;
+  opacity:0;transform:translateY(-4px);transition:.18s var(--ease)}
+.col-card:hover .pub-cta{opacity:1;transform:translateY(0)}
+.pub-cta:hover{border-color:rgba(205,255,77,.45);color:var(--acc)}
+.pub-cta svg{flex:0 0 auto}
+@media (hover:none){ .pub-cta{opacity:1;transform:none} }
+
+/* when the image is public: solid lime state (click to unpublish) */
+.pub-cta.is-public{background:rgba(205,255,77,.12);border-color:rgba(205,255,77,.35);color:var(--acc)}
+.pub-cta.is-public:hover{background:rgba(205,255,77,.18)}
+
+/* if a card has NO sell button (already listed), pull the public btn up */
+.col-card .cc-img:not(:has(.sell-cta)):not(:has(.sell-listed)) .pub-cta{top:10px}

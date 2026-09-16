@@ -1,0 +1,68 @@
+/* ============================================================
+   NewEra Studio — Sell / List flow (shared)
+   Loads AFTER studio styles.css on collection.html + profile.html.
+   Adds a "List for sale" button on owned image cards + a modal.
+   Design system: Bricolage / Hanken / JetBrains, lime accent,
+   no glow, no purple, no gradient, 14-16px corners.
+   ============================================================ */
+
+/* card hover button (on .cc-img of each owned card) */
+.col-card .cc-img{position:relative}
+.sell-cta{position:absolute;top:10px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;
+  background:var(--acc);color:var(--acc-deep);border:0;border-radius:10px;
+  font-family:var(--body);font-weight:700;font-size:12.5px;padding:8px 12px;cursor:pointer;
+  opacity:0;transform:translateY(-4px);transition:.18s var(--ease)}
+.col-card:hover .sell-cta{opacity:1;transform:translateY(0)}
+.sell-cta:hover{transform:translateY(-1px)}
+.sell-cta svg{flex:0 0 auto}
+@media (hover:none){ .sell-cta{opacity:1;transform:none} }
+
+.sell-listed{position:absolute;top:10px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--acc);
+  background:rgba(205,255,77,.12);border:1px solid rgba(205,255,77,.3);border-radius:999px;padding:4px 10px}
+.sell-listed i{width:5px;height:5px;border-radius:50%;background:var(--acc)}
+
+/* ===== modal ===== */
+.sell-overlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(3,4,7,.74)}
+.sell-overlay.show{display:flex}
+.sell-modal{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:22px;animation:smIn .25s var(--ease)}
+@keyframes smIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sell-modal{animation:none}}
+
+.sm-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.sm-thumb{width:54px;height:54px;border-radius:12px;flex:0 0 auto;overflow:hidden;border:1px solid var(--line);background:#05060a}
+.sm-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sm-head h3{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em}
+.sm-head p{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:3px}
+
+.sm-field{margin-bottom:14px}
+.sm-field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px}
+.sm-input{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;
+  padding:11px 14px;color:var(--text);font:inherit;font-size:14px;outline:none;transition:border-color .18s}
+.sm-input:focus{border-color:rgba(205,255,77,.45)}
+.sm-input::placeholder{color:var(--dim)}
+.sm-hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+
+.sm-status{font-size:13px;min-height:18px;margin:4px 0 12px}
+.sm-status.work{color:var(--muted)}
+.sm-status.warn{color:#ffd2d8}
+.sm-status.ok{color:var(--acc)}
+
+.sm-actions{display:flex;gap:10px;margin-top:6px}
+.sm-go{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--acc);color:var(--acc-deep);border:0;border-radius:11px;
+  font-family:var(--body);font-weight:700;font-size:14px;padding:12px;cursor:pointer;transition:transform .2s var(--ease)}
+.sm-go:hover{transform:translateY(-2px)}
+.sm-go:disabled{opacity:.55;cursor:default;transform:none}
+.sm-cancel{flex:0 0 auto;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--text);
+  border-radius:11px;font-family:var(--body);font-weight:600;font-size:14px;padding:12px 18px;cursor:pointer;transition:.18s}
+.sm-cancel:hover{border-color:rgba(255,255,255,.22)}
+
+/* ===== toast ===== */
+.sell-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(18px);
+  background:var(--acc);color:var(--acc-deep);font-family:var(--body);font-weight:600;font-size:13px;
+  padding:10px 18px;border-radius:11px;opacity:0;pointer-events:none;transition:.28s var(--ease);z-index:90}
+.sell-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}

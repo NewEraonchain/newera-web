@@ -1,0 +1,130 @@
+/* ============================================================
+   NewEra · Generate AI Art — explainer page styles
+   Distinctive type + restrained dark theme (no glow/gradient-text)
+   ============================================================ */
+
+:root{
+  --bg:#070809;
+  --surface:#0e1013;
+  --surface-2:#15181d;
+  --ink:#f2f4f3;
+  --ink-soft:#d3d7d4;
+  --ink-mute:#a3a8a5;
+  --ink-faint:#868c88;
+  --hair:rgba(255,255,255,.09);
+  --hair-soft:rgba(255,255,255,.055);
+  --lime:#c7f03f;
+  --lime-ink:#0f1804;
+  --lime-dim:rgba(199,240,63,.14);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:clip;
+}
+
+/* faint grid texture, no colored glow */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--hair-soft) 1px,transparent 1px),linear-gradient(90deg,var(--hair-soft) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:linear-gradient(180deg,#000,transparent 60%);
+  mask-image:linear-gradient(180deg,#000,transparent 60%);
+}
+
+.shell{position:relative;z-index:1;max-width:940px;margin:0 auto;padding:0 32px}
+
+h1,h2,h3,.display{font-family:"Bricolage Grotesque","Hanken Grotesk",sans-serif;font-weight:700;letter-spacing:-.02em}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0;border-bottom:1px solid var(--hair)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em}
+.logo svg{display:block}
+.home-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink-mute);font-size:14px;font-weight:600;padding:9px 15px;border:1px solid var(--hair);border-radius:10px;transition:color .2s,border-color .2s}
+.home-link:hover{color:var(--lime);border-color:rgba(199,240,63,.4)}
+
+/* ---------- hero (left-aligned, no badge-above-h1) ---------- */
+.hero{padding:64px 0 14px;max-width:680px}
+.kicker{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.04em;color:var(--lime);margin-bottom:18px}
+.hero h1{font-size:clamp(38px,6vw,62px);line-height:1.02;color:var(--ink)}
+.hero .standfirst{color:var(--ink-soft);font-size:clamp(17px,2vw,20px);margin-top:22px;max-width:60ch}
+
+/* ---------- transaction-trace flow (signature element) ---------- */
+.trace{margin:46px 0 10px;border:1px solid var(--hair);border-radius:14px;background:var(--surface);overflow:hidden}
+.trace-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--hair);font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-mute);letter-spacing:.02em}
+.trace-head .live{width:7px;height:7px;border-radius:50%;background:var(--lime)}
+.trace-body{display:flex;flex-wrap:wrap}
+.tnode{flex:1 1 0;min-width:140px;padding:22px 18px;border-right:1px solid var(--hair);position:relative}
+.tnode:last-child{border-right:0}
+.tnode .step-id{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);letter-spacing:.05em}
+.tnode .ticon{margin:14px 0 12px;color:var(--lime)}
+.tnode .ticon svg{display:block}
+.tnode b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:15px;font-weight:600;color:var(--ink)}
+.tnode em{font-style:normal;display:block;font-size:13px;color:var(--ink-mute);margin-top:4px;line-height:1.4}
+.tnode::after{content:"";position:absolute;right:-7px;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%;background:var(--surface);border:1px solid var(--hair);z-index:2}
+.tnode:last-child::after{display:none}
+@media(max-width:760px){
+  .trace-body{flex-direction:column}
+  .tnode{border-right:0;border-bottom:1px solid var(--hair)}
+  .tnode:last-child{border-bottom:0}
+  .tnode::after{right:50%;top:auto;bottom:-7px;transform:translateX(50%)}
+}
+
+/* ---------- section ---------- */
+.block{padding:58px 0}
+.block-lead{max-width:640px}
+.block h2{font-size:clamp(26px,4vw,38px);line-height:1.1;color:var(--ink)}
+.block .sub{color:var(--ink-mute);font-size:17px;margin-top:12px}
+
+/* ---------- steps (numbered: real sequence) ---------- */
+.steps{margin-top:36px;border-top:1px solid var(--hair)}
+.step{display:grid;grid-template-columns:64px 1fr;gap:8px 24px;padding:30px 0;border-bottom:1px solid var(--hair);align-items:start}
+.step .num{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:30px;color:var(--ink-faint);line-height:1}
+.step h3{font-size:20px;color:var(--ink)}
+.step .plain{color:var(--ink-soft);font-size:16.5px;margin-top:8px}
+.step .meta{grid-column:2;margin-top:14px;display:flex;gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--hair);border-radius:10px;padding:14px 16px}
+.step .meta .label{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;color:var(--lime);text-transform:uppercase;flex:0 0 auto;padding-top:2px}
+.step .meta p{color:var(--ink-soft);font-size:14.5px;line-height:1.62;margin:0}
+.step .meta p b{color:var(--ink);font-weight:600}
+.step .meta p .mono{color:var(--ink-soft);font-size:13px}
+@media(max-width:560px){
+  .step{grid-template-columns:42px 1fr;gap:6px 16px}
+  .step .num{font-size:24px}
+  .step .meta{grid-column:1 / -1}
+}
+
+/* ---------- glossary (web3 terms) ---------- */
+.glossary{margin-top:36px;border-top:1px solid var(--hair)}
+.term{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:26px 0;border-bottom:1px solid var(--hair)}
+.term dt{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:19px;color:var(--ink);display:flex;align-items:center;gap:11px}
+.term dt .dot{width:9px;height:9px;border-radius:2px;background:var(--lime);flex:0 0 auto}
+.term dd{color:var(--ink-soft);font-size:16px;line-height:1.62}
+.term dd b{color:var(--ink);font-weight:600}
+@media(max-width:640px){.term{grid-template-columns:1fr;gap:8px}}
+
+/* ---------- why panel ---------- */
+.why{margin-top:36px;border:1px solid var(--hair);border-radius:14px;background:var(--surface);padding:30px 32px}
+.why h3{font-size:21px;color:var(--ink);margin-bottom:6px}
+.why .row{display:flex;gap:14px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--hair)}
+.why .row:last-child{border-bottom:0;padding-bottom:0}
+.why .row .k{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:15.5px;color:var(--ink);flex:0 0 130px}
+.why .row .v{color:var(--ink-soft);font-size:15.5px}
+@media(max-width:560px){.why .row{flex-direction:column;gap:4px}.why .row .k{flex-basis:auto}}
+
+/* ---------- footer ---------- */
+.foot{border-top:1px solid var(--hair);margin-top:50px;padding:28px 0;color:var(--ink-faint);font-size:13.5px;font-family:"JetBrains Mono",monospace;letter-spacing:.02em}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.seen{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+@media(max-width:560px){.shell{padding:0 20px}.hero{padding-top:44px}}

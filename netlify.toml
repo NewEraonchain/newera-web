@@ -1,19 +1,6 @@
+# v1 is a static site: real .html pages, no build step. Publish the repo root.
 [build]
-  command = "npm run build"
-  publish = "dist"
-
-# Client-side routing: every path must serve index.html or a refresh on /app,
-# /docs or /privacy 404s. The status must be 200, not 302 — a redirect would
-# change the URL in the address bar.
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  publish = "."
 
 [[headers]]
   for = "/*"

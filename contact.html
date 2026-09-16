@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact · NewEra</title>
+<meta name="description" content="Get in touch with NewEra. Reach out on X, Telegram, or Substack and follow along as we build." />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+<style>
+  :root{
+    --bg:#06070b; --panel:#0d0f15; --line:#1c2030; --text:#e8ebf2;
+    --muted:#9aa3b5; --dim:#5b6478; --acc:#cdff4d; --ease:cubic-bezier(.22,1,.36,1);
+    --display:"Bricolage Grotesque",sans-serif; --body:"Hanken Grotesk",sans-serif; --mono:"JetBrains Mono",monospace;
+  }
+  .ct-nav{display:flex;align-items:center;justify-content:space-between;max-width:1180px;margin:0 auto;padding:20px 24px}
+  .ct-nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;color:var(--text);text-decoration:none}
+  .ct-nav .nl{display:flex;gap:22px;align-items:center}
+  .ct-nav .nl a{font-family:var(--body);font-size:14.5px;color:var(--muted);text-decoration:none;transition:.15s}
+  .ct-nav .nl a:hover{color:var(--text)}
+  .ct-nav .cta{font-family:var(--body);font-weight:600;font-size:14px;color:#0a0c08;background:var(--acc);padding:10px 16px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+  @media(max-width:760px){.ct-nav .nl{display:none}}
+
+  .ct{max-width:760px;margin:0 auto;padding:50px 24px 10px}
+  .ct-head{text-align:center}
+  .ct-head .eb{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+  .ct-head .eb i{width:6px;height:6px;border-radius:50%;background:var(--acc)}
+  .ct-head h1{font-family:var(--display);font-weight:700;font-size:clamp(32px,5vw,52px);line-height:1.06;margin:18px 0 0;color:var(--text);letter-spacing:-.02em}
+  .ct-head p{font-family:var(--body);font-size:17px;line-height:1.6;color:var(--muted);margin:14px auto 0;max-width:540px}
+
+  .ct-chans{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:40px 0 0}
+  @media(max-width:560px){.ct-chans{grid-template-columns:1fr}}
+  .ct-chan{display:flex;align-items:center;gap:15px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;text-decoration:none;transition:.16s var(--ease)}
+  .ct-chan:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .ct-chan .ic{flex:0 0 auto;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--acc);background:rgba(205,255,77,.07);border:1px solid var(--line)}
+  .ct-chan .tx{min-width:0}
+  .ct-chan .tx .t{font-family:var(--body);font-weight:600;font-size:16px;color:var(--text)}
+  .ct-chan .tx .d{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:2px}
+  .ct-chan .arrow{margin-left:auto;color:var(--dim);transition:.15s;flex:0 0 auto}
+  .ct-chan:hover .arrow{color:var(--acc)}
+
+  .ct-note{text-align:center;font-family:var(--body);font-size:14px;color:var(--dim);margin:30px 0 0;line-height:1.6}
+  .ct-note b{color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- top nav -->
+    <nav class="ct-nav">
+      <a href="index.html" class="brand">
+        <span class="logo">
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+            <path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/>
+          </svg>
+        </span>
+        NewEra
+      </a>
+      <div class="nl">
+        <a href="index.html#home">Explore</a>
+        <a href="index.html#create">Features</a>
+        <a href="docs.html">Docs</a>
+        <a href="studio/marketplace.html">Market</a>
+      </div>
+      <a href="studio/index.html" class="cta">Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </nav>
+
+    <!-- head + channels -->
+    <header class="ct">
+      <div class="ct-head">
+        <span class="eb"><i></i> Contact</span>
+        <h1>Get in touch</h1>
+        <p>Questions, feedback, or just want to follow along as we build? Reach out on any of these, we're most active here.</p>
+      </div>
+
+      <div class="ct-chans">
+        <a href="https://x.com/New_EraAI" target="_blank" rel="noopener" class="ct-chan">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></span>
+          <span class="tx"><span class="t">X (Twitter)</span><span class="d">@New_EraAI</span></span>
+          <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+        </a>
+        <a href="https://t.me/Leo_Park23" target="_blank" rel="noopener" class="ct-chan">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></span>
+          <span class="tx"><span class="t">Telegram</span><span class="d">@New_EraAi</span></span>
+          <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+        </a>
+        <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener" class="ct-chan">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></span>
+          <span class="tx"><span class="t">Substack</span><span class="d">Read the blog</span></span>
+          <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+        </a>
+        <a href="https://linktr.ee/NewEraAI" target="_blank" rel="noopener" class="ct-chan">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.7 5.9l4-4.1 2.3 2.4-4.2 4h5.9v3.3h-5.9l4.2 4.1-2.3 2.3-5.7-5.8-5.7 5.8-2.3-2.3 4.2-4.1H1.9V8.1h5.9l-4.2-4 2.3-2.4 4 4.1V0h3.8v5.9z"/></svg></span>
+          <span class="tx"><span class="t">All links</span><span class="d">Linktree</span></span>
+          <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+        </a>
+      </div>
+
+      <p class="ct-note">The fastest way to reach us is a <b>DM on X</b> or our <b>Telegram</b>.<br>We're on BNB Chain Mainnet and building in the open, come say hi.</p>
+    </header>
+
+    <!-- ===== footer ===== -->
+<footer class="site-foot">
+  <div class="foot-wrap">
+    <div class="foot-top">
+      <button class="backtop" id="backtop">Back to top
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </button>
+    </div>
+    <div class="foot-main">
+      <div class="foot-brand">
+        <div class="foot-tag">Create with AI.<br><b>Own it on-chain.</b></div>
+        <div class="foot-social">
+          <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+          <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+          <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+          <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+          <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+        </div>
+      </div>
+<div class="foot-col">
+        <h4>Product</h4>
+        <a href="#create">Explore</a>
+        <a href="#stack">How it works</a>
+         <a href="studio/marketplace.html">Marketplace</a>
+        <a href="feature-generate.html">Generate AI art</a>
+      </div>
+      <div class="foot-col">
+        <h4>Resources</h4>
+        <a href="docs.html">Docs</a>
+        <a href="https://neweraai.mintlify.site/introduction">Whitepaper</a>
+        <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </div>
+  </div>
+  <div class="foot-glow"></div>
+  <div class="foot-mark">NEWERA</div>
+  <div class="foot-bottom">
+    <div class="foot-bar">
+      <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+      <span class="cr">&copy; 2026 NewEra &middot; Built on BNB Chain Mainnet</span>
+    </div>
+  </div>
+</footer>
+
+  </div>
+
+  <script>
+    document.getElementById('backtop')?.addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+  </script>
+</body>
+</html>

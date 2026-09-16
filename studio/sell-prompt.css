@@ -1,0 +1,56 @@
+/* ============================================================
+   NewEra Studio — Sell prompt control
+   Loads AFTER styles.css + sell.css + community-publish.css on
+   collection.html and profile.html. Adds a "Sell prompt" button
+   on owned cards + a modal (title, price, prompt).
+   ============================================================ */
+
+/* third button on the card image (under sell + public) */
+.sp-cta{position:absolute;top:82px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;
+  background:rgba(12,14,21,.86);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  font-family:var(--body);font-weight:600;font-size:12.5px;padding:8px 12px;cursor:pointer;
+  opacity:0;transform:translateY(-4px);transition:.18s var(--ease)}
+.col-card:hover .sp-cta{opacity:1;transform:translateY(0)}
+.sp-cta:hover{border-color:rgba(205,255,77,.45);color:var(--acc)}
+.sp-cta svg{flex:0 0 auto}
+@media (hover:none){ .sp-cta{opacity:1;transform:none} }
+
+/* ===== modal (reuses sell modal look) ===== */
+.sp-overlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(3,4,7,.74)}
+.sp-overlay.show{display:flex}
+.sp-modal{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:22px;animation:spIn .25s var(--ease);max-height:90vh;overflow-y:auto}
+@keyframes spIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sp-modal{animation:none}}
+
+.sp-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.sp-thumb{width:54px;height:54px;border-radius:12px;flex:0 0 auto;overflow:hidden;border:1px solid var(--line);background:#05060a}
+.sp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sp-head h3{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em}
+.sp-head p{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:3px}
+
+.sp-field{margin-bottom:14px}
+.sp-field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px}
+.sp-input,.sp-textarea{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;
+  padding:11px 14px;color:var(--text);font:inherit;font-size:14px;outline:none;transition:border-color .18s}
+.sp-input:focus,.sp-textarea:focus{border-color:rgba(205,255,77,.45)}
+.sp-input::placeholder,.sp-textarea::placeholder{color:var(--dim)}
+.sp-textarea{resize:vertical;min-height:96px;line-height:1.5}
+.sp-hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+
+.sp-status{font-size:13px;min-height:18px;margin:4px 0 12px}
+.sp-status.work{color:var(--muted)}
+.sp-status.warn{color:#ffd2d8}
+.sp-status.ok{color:var(--acc)}
+
+.sp-actions{display:flex;gap:10px;margin-top:6px}
+.sp-go{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--acc);color:var(--acc-deep);border:0;border-radius:11px;
+  font-family:var(--body);font-weight:700;font-size:14px;padding:12px;cursor:pointer;transition:transform .2s var(--ease)}
+.sp-go:hover{transform:translateY(-2px)}
+.sp-go:disabled{opacity:.55;cursor:default;transform:none}
+.sp-cancel{flex:0 0 auto;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--text);
+  border-radius:11px;font-family:var(--body);font-weight:600;font-size:14px;padding:12px 18px;cursor:pointer;transition:.18s}
+.sp-cancel:hover{border-color:rgba(255,255,255,.22)}
