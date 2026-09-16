@@ -1,9 +1,10 @@
-# v1 is a static site: real .html pages, no build step. Publish the repo root.
-# `command` is set explicitly so the build command saved in the Netlify
-# dashboard (`npm run build`, from the explorer era) cannot apply.
+# v1 is a static site: real .html pages, no build step. The Netlify dashboard
+# still has `dist` saved as the publish directory from the explorer era, and
+# the deploy stage honours that over this file. So the "build" copies the site
+# into dist/ and we publish that, which satisfies both.
 [build]
-  command = "echo 'static site, nothing to build'"
-  publish = "."
+  command = "rm -rf dist && mkdir dist && find . -mindepth 1 -maxdepth 1 ! -name dist ! -name .git ! -name .gitignore ! -name netlify.toml ! -name node_modules -exec cp -r {} dist/ \;"
+  publish = "dist"
 
 [[headers]]
   for = "/*"
