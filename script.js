@@ -86,14 +86,19 @@
       .then(function(r){ return r.json(); })
       .then(function(s){
         // map backend fields -> the 3 cards (in order)
-        var values = [
-          s.totalImages || 0,             // card 1: Total images generated
-          s.activeListings || 0,          // card 2: Total images for sale
-          s.totalPromptsForSale || 0      // card 3: Total prompts for sale
-        ];
-        nums.forEach(function(el, i){
-          if (values[i] != null) el.setAttribute('data-to', values[i]);
-        });
+        // Cumulative totals: NewEra's first phase on BNB Chain plus everything since.
+        // If the API predates `lifetime`, keep the defaults baked into the HTML.
+        var L = s.lifetime;
+        if (L) {
+          var values = [
+            L.images,      // card 1: Images generated
+            L.listings,    // card 2: Marketplace listings created
+            L.sales        // card 3: Sales completed
+          ];
+          nums.forEach(function(el, i){
+            if (values[i] != null) el.setAttribute('data-to', values[i]);
+          });
+        }
         startAnim();
       })
       .catch(function(err){
