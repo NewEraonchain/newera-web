@@ -1,43 +1,95 @@
-// NewEra wallet connect — WalletConnect + MetaMask, gasless via ERC-4337 Safe smart accounts
+// NewEra wallet connect: WalletConnect + MetaMask. The user's identity is a Safe smart account;
+// the owner wallet operates that Safe directly and pays the (tiny) BNB gas itself. No bundler, no paymaster.
 import { EthereumProvider } from 'https://esm.sh/@walletconnect/ethereum-provider@2.17.0?bundle';
-import { createPublicClient, createWalletClient, custom, http, encodeFunctionData, parseEther, formatEther, parseEventLogs } from "https://esm.sh/viem@2.37.3";
+import { createPublicClient, createWalletClient, custom, http, encodeFunctionData, parseEther, formatEther, parseEventLogs, pad, concat } from "https://esm.sh/viem@2.37.3";
 import { bsc } from "https://esm.sh/viem@2.37.3/chains";
 import { entryPoint07Address } from "https://esm.sh/viem@2.37.3/account-abstraction";
-import { createSmartAccountClient } from "https://esm.sh/permissionless@0.3.6";
-import { createPimlicoClient } from "https://esm.sh/permissionless@0.3.6/clients/pimlico";
 import { toSafeSmartAccount } from "https://esm.sh/permissionless@0.3.6/accounts";
 
 const API = "https://newerabackend-production.up.railway.app";
 const projectId = "b5c417441aeb7274081e5868eb7cdedb";
 
-// ---- gasless (ERC-4337) config ----
-const PIMLICO_KEY = "REVOKED";
-const PIMLICO_POLICY = "REVOKED";
-const PIMLICO_URL = `https://api.pimlico.io/v2/56/rpc?apikey=${PIMLICO_KEY}`;
+// ---- on-chain writes ----
+// Every studio action is a call FROM the user's Safe, so NEA balances, the one-time
+// welcome claim and listings stay tied to the same address they always were. The Safe's
+// single owner (MetaMask / WalletConnect) sends Safe.execTransaction itself and pays gas.
+// Because the sender IS the owner, Safe accepts a "pre-validated" signature (v = 1), so
+// there is no extra signing prompt: one wallet confirmation per action.
 const RPC_URL = "https://bsc-dataseed.bnbchain.org";
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+// gas units to require up front: one action is ~100k; a first-ever action also deploys the Safe (~300k)
+const GAS_UNITS_ACTION = 130000n, GAS_UNITS_FIRST = 450000n;
+const SAFE_EXEC_ABI = [{
+  type: "function", name: "execTransaction", stateMutability: "payable",
+  inputs: [
+    { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "data", type: "bytes" },
+    { name: "operation", type: "uint8" }, { name: "safeTxGas", type: "uint256" }, { name: "baseGas", type: "uint256" },
+    { name: "gasPrice", type: "uint256" }, { name: "gasToken", type: "address" }, { name: "refundReceiver", type: "address" },
+    { name: "signatures", type: "bytes" },
+  ],
+  outputs: [{ name: "success", type: "bool" }],
+}];
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function buildSmartAccount(rawProvider, ownerAddr){
   const publicClient = createPublicClient({ chain: bsc, transport: http(RPC_URL) });
   const walletClient = createWalletClient({ account: ownerAddr, chain: bsc, transport: custom(rawProvider) });
-  const pimlicoClient = createPimlicoClient({
-    transport: http(PIMLICO_URL),
-    entryPoint: { address: entryPoint07Address, version: "0.7" },
-  });
   const safeAccount = await toSafeSmartAccount({
     client: publicClient,
     owners: [walletClient],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
     version: "1.4.1",
   });
-  const smartClient = createSmartAccountClient({
-    account: safeAccount,
-    chain: bsc,
-    paymaster: pimlicoClient,
-    bundlerTransport: http(PIMLICO_URL),
-    paymasterContext: { sponsorshipPolicyId: PIMLICO_POLICY },
-    userOperation: { estimateFeesPerGas: async () => (await pimlicoClient.getUserOperationGasPrice()).fast },
-  });
+  const send = makeSafeSender({ safeAccount, walletClient, publicClient, ownerAddr });
+  // same shape the studio pages already check for (`nw.smartClient`)
+  const smartClient = { sendTransaction: ({ to, data }) => send(to, data) };
   return { safeAccount, smartClient, publicClient };
+}
+
+async function isDeployed(publicClient, address){
+  const code = await publicClient.getCode({ address });
+  return !!code && code !== "0x";
+}
+
+// Returns send(to, data) -> tx hash, resolving only once the action is MINED. The studio
+// relies on that: it approves NEA and then immediately pays with it.
+function makeSafeSender({ safeAccount, walletClient, publicClient, ownerAddr }){
+  const safe = safeAccount.address;
+  return async function send(to, data){
+    // 1) gas money lives in the owner wallet now; size the check to the live gas price
+    const deployed = await isDeployed(publicClient, safe);
+    const [bal, gasPrice] = await Promise.all([publicClient.getBalance({ address: ownerAddr }), publicClient.getGasPrice()]);
+    if (bal < gasPrice * (deployed ? GAS_UNITS_ACTION : GAS_UNITS_FIRST)) throw new Error("Add a little BNB to your wallet for gas");
+
+    // 2) dry-run the action as the Safe, so a real failure surfaces its own reason
+    //    ("Already claimed", "NEA payment failed") instead of Safe's opaque GS013
+    await publicClient.call({ account: safe, to, data });
+
+    // 3) first action ever: deploy the Safe at its usual address (one extra confirmation, once)
+    if (!deployed) {
+      const { factory, factoryData } = await safeAccount.getFactoryArgs();
+      const dHash = await walletClient.sendTransaction({ to: factory, data: factoryData });
+      const dRc = await publicClient.waitForTransactionReceipt({ hash: dHash });
+      if (dRc.status !== "success") throw new Error("Account setup failed on-chain");
+      for (let i = 0; i < 10 && !(await isDeployed(publicClient, safe)); i++) await sleep(1000);
+      if (!(await isDeployed(publicClient, safe))) throw new Error("Account setup not visible yet, retry");
+    }
+
+    // 4) owner executes through the Safe: CALL, no refund params, pre-validated signature
+    const signatures = concat([pad(ownerAddr, { size: 32 }), pad("0x", { size: 32 }), "0x01"]);
+    const args = [to, 0n, data, 0, 0n, 0n, 0n, ZERO_ADDR, ZERO_ADDR, signatures];
+    const call = { address: safe, abi: SAFE_EXEC_ABI, functionName: "execTransaction", args };
+    let gas;
+    for (let i = 0; ; i++) {           // the public RPC is load-balanced; a node can lag a block
+      try { gas = await publicClient.estimateContractGas({ ...call, account: ownerAddr }); break; }
+      catch (e) { if (i >= 2) throw e; await sleep(1500); }
+    }
+    const hash = await walletClient.writeContract({ ...call, gas: (gas * 13n) / 10n });
+    const rc = await publicClient.waitForTransactionReceipt({ hash });
+    if (rc.status !== "success") throw new Error("Transaction failed on-chain");
+    return hash;
+  };
 }
 
 let wcProvider = null;                                   // shared WalletConnect provider
@@ -65,7 +117,7 @@ function setDisconnectedUI(){
 const savedAddr = localStorage.getItem("newera_address");
 if (savedAddr) setConnectedUI(savedAddr);
 
-// rebuild the smart client on page load, so every page can send gasless txs
+// rebuild the Safe sender on page load, so every page can send transactions
 async function restoreSmartAccount(){
   const owner = localStorage.getItem("newera_owner");
   const saved = localStorage.getItem("newera_address");
@@ -80,8 +132,8 @@ async function restoreSmartAccount(){
       smartClient, safeAccount, publicClient,
       safeAddress: safeAccount.address, ownerAddress: accts[0],
       write: async (to, abi, functionName, args) => {
-        const data = encodeFunctionData({ abi, functionName, args: args || [] });
-        return smartClient.sendTransaction({ to, data });
+        const callData = encodeFunctionData({ abi, functionName, args: args || [] });
+        return smartClient.sendTransaction({ to, data: callData });
       },
       read: async (to, abi, functionName, args) =>
         publicClient.readContract({ address: to, abi, functionName, args: args || [] }),
@@ -130,8 +182,8 @@ async function backendLogin(ownerAddr, rawProvider){
       smartClient, safeAccount, publicClient,
       safeAddress: address, ownerAddress: ownerAddr,
       write: async (to, abi, functionName, args) => {
-        const data = encodeFunctionData({ abi, functionName, args: args || [] });
-        return smartClient.sendTransaction({ to, data });
+        const callData = encodeFunctionData({ abi, functionName, args: args || [] });
+        return smartClient.sendTransaction({ to, data: callData });
       },
       read: async (to, abi, functionName, args) =>
         publicClient.readContract({ address: to, abi, functionName, args: args || [] }),

@@ -137,7 +137,7 @@
     try {
       var nw = window.newera;
       var priceWei = nw.parseEther(priceNum);
-      setStatus("Listing your prompt (no gas needed)...", "work");
+      setStatus("Listing your prompt...", "work");
       var txHash = await nw.write(MARKET_ADDRESS, MARKET_ABI_V, "list", [priceWei, current.id]);
       setStatus("Confirming on-chain...", "work");
       var receipt = await nw.waitReceipt(txHash);

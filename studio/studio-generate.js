@@ -230,7 +230,7 @@
       // 3) approve if needed (gasless)
       var allowance = await nw.read(NEA_ADDRESS, NEA_ABI_V, "allowance", [me, GENERATION_ADDRESS]);
       if (allowance < cost) {
-        setLoading("Approving NEA (no gas needed)\u2026");
+        setLoading("Approving NEA\u2026");
         await nw.write(NEA_ADDRESS, NEA_ABI_V, "approve", [GENERATION_ADDRESS, cost]);
       }
 

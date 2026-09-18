@@ -207,7 +207,7 @@
 
       var allowance = await nw.read(NEA_ADDRESS, NEA_ABI_V, "allowance", [me, MARKET_ADDRESS]);
       if (allowance < amount) {
-        showToast("Approving NEA (no gas needed)...");
+        showToast("Approving NEA...");
         await nw.write(NEA_ADDRESS, NEA_ABI_V, "approve", [MARKET_ADDRESS, amount]);
       }
 
