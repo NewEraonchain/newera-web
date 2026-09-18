@@ -133,7 +133,7 @@
         creditVal.textContent = Math.floor(parseFloat(bal)).toString();
       }
       // show welcome-claim banner if not claimed yet
-      if (data && data.welcomeClaimed === false) {
+      if (data && data.welcomeClaimed === false && !window.NEWERA_CLAIMS_PAUSED) {
         showClaimBanner();
       } else {
         hideClaimBanner();

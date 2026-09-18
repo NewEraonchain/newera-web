@@ -1,3 +1,10 @@
+/* ---- claims switch ----
+   true  = hide every claim surface: the welcome banner on Generate, the Claim
+           tab on Profile, and the task reward buttons inside it.
+   false = show them again. Paused 2026-09-18 because gas sponsorship is
+           unfunded, so a claim can only fail. Flip this one line to restore. */
+window.NEWERA_CLAIMS_PAUSED = true;
+
 /* nav active */
   document.getElementById('nav').addEventListener('click',function(e){
     var b=e.target.closest('.nav-item'); if(!b) return;

@@ -223,7 +223,7 @@
     if (dvWelcome) {
       dvWelcome.innerHTML = claimed
         ? '<span class="badge">Claimed</span>'
-        : '<span class="badge neutral">Not claimed</span>';
+        : '<span class="badge neutral">' + (window.NEWERA_CLAIMS_PAUSED ? 'Paused' : 'Not claimed') + '</span>';
     }
     if (!claimWrap) return;
     if (claimed) {
@@ -263,6 +263,11 @@
       showToast(msg.length > 40 ? "Claim failed" : msg);
       if (btn) { btn.disabled = false; btn.textContent = "Claim 50 NEA"; }
     }
+  }
+
+  // ---- claims paused: take the Claim tab and its panel out entirely ----
+  if (window.NEWERA_CLAIMS_PAUSED) {
+    document.querySelectorAll('[data-tab="claim"], [data-panel="claim"]').forEach(function (el) { el.remove(); });
   }
 
   // ---- tabs ----

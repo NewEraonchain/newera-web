@@ -79,7 +79,7 @@
   }
 
   async function load() {
-    if (!token()) return;
+    if (window.NEWERA_CLAIMS_PAUSED || !token()) return;
     try {
       var r = await fetch(API + "/rewards", { headers: { "Authorization": "Bearer " + token() } });
       if (!r.ok) return;
