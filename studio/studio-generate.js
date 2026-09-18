@@ -164,17 +164,17 @@
   }
 
   async function claimWelcome() {
-    if (!window.ethereum || !window.ethers) {
-      setStatus("Wallet not ready, try again in a moment.", "warn");
-      return;
-    }
+    if (!token()) { setStatus("Please connect your wallet first.", "warn"); return; }
     var btn = document.getElementById("claimBtn");
-    if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
+    if (btn) { btn.disabled = true; btn.textContent = "Claiming..."; }
     try {
-      var nw = window.newera;
-      if (!nw || !nw.smartClient) throw new Error("Wallet still connecting, try again");
-      if (btn) btn.textContent = "Claiming...";
-      await nw.write(NEA_ADDRESS, NEA_ABI_V, "claimWelcome", []);
+      var r = await fetch(API + "/rewards/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+        body: JSON.stringify({})
+      });
+      var out = await r.json();
+      if (!r.ok || !out.success) throw new Error((out && out.error) || "Claim failed");
       hideClaimBanner();
       setStatus("50 NEA claimed. You're ready to generate!", "done");
       setTimeout(clearStatus, 4000);
@@ -182,7 +182,6 @@
     } catch (err) {
       console.error(err);
       var msg = err && err.message ? err.message : "Claim failed";
-      if (/user rejected|denied/i.test(msg)) msg = "You cancelled the claim.";
       if (/already claimed|claimed/i.test(msg)) { msg = "Welcome bonus already claimed."; hideClaimBanner(); }
       setStatus(msg, "warn");
       if (btn) { btn.disabled = false; btn.textContent = "Claim 50 NEA"; }
@@ -205,53 +204,24 @@
       setStatus("Please connect your wallet first to generate.", "warn");
       return;
     }
-    var nw = window.newera;
-    if (!nw || !nw.smartClient) {
-      setStatus("Wallet still connecting, try again in a moment.", "warn");
-      return;
-    }
-
     busy = true;
     genBtn.style.pointerEvents = "none";
     genBtn.style.opacity = ".7";
 
     try {
-      var me = nw.safeAddress;
-      var cost = nw.parseEther(COST_NEA);
-
-      // 2) check balance (smart account holds the NEA)
-      var bal = await nw.read(NEA_ADDRESS, NEA_ABI_V, "balanceOf", [me]);
-      if (bal < cost) {
-        setStatus("Not enough NEA. You need " + COST_NEA + " NEA to generate one image.", "warn");
-        busy = false; genBtn.style.pointerEvents = ""; genBtn.style.opacity = "";
-        return;
-      }
-
-      // 3) approve if needed (gasless)
-      var allowance = await nw.read(NEA_ADDRESS, NEA_ABI_V, "allowance", [me, GENERATION_ADDRESS]);
-      if (allowance < cost) {
-        setLoading("Approving NEA\u2026");
-        await nw.write(NEA_ADDRESS, NEA_ABI_V, "approve", [GENERATION_ADDRESS, cost]);
-      }
-
-      // 4) pay 10 NEA via generate() (gasless)
-      setLoading("Confirming your 10 NEA payment\u2026");
-      var txHash = await nw.write(GENERATION_ADDRESS, GEN_ABI_V, "generate", []);
-
-      // 5) ask backend to generate the image
-      setLoading("Creating your image…");
+      // the API charges the generation fee, generates, and refunds automatically if generation fails
+      setLoading("Creating your image...");
       var resp = await fetch(API + "/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token()
-        },
-        body: JSON.stringify({ prompt: prompt, txHash: txHash })
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+        body: JSON.stringify({ prompt: prompt })
       });
       var out = await resp.json();
 
-      if (!resp.ok || !out.success) {
-        setStatus("Generation failed: " + (out.error || "unknown error"), "warn");
+      if (resp.status === 402) {
+        setStatus((out && out.error) || ("Not enough NEA. You need " + COST_NEA + " NEA to generate one image."), "warn");
+      } else if (!resp.ok || !out.success) {
+        setStatus((out && out.error) || "Generation failed, please try again.", "warn");
       } else {
         var img = out.image;
         clearStatus();        // remove the loading line
@@ -262,7 +232,6 @@
     } catch (err) {
       console.error(err);
       var msg = err && err.message ? err.message : "Something went wrong";
-      if (/user rejected|denied/i.test(msg)) msg = "You cancelled the transaction.";
       setStatus(msg, "warn");
     } finally {
       busy = false;

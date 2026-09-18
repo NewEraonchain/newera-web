@@ -113,28 +113,15 @@
     if (title.length < 2) { setStatus("Please add a title (at least 2 characters).", "warn"); smTitle.focus(); return; }
     if (isNaN(priceNum) || priceNum <= MIN_PRICE) { setStatus("Price must be more than " + MIN_PRICE + " NEA.", "warn"); smPrice.focus(); return; }
     if (!token()) { setStatus("Connect your wallet first.", "warn"); return; }
-    if (!window.newera || !window.newera.smartClient) { setStatus("Wallet still connecting, try again in a moment.", "warn"); return; }
-
     smGo.disabled = true;
     try {
-      var nw = window.newera;
-      var priceWei = nw.parseEther(priceNum);
       setStatus("Listing your image...", "work");
-      var txHash = await nw.write(MARKET_ADDRESS, MARKET_ABI_V, "list", [priceWei, current.id]);
-      setStatus("Confirming on-chain...", "work");
-      var receipt = await nw.waitReceipt(txHash);
-      var listingId = null;
-      var ev = nw.parseEvent(MARKET_ABI_V, "Listed", receipt.logs);
-      if (ev && ev.id != null) listingId = ev.id.toString();
-
-      setStatus("Saving your listing\u2026", "work");
       var r = await fetch(API + "/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
         body: JSON.stringify({
           imageId: current.id,
-          price: String(priceNum),          // human NEA; buy side converts to wei
-          onchainListingId: listingId,
+          price: String(priceNum),
           title: title
         })
       });
@@ -150,7 +137,6 @@
     } catch (err) {
       console.error(err);
       var msg = err && err.message ? err.message : "Listing failed";
-      if (/user rejected|denied/i.test(msg)) msg = "You cancelled the listing.";
       setStatus(msg.length > 60 ? "Listing failed. Please try again." : msg, "warn");
       smGo.disabled = false;
     }

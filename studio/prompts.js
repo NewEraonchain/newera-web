@@ -192,37 +192,17 @@
   });
 
   // buy + reveal
-  async function buyPrompt(promptId, price, listingId) {
+  async function buyPrompt(promptId, price) {
     if (!token() || !address()) { showToast("Connect your wallet to buy"); return; }
-    if (!window.ethereum || !window.ethers) { showToast("Wallet not ready"); return; }
-    if (listingId === "" || listingId == null) {
-      showToast("This prompt is missing its on-chain id");
-      return;
-    }
     try {
-      var nw = window.newera;
-      if (!nw || !nw.smartClient) { showToast("Wallet still connecting, try again"); return; }
-      var me = nw.safeAddress;
-      var amount = toWei(price);
-
-      var allowance = await nw.read(NEA_ADDRESS, NEA_ABI_V, "allowance", [me, MARKET_ADDRESS]);
-      if (allowance < amount) {
-        showToast("Approving NEA...");
-        await nw.write(NEA_ADDRESS, NEA_ABI_V, "approve", [MARKET_ADDRESS, amount]);
-      }
-
-      showToast("Confirming your purchase...");
-      var txHash = await nw.write(MARKET_ADDRESS, MARKET_ABI_V, "buy", [BigInt(listingId)]);
-      var receipt = await nw.waitReceipt(txHash);
-
-      showToast("Unlocking your prompt\u2026");
+      showToast("Unlocking your prompt...");
       var r = await fetch(API + "/prompts/buy", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
-        body: JSON.stringify({ promptId: promptId, txHash: txHash })
+        body: JSON.stringify({ promptId: promptId })
       });
       var out = await r.json();
-      if (!r.ok || !out.success) { showToast((out && out.error) || "Purchase could not be verified"); return; }
+      if (!r.ok || !out.success) { showToast((out && out.error) || "Purchase failed, try another prompt"); return; }
 
       unlocked[promptId] = out.prompt.content;   // revealed
       render(allItems);
@@ -230,11 +210,7 @@
       showToast("Prompt unlocked");
     } catch (err) {
       console.error(err);
-      var msg = err && err.message ? err.message : "Purchase failed";
-      if (/user rejected|denied/i.test(msg)) { showToast("Purchase cancelled"); return; }
-      if (/Not active|4e6f74206163746976/i.test(msg)) { showToast("Just sold - refreshing"); loadPrompts(); return; }
-      if (/your own|Cannot buy/i.test(msg)) { showToast("You cannot buy your own prompt"); return; }
-      showToast(msg.length > 48 ? "Purchase failed, try another prompt" : msg);
+      showToast("Purchase failed, please try again");
     }
   }
 

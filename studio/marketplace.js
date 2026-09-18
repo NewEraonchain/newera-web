@@ -189,52 +189,26 @@
     }
   });
 
-  // ---- buy: on-chain pay -> POST /buy verify + unlock ----
-  async function buyItem(imageId, price, listingId) {
+  // ---- buy: POST /buy charges the listing's price from your NEA balance ----
+  async function buyItem(imageId, price) {
     if (!token() || !address()) { showToast("Connect your wallet to buy"); return; }
-    if (!window.ethereum || !window.ethers) { showToast("Wallet not ready"); return; }
-    if (!BUY_ENABLED || listingId === "" || listingId == null) {
-      showToast("Checkout is almost ready \u2014 finishing the marketplace contract wiring");
-      return;
-    }
     try {
-      var nw = window.newera;
-      if (!nw || !nw.smartClient) { showToast("Wallet still connecting, try again"); return; }
-      var me = nw.safeAddress;
-      var amount = toWei(price);
-
-      // 1) approve NEA if needed (gasless)
-      var allowance = await nw.read(NEA_ADDRESS, NEA_ABI_V, "allowance", [me, MARKET_ADDRESS]);
-      if (allowance < amount) {
-        showToast("Approving NEA...");
-        await nw.write(NEA_ADDRESS, NEA_ABI_V, "approve", [MARKET_ADDRESS, amount]);
-      }
-
-      // 2) buy on-chain (gasless)
       showToast("Confirming your purchase...");
-      var txHash = await nw.write(MARKET_ADDRESS, MARKET_ABI_V, "buy", [BigInt(listingId)]);
-      var receipt = await nw.waitReceipt(txHash);
-
-      // 3) verify + unlock
-      showToast("Verifying your purchase\u2026");
       var r = await fetch(API + "/buy", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
-        body: JSON.stringify({ imageId: imageId, txHash: txHash })
+        body: JSON.stringify({ imageId: imageId })
       });
       var out = await r.json();
-      if (!r.ok || !out.success) { showToast(out.error || "Purchase could not be verified"); return; }
+      if (r.status === 409) { showToast((out && out.error) || "Just sold - refreshing the market"); loadMarket(); return; }
+      if (!r.ok || !out.success) { showToast((out && out.error) || "Purchase failed, try another item"); return; }
 
-      showToast("Purchased. It\u2019s now in your collection.");
+      showToast("Purchased. It is now in your collection.");
       refreshAccount();
       loadMarket();
     } catch (err) {
       console.error(err);
-      var msg = err && err.message ? err.message : "Purchase failed";
-      if (/user rejected|denied/i.test(msg)) { showToast("Purchase cancelled"); return; }
-      if (/Not active|4e6f74206163746976/i.test(msg)) { showToast("Just sold - refreshing the market"); loadMarket(); return; }
-      if (/your own|Cannot buy/i.test(msg)) { showToast("You cannot buy your own listing"); return; }
-      showToast(msg.length > 48 ? "Purchase failed, try another item" : msg);
+      showToast("Purchase failed, please try again");
     }
   }
 

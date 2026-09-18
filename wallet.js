@@ -1,7 +1,8 @@
-// NewEra wallet connect: WalletConnect + MetaMask. The user's identity is a Safe smart account;
-// the owner wallet operates that Safe directly and pays the (tiny) BNB gas itself. No bundler, no paymaster.
+// NewEra wallet connect: WalletConnect + MetaMask, used for SIGN-IN only. Nothing here sends a transaction.
+// A user's account is their Safe smart-account address (derived from the connected wallet), which keeps
+// every existing account valid. All balances and payments live in the NewEra database, behind the API.
 import { EthereumProvider } from 'https://esm.sh/@walletconnect/ethereum-provider@2.17.0?bundle';
-import { createPublicClient, createWalletClient, custom, http, encodeFunctionData, parseEther, formatEther, parseEventLogs, pad, concat } from "https://esm.sh/viem@2.37.3";
+import { createPublicClient, createWalletClient, custom, http } from "https://esm.sh/viem@2.37.3";
 import { bsc } from "https://esm.sh/viem@2.37.3/chains";
 import { entryPoint07Address } from "https://esm.sh/viem@2.37.3/account-abstraction";
 import { toSafeSmartAccount } from "https://esm.sh/permissionless@0.3.6/accounts";
@@ -9,29 +10,11 @@ import { toSafeSmartAccount } from "https://esm.sh/permissionless@0.3.6/accounts
 const API = "https://newerabackend-production.up.railway.app";
 const projectId = "b5c417441aeb7274081e5868eb7cdedb";
 
-// ---- on-chain writes ----
-// Every studio action is a call FROM the user's Safe, so NEA balances, the one-time
-// welcome claim and listings stay tied to the same address they always were. The Safe's
-// single owner (MetaMask / WalletConnect) sends Safe.execTransaction itself and pays gas.
-// Because the sender IS the owner, Safe accepts a "pre-validated" signature (v = 1), so
-// there is no extra signing prompt: one wallet confirmation per action.
+// ---- account identity ----
 const RPC_URL = "https://bsc-dataseed.bnbchain.org";
-const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
-// gas units to require up front: one action is ~100k; a first-ever action also deploys the Safe (~300k)
-const GAS_UNITS_ACTION = 130000n, GAS_UNITS_FIRST = 450000n;
-const SAFE_EXEC_ABI = [{
-  type: "function", name: "execTransaction", stateMutability: "payable",
-  inputs: [
-    { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "data", type: "bytes" },
-    { name: "operation", type: "uint8" }, { name: "safeTxGas", type: "uint256" }, { name: "baseGas", type: "uint256" },
-    { name: "gasPrice", type: "uint256" }, { name: "gasToken", type: "address" }, { name: "refundReceiver", type: "address" },
-    { name: "signatures", type: "bytes" },
-  ],
-  outputs: [{ name: "success", type: "bool" }],
-}];
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
+// Derive the user's Safe address from the connected wallet. Read-only: used to identify the
+// account and to sign the login message. It is never deployed or sent a transaction from here.
 async function buildSmartAccount(rawProvider, ownerAddr){
   const publicClient = createPublicClient({ chain: bsc, transport: http(RPC_URL) });
   const walletClient = createWalletClient({ account: ownerAddr, chain: bsc, transport: custom(rawProvider) });
@@ -41,55 +24,7 @@ async function buildSmartAccount(rawProvider, ownerAddr){
     entryPoint: { address: entryPoint07Address, version: "0.7" },
     version: "1.4.1",
   });
-  const send = makeSafeSender({ safeAccount, walletClient, publicClient, ownerAddr });
-  // same shape the studio pages already check for (`nw.smartClient`)
-  const smartClient = { sendTransaction: ({ to, data }) => send(to, data) };
-  return { safeAccount, smartClient, publicClient };
-}
-
-async function isDeployed(publicClient, address){
-  const code = await publicClient.getCode({ address });
-  return !!code && code !== "0x";
-}
-
-// Returns send(to, data) -> tx hash, resolving only once the action is MINED. The studio
-// relies on that: it approves NEA and then immediately pays with it.
-function makeSafeSender({ safeAccount, walletClient, publicClient, ownerAddr }){
-  const safe = safeAccount.address;
-  return async function send(to, data){
-    // 1) gas money lives in the owner wallet now; size the check to the live gas price
-    const deployed = await isDeployed(publicClient, safe);
-    const [bal, gasPrice] = await Promise.all([publicClient.getBalance({ address: ownerAddr }), publicClient.getGasPrice()]);
-    if (bal < gasPrice * (deployed ? GAS_UNITS_ACTION : GAS_UNITS_FIRST)) throw new Error("Add a little BNB to your wallet for gas");
-
-    // 2) dry-run the action as the Safe, so a real failure surfaces its own reason
-    //    ("Already claimed", "NEA payment failed") instead of Safe's opaque GS013
-    await publicClient.call({ account: safe, to, data });
-
-    // 3) first action ever: deploy the Safe at its usual address (one extra confirmation, once)
-    if (!deployed) {
-      const { factory, factoryData } = await safeAccount.getFactoryArgs();
-      const dHash = await walletClient.sendTransaction({ to: factory, data: factoryData });
-      const dRc = await publicClient.waitForTransactionReceipt({ hash: dHash });
-      if (dRc.status !== "success") throw new Error("Account setup failed on-chain");
-      for (let i = 0; i < 10 && !(await isDeployed(publicClient, safe)); i++) await sleep(1000);
-      if (!(await isDeployed(publicClient, safe))) throw new Error("Account setup not visible yet, retry");
-    }
-
-    // 4) owner executes through the Safe: CALL, no refund params, pre-validated signature
-    const signatures = concat([pad(ownerAddr, { size: 32 }), pad("0x", { size: 32 }), "0x01"]);
-    const args = [to, 0n, data, 0, 0n, 0n, 0n, ZERO_ADDR, ZERO_ADDR, signatures];
-    const call = { address: safe, abi: SAFE_EXEC_ABI, functionName: "execTransaction", args };
-    let gas;
-    for (let i = 0; ; i++) {           // the public RPC is load-balanced; a node can lag a block
-      try { gas = await publicClient.estimateContractGas({ ...call, account: ownerAddr }); break; }
-      catch (e) { if (i >= 2) throw e; await sleep(1500); }
-    }
-    const hash = await walletClient.writeContract({ ...call, gas: (gas * 13n) / 10n });
-    const rc = await publicClient.waitForTransactionReceipt({ hash });
-    if (rc.status !== "success") throw new Error("Transaction failed on-chain");
-    return hash;
-  };
+  return { safeAccount };
 }
 
 let wcProvider = null;                                   // shared WalletConnect provider
@@ -117,47 +52,11 @@ function setDisconnectedUI(){
 const savedAddr = localStorage.getItem("newera_address");
 if (savedAddr) setConnectedUI(savedAddr);
 
-// rebuild the Safe sender on page load, so every page can send transactions
-async function restoreSmartAccount(){
-  const owner = localStorage.getItem("newera_owner");
-  const saved = localStorage.getItem("newera_address");
-  if (!owner || !saved || !window.ethereum) { console.log("[newera] restore skipped"); return; }
-  try {
-    const accts = await window.ethereum.request({ method: "eth_accounts" });
-    if (!accts || !accts.length) { console.log("[newera] wallet locked"); return; }
-    if (accts[0].toLowerCase() !== owner.toLowerCase()) { console.log("[newera] different account"); return; }
-    const { safeAccount, smartClient, publicClient } = await buildSmartAccount(window.ethereum, accts[0]);
-    if (safeAccount.address.toLowerCase() !== saved.toLowerCase()) { console.log("[newera] safe mismatch"); return; }
-    window.newera = {
-      smartClient, safeAccount, publicClient,
-      safeAddress: safeAccount.address, ownerAddress: accts[0],
-      write: async (to, abi, functionName, args) => {
-        const callData = encodeFunctionData({ abi, functionName, args: args || [] });
-        return smartClient.sendTransaction({ to, data: callData });
-      },
-      read: async (to, abi, functionName, args) =>
-        publicClient.readContract({ address: to, abi, functionName, args: args || [] }),
-      parseEther: (n) => parseEther(String(n)),
-      formatEther: (n) => formatEther(n),
-      waitReceipt: (hash) => publicClient.waitForTransactionReceipt({ hash }),
-      parseEvent: (abi, eventName, logs) => {
-        try {
-          const evts = parseEventLogs({ abi, eventName, logs });
-          return (evts && evts.length) ? evts[0].args : null;
-        } catch (e) { return null; }
-      },
-    };
-    window.dispatchEvent(new CustomEvent("newera:ready", { detail: { address: safeAccount.address } }));
-    console.log("[newera] smart account restored:", safeAccount.address);
-  } catch (e) { console.log("[newera] restore failed:", e.message); }
-}
-restoreSmartAccount();
-
 // ---- backend login (smart account) ----
-// The Safe smart account is the user's on-chain identity: NEA, images, listings live there.
+// The Safe smart-account address is the user's account id. Signing in proves control of it.
 // MetaMask/WalletConnect is only the owner (signs). Backend verifies via ERC-1271/6492.
 async function backendLogin(ownerAddr, rawProvider){
-  const { safeAccount, smartClient, publicClient } = await buildSmartAccount(rawProvider, ownerAddr);
+  const { safeAccount } = await buildSmartAccount(rawProvider, ownerAddr);
   const address = safeAccount.address;
 
   const { message } = await (await fetch(API + "/auth/nonce", {
@@ -178,25 +77,6 @@ async function backendLogin(ownerAddr, rawProvider){
     localStorage.setItem("newera_owner", ownerAddr);
     loggedInFor = address;
     setConnectedUI(address);
-    window.newera = {
-      smartClient, safeAccount, publicClient,
-      safeAddress: address, ownerAddress: ownerAddr,
-      write: async (to, abi, functionName, args) => {
-        const callData = encodeFunctionData({ abi, functionName, args: args || [] });
-        return smartClient.sendTransaction({ to, data: callData });
-      },
-      read: async (to, abi, functionName, args) =>
-        publicClient.readContract({ address: to, abi, functionName, args: args || [] }),
-      parseEther: (n) => parseEther(String(n)),
-      formatEther: (n) => formatEther(n),
-      waitReceipt: (hash) => publicClient.waitForTransactionReceipt({ hash }),
-      parseEvent: (abi, eventName, logs) => {
-        try {
-          const evts = parseEventLogs({ abi, eventName, logs });
-          return (evts && evts.length) ? evts[0].args : null;
-        } catch (e) { return null; }
-      },
-    };
     window.dispatchEvent(new CustomEvent("newera:ready", { detail: { address } }));
   }
 }
@@ -325,64 +205,6 @@ function openWalletChooser(){
   overlay.querySelector("#nw-mm").onclick = async () => { overlay.style.display="none"; try{ await connectInjected(); }catch(e){ console.error(e); } };
   overlay.querySelector("#nw-wc").onclick = async () => { overlay.style.display="none"; try{ await connectWalletConnect(); }catch(e){ console.error(e); } };
   
-}
-
-// ---- faucet popup: user enters address, claims free tBNB ----
-function openFaucetPopup(){
-  let ov = document.getElementById("nw-faucet-overlay");
-  if (ov) { ov.style.display = "flex"; return; }
-
-  ov = document.createElement("div");
-  ov.id = "nw-faucet-overlay";
-  ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)";
-  const saved = localStorage.getItem("newera_address") || "";
-  ov.innerHTML = `
-    <div style="background:linear-gradient(180deg,#0e1016,#0a0c12);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px 28px;width:min(400px,90vw);font-family:Inter,sans-serif;box-shadow:0 40px 100px -30px rgba(0,0,0,.9);position:relative">
-      <span id="nwf-close" style="position:absolute;top:22px;right:24px;color:#9aa1ad;cursor:pointer;font-size:24px;line-height:1">&times;</span>
-      <div style="text-align:center;margin-bottom:22px">
-        <div style="width:54px;height:54px;border-radius:15px;margin:0 auto 16px;display:grid;place-items:center;background:rgba(205,255,77,.1);border:1px solid rgba(205,255,77,.28)">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cdff4d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 22v-6M5 9l2 2M17 13l2 2M2 12h6M16 12h6"/></svg>
-        </div>
-        <h3 style="color:#f5f7fa;font-size:20px;margin:0 0 8px;font-family:'Space Grotesk',sans-serif;font-weight:700">Claim free tBNB</h3>
-        <p style="color:#9aa1ad;font-size:13px;margin:0;line-height:1.5">Get a little test BNB to cover gas fees. One claim per wallet every 24 hours.</p>
-      </div>
-      <input id="nwf-addr" type="text" placeholder="Your wallet address (0x…)" value="${saved}" spellcheck="false" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#f5f7fa;padding:14px 15px;border-radius:12px;font-size:14px;font-family:'JetBrains Mono',monospace;margin-bottom:14px;outline:none" />
-      <button id="nwf-claim" style="width:100%;background:#cdff4d;border:0;color:#0a0d05;padding:14px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:700;transition:.18s" onmouseover="this.style.filter='brightness(1.05)'" onmouseout="this.style.filter='none'">Claim 0.01 tBNB</button>
-      <div id="nwf-msg" style="margin-top:14px;font-size:13px;text-align:center;line-height:1.5;display:none"></div>
-    </div>`;
-  document.body.appendChild(ov);
-
-  const close = () => ov.style.display = "none";
-  ov.querySelector("#nwf-close").onclick = close;
-  ov.onclick = (e) => { if (e.target === ov) close(); };
-
-  const msg = ov.querySelector("#nwf-msg");
-  function showMsg(text, color){ msg.style.display="block"; msg.style.color = color; msg.textContent = text; }
-
-  ov.querySelector("#nwf-claim").onclick = async () => {
-    const addr = (ov.querySelector("#nwf-addr").value || "").trim();
-    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) { showMsg("Please enter a valid wallet address.", "#ff8a97"); return; }
-    const btn = ov.querySelector("#nwf-claim");
-    btn.disabled = true; btn.textContent = "Sending…";
-    showMsg("Sending tBNB to your wallet…", "#cdff4d");
-    try {
-      const r = await fetch(API + "/faucet", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr }),
-      });
-      const d = await r.json();
-      if (r.ok && d.success) {
-        showMsg("Success! 0.01 tBNB sent. It'll arrive in a few seconds.", "#cdff4d");
-        btn.textContent = "Claimed ✓";
-      } else {
-        showMsg(d.error || "Could not claim right now.", "#ff8a97");
-        btn.disabled = false; btn.textContent = "Claim 0.01 tBNB";
-      }
-    } catch (e) {
-      showMsg("Network error, please try again.", "#ff8a97");
-      btn.disabled = false; btn.textContent = "Claim 0.01 tBNB";
-    }
-  };
 }
 
 // ---- disconnect menu (when clicking the address) ----

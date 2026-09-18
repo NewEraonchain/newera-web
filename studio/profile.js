@@ -245,20 +245,22 @@
 
   async function claimWelcome() {
     var btn = $("claimBtn");
-    
-    if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet\u2026"; }
+    if (!token()) { showToast("Connect your wallet first"); return; }
+    if (btn) { btn.disabled = true; btn.textContent = "Claiming..."; }
     try {
-      var nw = window.newera;
-      if (!nw || !nw.smartClient) { showToast("Wallet still connecting, try again"); if (btn) { btn.disabled = false; btn.textContent = "Claim 50 NEA"; } return; }
-      if (btn) btn.textContent = "Claiming...";
-      await nw.write(NEA_ADDRESS, NEA_ABI_V, "claimWelcome", []);
+      var r = await fetch(API + "/rewards/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+        body: JSON.stringify({})
+      });
+      var out = await r.json();
+      if (!r.ok || !out.success) throw new Error((out && out.error) || "Claim failed");
       renderWelcome(true);
       showToast("50 NEA claimed");
       loadBalance(address());
     } catch (err) {
       console.error(err);
       var msg = err && err.message ? err.message : "Claim failed";
-      if (/user rejected|denied/i.test(msg)) msg = "Claim cancelled";
       if (/already claimed|claimed/i.test(msg)) { renderWelcome(true); showToast("Already claimed"); return; }
       showToast(msg.length > 40 ? "Claim failed" : msg);
       if (btn) { btn.disabled = false; btn.textContent = "Claim 50 NEA"; }
