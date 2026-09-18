@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>How generating AI art works · NewEra</title>
-<meta name="description" content="A step-by-step look at how NewEra turns a text prompt into an AI image you own, including the on-chain payment, verification, and ownership." />
+<meta name="description" content="A step-by-step look at how NewEra turns a text prompt into an AI image you own, including the payment, the automatic refund if it fails, and ownership." />
 
 <!-- social share (OpenGraph + Twitter) -->
 <meta property="og:type" content="article" />
@@ -41,13 +41,13 @@
     <!-- hero -->
     <section class="hero">
       <p class="kicker">generating ai art</p>
-      <h1>You write a sentence. The chain does the rest.</h1>
-      <p class="standfirst">Type a prompt, approve a small payment, and a unique image is generated and tied to your wallet. Here is exactly what happens at each step: the plain version and what runs on-chain.</p>
+      <h1>You write a sentence. NewEra does the rest.</h1>
+      <p class="standfirst">Type a prompt, and a unique image is generated and added to your collection. Here is exactly what happens at each step: the plain version and what runs underneath.</p>
     </section>
 
     <!-- SIGNATURE: transaction-trace flow -->
     <div class="trace reveal">
-      <div class="trace-head"><span class="live"></span> tx trace · prompt → owned image</div>
+      <div class="trace-head"><span class="live"></span> the path · prompt → owned image</div>
       <div class="trace-body">
         <div class="tnode">
           <div class="step-id">00 · input</div>
@@ -57,12 +57,12 @@
         <div class="tnode">
           <div class="step-id">01 · pay</div>
           <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></div>
-          <b>10 NEA</b><em>wallet pays</em>
+          <b>10 NEA</b><em>from your balance</em>
         </div>
         <div class="tnode">
           <div class="step-id">02 · check</div>
           <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
-          <b>Verify</b><em>payment confirmed</em>
+          <b>Charge</b><em>balance checked</em>
         </div>
         <div class="tnode">
           <div class="step-id">03 · render</div>
@@ -72,7 +72,7 @@
         <div class="tnode">
           <div class="step-id">04 · own</div>
           <div class="ticon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V8a7 7 0 0 1 14 0v3"/><rect x="4" y="11" width="16" height="9" rx="2"/></svg></div>
-          <b>Yours</b><em>held by wallet</em>
+          <b>Yours</b><em>in your collection</em>
         </div>
       </div>
     </div>
@@ -91,34 +91,34 @@
             <h3>Write your prompt</h3>
             <p class="plain">Type what you want to see: a subject, a style, a mood. Then press Generate.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>Nothing is created yet. The app builds a payment request first, because the network has to confirm you paid before anything is rendered.</p></div>
+          <div class="meta"><span class="label">runs</span><p>Nothing is created yet. The app sends your prompt to NewEra along with your login, so the charge and the image are tied to your account.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">02</div>
           <div>
-            <h3>Your wallet pays 10 NEA</h3>
-            <p class="plain">A prompt from your wallet asks you to approve the payment. You confirm with one tap.</p>
+            <h3>10 NEA comes off your balance</h3>
+            <p class="plain">There's nothing to approve and no wallet pop-up. The cost is taken from your NEA balance as the request goes in.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>Two calls fire: an <span class="mono">approve</span> (you let the contract take 10 NEA), then <span class="mono">generate()</span>, which moves the NEA and logs a payment event. That produces a <b>transaction hash</b>: your receipt.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The charge is a single guarded update: it only goes through if your balance covers it, so a balance can never go negative and the same NEA can't be spent twice. A history entry is written with it.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">03</div>
           <div>
-            <h3>The payment is verified</h3>
-            <p class="plain">NewEra checks the payment really happened, so no one can generate for free.</p>
+            <h3>No image, no charge</h3>
+            <p class="plain">If anything goes wrong before your image exists, the 10 NEA goes straight back to your balance.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The server reads your transaction from the chain and confirms four things: it succeeded, hit the right contract, was exactly 10 NEA, and came from <b>your</b> wallet. The same receipt can't be used twice.</p></div>
+          <div class="meta"><span class="label">runs</span><p>From the moment you're charged until the image is saved, any failure triggers an automatic refund, recorded in your history as its own entry. You're never charged for an image you didn't get.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">04</div>
           <div>
             <h3>The AI renders your image</h3>
-            <p class="plain">With payment confirmed, your prompt becomes a new image, usually within seconds.</p>
+            <p class="plain">With the charge made, your prompt becomes a new image, usually within seconds.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The verified prompt is sent to the image model. The result is stored with your prompt and the payment receipt kept alongside it for provenance.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The prompt is sent to the image model. The result is stored with your prompt, under your account.</p></div>
         </div>
 
         <div class="step reveal">
@@ -127,7 +127,7 @@
             <h3>You own it</h3>
             <p class="plain">The image lands in your gallery. Keep it, download it, or list it for sale.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>It's recorded with your <b>wallet address</b> as owner. Since the whole path (pay, verify, create) is logged, your claim is backed by a transaction anyone can look up.</p></div>
+          <div class="meta"><span class="label">runs</span><p>It's recorded with your <b>account</b> as owner, the one you sign in to with your wallet. If you sell it later, ownership moves to the buyer in the same step as the payment.</p></div>
         </div>
       </div>
     </section>
@@ -142,19 +142,19 @@
       <dl class="glossary">
         <div class="term reveal">
           <dt><span class="dot"></span>NEA</dt>
-          <dd>The platform's token. You spend it to generate (10 per image) and earn it by selling your work. It's the in-app currency, and it lives on the blockchain.</dd>
+          <dd>NewEra's platform credit. You spend it to generate (10 per image) and earn it by selling your work. It lives in your NewEra account, has no monetary value, and can't be withdrawn.</dd>
         </div>
         <div class="term reveal">
           <dt><span class="dot"></span>Wallet</dt>
-          <dd>Your login and your vault in one. It holds your NEA and your images and proves who you are, with <b>no email or password</b>.</dd>
+          <dd>Your login. Signing a free message proves who you are, with <b>no email or password</b>. It never sends a transaction, and you never need gas.</dd>
         </div>
         <div class="term reveal">
-          <dt><span class="dot"></span>On-chain</dt>
-          <dd>Recorded on the blockchain: a public, permanent log. Anyone can check it, and no one can quietly edit or delete it.</dd>
+          <dt><span class="dot"></span>Account history</dt>
+          <dd>A record of every change to your NEA balance: what it was for, how much, and the balance after. Nothing moves without an entry.</dd>
         </div>
         <div class="term reveal">
-          <dt><span class="dot"></span>Gas fee</dt>
-          <dd>A small network fee, paid in BNB, on every transaction. It's separate from the 10 NEA. You'll need a small amount of BNB for gas.</dd>
+          <dt><span class="dot"></span>On-chain (later)</dt>
+          <dd>NewEra's first phase ran on BNB Chain. On-chain settlement is paused so creating is instant and free of gas, and it returns in a later phase.</dd>
         </div>
       </dl>
     </section>
@@ -162,14 +162,14 @@
     <!-- why -->
     <section class="block">
       <div class="why reveal">
-        <h3>Why run it on-chain at all?</h3>
-        <div class="row"><span class="k">You own it</span><span class="v">The image is tied to your wallet and backed by an on-chain payment, so no platform can quietly take it from you.</span></div>
-        <div class="row"><span class="k">It's checkable</span><span class="v">Every payment is a real transaction. You, or anyone, can look it up and verify it.</span></div>
-        <div class="row"><span class="k">No middleman</span><span class="v">When you sell, the earnings settle straight to your wallet.</span></div>
+        <h3>Why it works this way</h3>
+        <div class="row"><span class="k">You own it</span><span class="v">The image is recorded to your account the moment it's made, and it stays yours until you choose to sell it.</span></div>
+        <div class="row"><span class="k">It's fair</span><span class="v">You're charged only for images you actually receive. Failed generations are refunded automatically.</span></div>
+        <div class="row"><span class="k">No middleman</span><span class="v">When you sell, the earnings settle straight to your balance.</span></div>
       </div>
     </section>
 
-    <footer class="foot">NewEra · BNB Chain Mainnet · 2026</footer>
+    <footer class="foot">NewEra · Creator-owned AI · 2026</footer>
   </div>
 
   <script>

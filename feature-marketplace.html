@@ -4,15 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>How the marketplace works · NewEra</title>
-<meta name="description" content="How selling on NewEra works: list your image, set a price, and when it sells the payment splits on-chain: 95% to you, 5% platform fee." />
+<meta name="description" content="How selling on NewEra works: list your image, set a price, and when it sells the payment splits instantly: 95% to you, 5% platform fee." />
 
 <meta property="og:type" content="article" />
 <meta property="og:title" content="How the marketplace works · NewEra" />
-<meta property="og:description" content="List, sell, and get paid on-chain. The 80/15/5 split, explained." />
+<meta property="og:description" content="List, sell, and get paid instantly. The 95/5 split, explained." />
 <meta property="og:site_name" content="NewEra" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="How the marketplace works · NewEra" />
-<meta name="twitter:description" content="List, sell, and get paid on-chain. The 80/15/5 split, explained." />
+<meta name="twitter:description" content="List, sell, and get paid instantly. The 95/5 split, explained." />
 
 <link rel="icon" type="image/png" href="favicon logo.png">
 
@@ -39,18 +39,18 @@
     <section class="hero">
       <p class="kicker">the marketplace</p>
       <h1>List a creation. Get paid the moment it sells.</h1>
-      <p class="standfirst">Put any image you've made up for sale at your own price. When someone buys it, a smart contract splits the payment on the spot and sends your share straight to your wallet. No invoices, no payouts to wait for.</p>
+      <p class="standfirst">Put any image you've made up for sale at your own price. When someone buys it, the payment splits on the spot and your share is credited straight to your balance. No invoices, no payouts to wait for.</p>
     </section>
 
     <!-- SIGNATURE: the split, as a real ledger bar -->
     <div class="split-card reveal">
-      <div class="split-head"><span class="live"></span> on every sale · settled on-chain</div>
+      <div class="split-head"><span class="live"></span> on every sale · settled instantly</div>
       <div class="split-bar">
         <div class="seg seg-creator" style="flex:95"><span class="pct">95%</span><span class="who">Creator</span></div>
         <div class="seg seg-burn" style="flex:5"><span class="pct">5%</span><span class="who">Platform</span></div>
       </div>
       <div class="split-legend">
-        <div class="lg"><span class="sw sw-creator"></span><b>95% to you</b><em>the creator's share, sent to your wallet</em></div>
+        <div class="lg"><span class="sw sw-creator"></span><b>95% to you</b><em>the creator's share, credited to your balance</em></div>
         <div class="lg"><span class="sw sw-burn"></span><b>5% platform fee</b><em>supports the platform</em></div>
       </div>
     </div>
@@ -58,7 +58,7 @@
     <section class="block">
       <div class="block-lead reveal">
         <h2>How a sale works</h2>
-        <p class="sub">From listing your image to money in your wallet.</p>
+        <p class="sub">From listing your image to NEA in your balance.</p>
       </div>
 
       <div class="steps">
@@ -68,34 +68,34 @@
             <h3>List your image</h3>
             <p class="plain">Pick an image you own, set a price in NEA, and list it. Listing is free.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>Your listing is registered with the marketplace contract and shown to buyers. You stay the owner until someone buys it, and you can remove the listing any time.</p></div>
+          <div class="meta"><span class="label">runs</span><p>Your listing is saved and shown to buyers right away. You stay the owner until someone buys it.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">02</div>
           <div>
             <h3>A buyer purchases it</h3>
-            <p class="plain">A buyer approves the price from their wallet and confirms the purchase.</p>
+            <p class="plain">A buyer clicks Buy. The price is taken from their NEA balance, with nothing to approve.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The buyer's wallet runs an <span class="mono">approve</span> for the price, then <span class="mono">buy()</span> on the contract. This single call moves the NEA and triggers the split, all in one transaction.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The purchase is a single all-or-nothing step: the listing is claimed, the buyer is charged the listing's own price, you are credited, and ownership moves. If any part fails, none of it happens.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">03</div>
           <div>
             <h3>The payment splits automatically</h3>
-            <p class="plain">The contract divides the price the instant the sale goes through: 95% to you, 5% platform fee.</p>
+            <p class="plain">The price is divided the instant the sale goes through: 95% to you, 5% platform fee.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The split is written into the contract itself, so no one can change the percentages or skim the middle. Each share is transferred in the same transaction that completes the sale.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The split is the same for every sale and is applied in the same step that completes it. If two people try to buy the same image at once, exactly one succeeds and the other is not charged.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">04</div>
           <div>
             <h3>You're paid, the buyer unlocks</h3>
-            <p class="plain">Your 95% lands in your wallet immediately. The buyer gets the full image to download.</p>
+            <p class="plain">Your 95% lands in your balance immediately. The buyer gets the full image to download.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>NewEra reads the purchase transaction from the chain to confirm it really happened, records the sale, and unlocks the download for the buyer. The same purchase can't be reused.</p></div>
+          <div class="meta"><span class="label">runs</span><p>NewEra records the sale, moves the image into the buyer's collection, and unlocks the download. An image sells once, then leaves the market.</p></div>
         </div>
       </div>
     </section>
@@ -103,20 +103,17 @@
     <section class="block">
       <div class="block-lead reveal">
         <h2>What the split means for you</h2>
-        <p class="sub">Three numbers, plainly.</p>
+        <p class="sub">Two numbers, plainly.</p>
       </div>
 
       <dl class="glossary">
         <div class="term reveal">
           <dt><span class="dot"></span>95% creator</dt>
-          <dd>The largest share is yours. On a 100 NEA sale, <b>80 NEA</b> goes to your wallet, settled in the same transaction as the sale.</dd>
-        </div>
-        <div class="term reveal">
-          <dd>A platform share that funds running and improving NewEra. It's fixed in the contract, the same for every sale.</dd>
+          <dd>The largest share is yours. On a 100 NEA sale, <b>95 NEA</b> goes to your balance, in the same step as the sale.</dd>
         </div>
         <div class="term reveal">
           <dt><span class="dot"></span>5% platform fee</dt>
-          <dd>Sent to a <b>burn address</b> nobody controls, permanently removing it from circulation. As more sells happen, the total NEA supply slowly shrinks.</dd>
+          <dd>A small share that funds running and improving NewEra. It's the same for every sale.</dd>
         </div>
       </dl>
     </section>
@@ -125,12 +122,12 @@
       <div class="why reveal">
         <h3>Why sell here instead of a normal marketplace?</h3>
         <div class="row"><span class="k">You keep more</span><span class="v">95% per sale goes to you, with no payout delays or hidden cuts.</span></div>
-        <div class="row"><span class="k">Instant settlement</span><span class="v">Your share arrives the moment the sale clears, straight to your wallet.</span></div>
-        <div class="row"><span class="k">Rules can't change</span><span class="v">The split is enforced by the contract, so the terms are the same for everyone, every time.</span></div>
+        <div class="row"><span class="k">Instant settlement</span><span class="v">Your share arrives the moment the sale clears, straight to your balance.</span></div>
+        <div class="row"><span class="k">Same rules for everyone</span><span class="v">The split is the same for everyone, every time, with no tiers and no fine print.</span></div>
       </div>
     </section>
 
-    <footer class="foot">NewEra · BNB Chain Mainnet · 2026</footer>
+    <footer class="foot">NewEra · Creator-owned AI · 2026</footer>
   </div>
 
   <script>

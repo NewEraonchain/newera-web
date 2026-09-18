@@ -1,6 +1,6 @@
 /* ============================================================
    NewEra Studio — Prompt marketplace (frontend)
-   GET /prompts (content hidden) -> cards. Buy: on-chain
+   GET /prompts (content hidden) -> cards. Buy: POST /prompts/buy
    buy(listingId) -> POST /prompts/buy -> reveal content.
    ============================================================ */
 (function () {

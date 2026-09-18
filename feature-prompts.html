@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>How prompt trading works · NewEra</title>
-<meta name="description" content="How selling prompts on NewEra works: list a prompt with its text hidden, and when someone buys it the content unlocks and the payment splits on-chain." />
+<meta name="description" content="How selling prompts on NewEra works: list a prompt with its text hidden, and when someone buys it the content unlocks and the payment splits instantly." />
 
 <meta property="og:type" content="article" />
 <meta property="og:title" content="How prompt trading works · NewEra" />
@@ -39,7 +39,7 @@
     <section class="hero">
       <p class="kicker">trading prompts</p>
       <h1>Sell the recipe, not just the picture.</h1>
-      <p class="standfirst">A great prompt is worth as much as the image it makes. On NewEra you list a prompt together with the image it produces. Buyers see the image and judge the quality, but the prompt text stays hidden until they buy it, then it unlocks and your share settles on-chain.</p>
+      <p class="standfirst">A great prompt is worth as much as the image it makes. On NewEra you list a prompt together with the image it produces. Buyers see the image and judge the quality, but the prompt text stays hidden until they buy it, then it unlocks and your share is credited instantly.</p>
     </section>
 
     <!-- SIGNATURE: image visible, prompt locked -> unlocked -->
@@ -109,27 +109,27 @@
           <div class="num">02</div>
           <div>
             <h3>A buyer pays for it</h3>
-            <p class="plain">A buyer sees the title, decides it's worth it, and confirms the price from their wallet.</p>
+            <p class="plain">A buyer sees the title, decides it's worth it, and clicks Buy. The price comes from their NEA balance.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The buyer's wallet runs an <span class="mono">approve</span> then <span class="mono">buy()</span> on the contract, moving the NEA in a single transaction and producing a receipt.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The purchase is one all-or-nothing step: the buyer is charged the prompt's own price and you are credited together, or neither happens.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">03</div>
           <div>
-            <h3>The payment splits on-chain</h3>
+            <h3>The payment splits automatically</h3>
             <p class="plain">The price is divided automatically: 95% to you, 5% platform fee.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>The same 80/15/5 split as the image marketplace, written into the contract. Each share transfers in the same transaction that completes the sale.</p></div>
+          <div class="meta"><span class="label">runs</span><p>The same 95/5 split as the image marketplace, applied in the same step that completes the sale.</p></div>
         </div>
 
         <div class="step reveal">
           <div class="num">04</div>
           <div>
             <h3>The text unlocks for the buyer</h3>
-            <p class="plain">Once payment is verified, the full prompt is revealed to the buyer to copy and use.</p>
+            <p class="plain">Once the payment goes through, the full prompt is revealed to the buyer to copy and use.</p>
           </div>
-          <div class="meta"><span class="label">runs</span><p>NewEra confirms the purchase transaction on-chain, records the sale, and reveals the full prompt text to that buyer only. Your 95% is already in your wallet.</p></div>
+          <div class="meta"><span class="label">runs</span><p>NewEra records the sale and reveals the full prompt text to that buyer only. Your 95% is already in your balance. A buyer who has already bought it can open it again without paying twice.</p></div>
         </div>
       </div>
     </section>
@@ -159,13 +159,13 @@
     <section class="block">
       <div class="why reveal">
         <h3>What you should know</h3>
-        <div class="row"><span class="k">You keep 95%</span><span class="v">The same creator share as images, settled to your wallet the moment a prompt sells.</span></div>
+        <div class="row"><span class="k">You keep 95%</span><span class="v">The same creator share as images, credited to your balance the moment a prompt sells.</span></div>
         <div class="row"><span class="k">Preview is public</span><span class="v">Title and a short teaser are visible to all; the full text is not, until someone buys.</span></div>
         <div class="row"><span class="k">Buyers get usage</span><span class="v">A buyer can read and use the prompt themselves. They don't get the right to resell your listing.</span></div>
       </div>
     </section>
 
-    <footer class="foot">NewEra · BNB Chain Mainnet · 2026</footer>
+    <footer class="foot">NewEra · Creator-owned AI · 2026</footer>
   </div>
 
   <script>

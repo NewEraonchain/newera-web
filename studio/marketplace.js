@@ -136,7 +136,7 @@
         '<div class="mk-meta">' +
           '<div class="mk-title">' + escapeHtml(it.title || it.prompt) + '</div>' +
           '<div class="mk-sub">' +
-            '<span class="mk-seller">on-chain</span>' +
+            '<span class="mk-seller">creator</span>' +
             '<span class="mk-price">' + fmtNea(it.price) + '<small>NEA</small></span>' +
           '</div>' +
           action +

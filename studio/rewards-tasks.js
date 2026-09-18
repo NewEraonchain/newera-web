@@ -1,7 +1,7 @@
 /* ============================================================
    NEwera Studio — Task rewards inside the Claim tab (profile.html)
    Fetches /rewards, renders the task list under the welcome card,
-   and lets the user claim each completed task (paid on-chain by
+   and lets the user claim each completed task (credited, via
    the treasury via the backend). Decoupled — no profile.js edits.
    ============================================================ */
 (function () {
@@ -71,7 +71,7 @@
       });
       var out = await r.json();
       if (!r.ok || !out.success) { showToast(out.error || "Could not claim"); btn.disabled = false; btn.textContent = "Claim"; return; }
-      showToast("+" + out.amount + " NEA sent to your wallet");
+      showToast("+" + out.amount + " NEA added to your balance");
       load(); // refresh list
     } catch (err) {
       showToast("Network error, try again"); btn.disabled = false; btn.textContent = "Claim";
