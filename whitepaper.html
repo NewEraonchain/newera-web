@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Whitepaper &middot; NewEra</title>
+<meta name="description" content="The NewEra whitepaper: the vision, how the platform works today, the creator economy, the prompt marketplace, NEA credits and the planned token, security, and the roadmap." />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="legal.css">
+<style>
+/* whitepaper-only additions, on top of legal.css */
+.doc-sec{margin-bottom:56px;padding-bottom:40px;border-bottom:1px solid var(--lg-line)}
+.doc-sec:last-of-type{border-bottom:0}
+.doc-sec .wp-lede{color:var(--lg-text);font-size:17px;line-height:1.55;margin:0 0 22px}
+.doc-sec h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px;color:var(--lg-text);margin:30px 0 12px;letter-spacing:-.01em}
+.doc-sec h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:15.5px;color:var(--lg-text);margin:24px 0 10px}
+.doc-sec ol{margin:0 0 14px;padding-left:20px;color:var(--lg-muted);font-size:15px;line-height:1.65}
+.doc-sec ol li{padding-left:4px}.doc-sec ol li::before{display:none}
+.doc-sec code{font-family:"JetBrains Mono",monospace;font-size:13px;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:5px;color:var(--lg-text);word-break:break-word}
+.doc-sec pre{background:rgba(255,255,255,.04);border:1px solid var(--lg-line);border-radius:12px;padding:16px;overflow-x:auto;margin:0 0 16px}
+.doc-sec pre code{background:none;padding:0;font-size:12.5px;line-height:1.6;color:var(--lg-muted);word-break:normal}
+.wp-table{overflow-x:auto;margin:0 0 18px;border:1px solid var(--lg-line);border-radius:12px}
+.wp-table table{border-collapse:collapse;width:100%;font-size:14px}
+.wp-table th,.wp-table td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--lg-line);color:var(--lg-muted);vertical-align:top;line-height:1.5}
+.wp-table th{color:var(--lg-text);font-weight:600;background:rgba(255,255,255,.03);white-space:nowrap}
+.wp-table thead th:empty{display:none}.wp-table tr:last-child td{border-bottom:0}
+.wp-table td:first-child{color:var(--lg-text)}
+.wp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:0 0 18px}
+.wp-card{display:block;border:1px solid var(--lg-line);border-radius:14px;padding:16px 18px;background:rgba(255,255,255,.02);text-decoration:none!important;margin:0 0 14px}
+.wp-cards .wp-card{margin:0}
+.wp-card .c-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15px;color:var(--lg-text);margin-bottom:7px}
+.wp-card p{font-size:14px!important;line-height:1.55!important;margin:0 0 8px!important}.wp-card p:last-child{margin:0!important}
+.wp-card.link{transition:border-color .18s,background .18s}.wp-card.link:hover{border-color:rgba(205,255,77,.4);background:rgba(205,255,77,.04)}
+.wp-card.link .c-t::after{content:" \2197";color:var(--lg-acc);font-weight:400}
+.wp-steps{list-style:none!important;counter-reset:st;padding:0!important;margin:0 0 18px!important}
+.wp-steps>li{counter-increment:st;position:relative;padding:0 0 18px 46px!important;margin:0!important;border-left:1px solid var(--lg-line);margin-left:15px!important}
+.wp-steps>li:last-child{border-left-color:transparent;padding-bottom:0!important}
+.wp-steps>li::before{content:counter(st)!important;display:grid!important;place-items:center;position:absolute;left:-16px!important;top:-2px!important;width:30px!important;height:30px!important;border-radius:50%!important;background:var(--lg-acc)!important;color:#0a0d05;font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:600}
+.wp-steps .st-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15.5px;color:var(--lg-text);margin-bottom:6px;padding-top:3px}
+.wp-note{border:1px solid rgba(205,255,77,.22);background:rgba(205,255,77,.05);border-radius:12px;padding:14px 16px;margin:0 0 18px}
+.wp-note.warn{border-color:rgba(246,70,93,.28);background:rgba(246,70,93,.05)}
+.wp-note .k{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--lg-acc);margin-bottom:6px}
+.wp-note.warn .k{color:#ff6b7d}
+.wp-note p{font-size:14px!important;line-height:1.6!important;margin:0 0 8px!important}.wp-note p:last-child{margin:0!important}
+.wp-note ul{margin:0 0 8px}.wp-note li{font-size:14px}
+@media(max-width:600px){.doc-sec .wp-lede{font-size:16px}.wp-table table{font-size:13px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <nav class="lg-nav">
+      <a href="index.html" class="brand">
+        <span class="logo"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/></svg></span>
+        NewEra
+      </a>
+      <div class="nl">
+        <a href="index.html#home">Explore</a>
+        <a href="index.html#create">Features</a>
+        <a href="studio/community.html">Creators</a>
+        <a href="studio/marketplace.html">Market</a>
+      </div>
+      <a href="studio/index.html" class="cta">Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </nav>
+
+    <div class="doc">
+      <!-- sidebar -->
+      <aside class="doc-side">
+        <a class="ds-back" href="index.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg> Back to home</a>
+        <div class="ds-label">On this page</div>
+        <nav class="doc-toc" id="toc">
+          <a href="#introduction" class="active">1. Introduction</a>
+          <a href="#vision">2. Vision</a>
+          <a href="#problem-statement">3. Problem Statement</a>
+          <a href="#the-new-era-solution">4. The NewEra Solution</a>
+          <a href="#platform-architecture">5. Platform Architecture</a>
+          <a href="#ai-generation-engine">6. AI Generation Engine</a>
+          <a href="#creator-economy">7. Creator Economy</a>
+          <a href="#marketplace">8. Marketplace</a>
+          <a href="#prompt-marketplace">9. Prompt Marketplace</a>
+          <a href="#nea-token">10. NEA</a>
+          <a href="#tokenomics">11. Tokenomics</a>
+          <a href="#smart-contracts">12. Smart Contracts</a>
+          <a href="#security">13. Security</a>
+          <a href="#roadmap">14. Roadmap</a>
+          <a href="#disclaimer">15. Disclaimer</a>
+        </nav>
+      </aside>
+
+      <!-- content -->
+      <main class="doc-main">
+        <div class="dm-head">
+          <span class="dm-eyebrow"><i></i> Whitepaper</span>
+          <h1>The NewEra Whitepaper</h1>
+          <div class="dm-updated">Last updated: September 2026</div>
+        </div>
+
+        <section class="doc-sec" id="introduction">
+          <h2><span class="num">01</span> Introduction</h2>
+<h3>What NewEra is</h3>
+<p><strong>NewEra is an AI creation platform where anyone can generate images, sell them and the prompts behind them, and keep 95 percent of every sale, with no gas to pay and no crypto to buy.</strong></p>
+<p>Most AI art platforms hold your work and keep the upside. You generate an image, it lives on their servers, you can&#39;t sell it, and the prompt that took the skill is worth nothing the moment the result is shared.</p>
+<p>NewEra gives that work a market. Every image you generate is recorded to your account as yours. You can list it at any price, and when it sells, the sale is instant: the buyer is charged, you are credited, and ownership moves together, or none of it happens. <strong>95% goes straight to you</strong> and 5% to the platform. No payout delays, no hidden cuts, no tiers.</p>
+<h3>What makes it different</h3>
+<h4>1. No crypto friction</h4>
+<p>Web3 usually asks new users to buy crypto before they can do anything. NewEra removes that step entirely.</p>
+<p>A wallet (MetaMask or WalletConnect) is used <strong>only to sign in</strong>. Signing in is a free message signature. No funds move, there is no gas, you never need BNB, and no transaction is ever sent from your wallet.</p>
+<h4>2. Prompts are assets too</h4>
+<p>A great prompt is a creative artifact. On NewEra, creators can list the prompt behind an image and sell it separately.</p>
+<p>The prompt stays locked, with the image as its public preview. Buyers unlock the exact text; creators earn from their craft, not just their output.</p>
+<h4>3. Every balance change is recorded</h4>
+<p>NEA balances, sales, and ownership are kept in your NewEra account. Every change to a balance is written to your account history, a balance can never go negative, and the 95/5 split is applied automatically on every sale.</p>
+<p>What this is not, today, is independently verifiable on a public chain. See the next section.</p>
+<h3>On-chain settlement is paused</h3>
+<p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet, with on-chain payments and gasless ERC-4337 account abstraction. As of 18 September 2026, all accounting moved into the platform, and on-chain settlement is paused.</p>
+<p>The reason is simple. Settling every action on a chain made the product slower and dependent on sponsored gas. Creation should be instant and free of crypto friction. Balances users held from the first phase were carried over into their accounts.</p>
+<p>This is a pause, not an abandonment. Verifiable on-chain settlement is planned to return in a later phase. Until it does, the record of balances and ownership is held by NewEra, and you are trusting the platform for it. The <a href="#security">Security</a> section says exactly what that means.</p>
+<h3>NEA, the platform credit</h3>
+<p><strong>NEA</strong> powers everything on NewEra.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>NEA</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Welcome bonus (one-time, for new accounts)</td>
+<td>+50</td>
+</tr>
+<tr>
+<td>Generate an image</td>
+<td>−10</td>
+</tr>
+<tr>
+<td>Sell an image or prompt</td>
+<td>+95% of the sale price</td>
+</tr>
+<tr>
+<td>Platform fee on every sale</td>
+<td>5%</td>
+</tr>
+</tbody></table></div>
+<p>Listings and purchases settle in NEA, inside the platform, instantly. If a generation fails, the 10 NEA is refunded automatically.</p>
+<div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform.</p>
+</div><h3>Where to go next</h3>
+<div class="wp-cards"><a class="wp-card link" href="#platform-architecture"><div class="c-t">How it works</div><p>Sign in, generate, own, and sell the full flow in four steps.</p>
+</a><a class="wp-card link" href="#platform-architecture"><div class="c-t">Platform architecture</div><p>How the platform keeps its records today, and where on-chain settlement fits later.</p>
+</a><a class="wp-card link" href="#nea-token"><div class="c-t">NEA credits</div><p>How credits reach you and how they move through the platform.</p>
+</a><a class="wp-card link" href="#smart-contracts"><div class="c-t">Contracts</div><p>The NEA token contract address, published ahead of TGE.</p>
+</a></div>
+        </section>
+
+        <section class="doc-sec" id="vision">
+          <h2><span class="num">02</span> Vision</h2>
+          <p class="wp-lede">Creators should own what they make. Web3 should feel invisible. AI creation should have a real economy behind it.</p>
+<h3>The problem we started with</h3>
+<p>AI made everyone a creator. It did not make anyone an owner.</p>
+<p>Today you can describe an image, wait ten seconds, and hold something that did not exist before. But the moment it appears, it belongs to a platform. It sits in someone else&#39;s database. You cannot prove you made it. You cannot sell it. If the platform closes, changes its terms, or decides your account is a problem, the work is gone.</p>
+<p>The tools got radically better. The ownership got worse.</p>
+<h3>What we believe</h3>
+<p><strong>Creators should own what they make.</strong></p>
+<p>Not a license. Not a revocable account. In the end that means ownership that lives on a public chain, that nobody can take back, that moves when you decide it moves.</p>
+<p>We are not fully there today, and we would rather say so. NewEra&#39;s first phase recorded payments and sales on BNB Smart Chain. That is paused. Right now, what you generate is recorded as yours in your NewEra account, it can be sold, and ownership moves to the buyer when it sells, but the record is held by the platform. Verifiable on-chain settlement is planned to return in a later phase.</p>
+<p><strong>Web3 should feel invisible.</strong></p>
+<p>The industry made a strange bargain: to own your work on-chain, first buy a token, install a wallet, fund it with gas, and learn what a gas fee is. Every step loses people. Most of them are not coming back.</p>
+<p>We think crypto should stay out of the way. No gas. No tokens to buy first. On NewEra a wallet is used only to sign in, with a free message signature. No funds move and no transaction is ever sent. If a user never learns the word &quot;gas,&quot; we did it right.</p>
+<p>That belief is also why on-chain settlement is paused. Putting every action on a chain made the product slower and dependent on sponsored gas. When it returns, it has to be as invisible as what replaced it.</p>
+<p><strong>The prompt is the craft.</strong></p>
+<p>A good prompt takes taste, iteration, and a feel for how a model thinks. That work is real and it disappears the moment someone else posts the output. On NewEra a prompt can be listed and sold on its own, because the skill behind an image is worth as much as the image.</p>
+<p><strong>Value should flow to the people who create it.</strong></p>
+<p>Not 30 percent. Not after a 30 day payout window. On NewEra a sale splits the moment it executes: 95 percent to the creator, 5 percent to the platform. Today that split is applied automatically by the platform on every sale. In the first phase it was held in a contract, and putting it back where anyone can check it is part of what a later phase is for.</p>
+<h3>Where this goes</h3>
+<p>NewEra starts with images because images are where AI creation is most alive right now. The model underneath it is not about images.</p>
+<p>It is about a creator economy where the work, the ownership, and the payment all live in the same place, and, in time, verifiable by anyone. Images first. Then the formats that follow: prompts, collections, and the creative surfaces AI opens next.</p>
+<p>The goal is not to build a better AI art site. It is to make the ownership question boring, so creators can go back to making things.</p>
+<div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform. Nothing in this document is a promise of future features, value, or returns.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="problem-statement">
+          <h2><span class="num">03</span> Problem Statement</h2>
+          <p class="wp-lede">AI creation tools got radically better. Ownership, onboarding, and creator economics did not.</p>
+<h3>The gap</h3>
+<p>AI image generation is solved. Anyone can describe a scene and hold it seconds later.</p>
+<p>What comes after that moment is broken. The image sits on a server you do not control. The wallet you would need to own it asks you to buy crypto first. The marketplace that would sell it takes a cut you cannot audit. And the prompt that made it, the part that took skill, is worth nothing the moment someone else posts the result.</p>
+<p>NewEra exists because four specific things are wrong.</p>
+<h3>1. You generate it, but you do not own it</h3>
+<p>On most AI platforms, the image you create lives in their database under their terms.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">What you get</div><p>An account, a license, and a file you can download. Revocable, on their terms, gone if they close.</p>
+</div><div class="wp-card"><div class="c-t">What ownership means</div><p>A record on a public chain that says this address created this work. Nobody can revoke it.</p>
+</div></div><p>There is no way to prove authorship, no way to transfer the work without trusting an intermediary, and no recourse if the platform changes its mind about your account.</p>
+<h3>2. Web3 asks too much before it gives anything</h3>
+<p>The blockchain answer to ownership is real, and almost nobody reaches it.</p>
+<p>To own an image on-chain today, a new user has to:</p>
+<ol>
+<li>Install a wallet extension</li>
+<li>Understand seed phrases</li>
+<li>Buy a native token on an exchange</li>
+<li>Move it to the wallet</li>
+<li>Learn what a gas fee is</li>
+<li>Approve a transaction they do not understand</li>
+</ol>
+<p>That is six steps before a single image exists. Each one loses people, and the ones who quit at step three never learn that step seven was the good part.</p>
+<div class="wp-note"><span class="k">Note</span><p>Gas is not a small friction. For a first-time user, being asked to spend money before creating anything is where the funnel ends.</p>
+</div><h3>3. Creator economics are opaque and slow</h3>
+<p>Platforms take a cut. That is fair. The problem is that the cut, the timing, and the rules all sit in a document the platform can rewrite.</p>
+<ul>
+<li><strong>The split is a policy, not a guarantee.</strong> Terms of service change. Contracts do not.</li>
+<li><strong>Payouts are delayed.</strong> Money moves when the platform decides it moves.</li>
+<li><strong>The math is unverifiable.</strong> You see the number you are shown, not the number that executed.</li>
+</ul>
+<p>A creator has no way to check that the split they agreed to is the split that happened.</p>
+<h3>4. The prompt is invisible labor</h3>
+<p>Getting a specific image out of a model takes taste and iteration. That effort is real work.</p>
+<p>But the output is what gets shared, and the moment it does, the prompt behind it is either copied or lost. The skill has no market and no price. The person who spent an hour refining a prompt and the person who screenshots the result end up in the same place.</p>
+<h3>What follows from this</h3>
+<p>Each of these has the same shape: a gap between what actually happens and what a user can verify.</p>
+<p>Ownership that cannot be proven. Fees that cannot be audited. Splits that can be changed after the fact. Work that leaves no trace of who did it.</p>
+<p>Closing that gap is the entire product.</p>
+<p>It is not fully closed today, and we would rather say so than imply otherwise. NewEra currently removes the onboarding friction, pays creators instantly at a fixed 95/5 split, and gives prompts a market. The part that needs a public chain, proof that does not depend on trusting us, ran in NewEra&#39;s first phase, is paused now, and is planned to return in a later phase.</p>
+<a class="wp-card link" href="#platform-architecture"><div class="c-t">How NewEra addresses this</div><p>Work recorded as yours, no gas and no crypto to buy, a 95/5 split applied on every sale, and a market for prompts.</p>
+</a><div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="the-new-era-solution">
+          <h2><span class="num">04</span> The NewEra Solution</h2>
+          <p class="wp-lede">Work recorded as yours, no crypto friction, a 95/5 split applied on every sale, and a real market for prompts.</p>
+<h3>Four problems, four answers</h3>
+<p>The <a href="#problem-statement">problems</a> all share one shape: a gap between what happens and what a user can verify. NewEra answers each one today inside the platform. One part of the answer, verification on a public chain, is paused and planned to return in a later phase. This page says which part.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>The problem</th>
+<th>What NewEra does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>You generate it but do not own it</td>
+<td>Every image is recorded to your account, and ownership moves on sale</td>
+</tr>
+<tr>
+<td>Web3 asks for gas before it gives value</td>
+<td>A wallet only signs you in. No gas, no BNB, no transactions</td>
+</tr>
+<tr>
+<td>Fees and splits are policy, not guarantee</td>
+<td>95/5 is applied automatically on every sale, with a recorded history</td>
+</tr>
+<tr>
+<td>Prompt skill has no market</td>
+<td>Prompts are listed and sold as standalone assets</td>
+</tr>
+</tbody></table></div>
+<h3>1. Ownership recorded to your account</h3>
+<p>When you generate an image on NewEra, 10 NEA is charged from your account balance and the image is recorded as yours.</p>
+<ol class="wp-steps"><li><div class="st-t">You pay 10 NEA</div><p>The platform charges your account balance at generation time. If generation fails, the NEA is refunded automatically.</p>
+</li><li><div class="st-t">The image is created</div><p>Generation runs, and the result is tied to the account that paid.</p>
+</li><li><div class="st-t">It is yours</div><p>You can list it at any price. When it sells, ownership transfers to the buyer and it leaves the market.</p>
+</li></ol><p>The honest limit: this record lives in NewEra&#39;s platform database, not on a public chain. In the first phase, the transactions behind every image were readable by anyone. Today they are not, and you are trusting the platform for the record.</p>
+<h3>2. No crypto friction from the first click</h3>
+<p>Most Web3 products ask for money before they give anything. NewEra asks for a signature.</p>
+<p>A wallet (MetaMask or WalletConnect) is used only to sign in. Signing in is a free message signature. Your NEA balance is held in your NewEra account, not in the wallet.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">What the user does</div><p>Connects a wallet. Signs a message. That is the whole interaction.</p>
+</div><div class="wp-card"><div class="c-t">What the user never does</div><p>Buys BNB. Funds a wallet. Sees a gas estimate. Sends a transaction. Fails an action for lack of funds.</p>
+</div></div><p>Generating, listing, buying, and selling all happen inside the platform. A wallet with a zero balance can use all of it.</p>
+<div class="wp-note"><span class="k">Note</span><p>NewEra never asks your wallet to send a transaction or approve a spend. If something claiming to be NewEra does, it is not us.</p>
+</div><h3>3. A split applied on every sale</h3>
+<p>Every sale on NewEra divides at the moment it executes.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">95% to the creator</div><p>Credited to the seller&#39;s account in the same operation as the purchase. No payout window.</p>
+</div><div class="wp-card"><div class="c-t">5% platform fee</div><p>The only cut. Identical for every user and every sale.</p>
+</div></div><p>A sale is atomic: the buyer is charged, the seller is credited, and ownership moves together, or none of it happens. Every one of those balance changes is written to the account&#39;s history.</p>
+<p>In the first phase this split was held in a marketplace contract anyone could read. Today it is applied automatically by the platform, which makes it a policy we keep rather than a guarantee you can check independently. We are stating that plainly because the difference matters.</p>
+<p>There are no tiers, no negotiated rates, and no fee that appears later.</p>
+<h3>4. Prompts as first-class assets</h3>
+<p>An image is the output. The prompt is the craft.</p>
+<p>On NewEra, a creator can list the prompt behind an image and sell it separately from the image itself. The prompt stays locked, with the image as its public preview. A buyer pays and unlocks the exact text. The creator keeps 95 percent, the same as any other sale, and the same prompt can sell to many buyers, once each.</p>
+<p>This turns prompt engineering from invisible labor into something with a price, a market, and a record of who did it first.</p>
+<h3>Why on-chain settlement is paused</h3>
+<p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet, with on-chain payments and gasless ERC-4337 account abstraction. It worked, and it had a cost: every action waited on a chain, and the whole product depended on sponsored gas.</p>
+<p>Creation should be instant and free of crypto friction. So as of 18 September 2026, accounting moved into the platform. Balances users held from the first phase were carried over into their accounts.</p>
+<p>On-chain settlement is paused, not abandoned. Verifiable on-chain settlement is planned to return in a later phase. We are not giving a date or a design for it here, because we do not want to promise what is not built.</p>
+<h3>What this adds up to</h3>
+<p>A user with no crypto, no BNB, and no understanding of blockchain can:</p>
+<ol>
+<li>Sign in with a wallet and receive 50 NEA</li>
+<li>Generate an image for 10 NEA, recorded to their account</li>
+<li>List it, sell it, and receive 95 percent instantly</li>
+<li>Sell the prompt separately for the same terms</li>
+</ol>
+<p>At no point do they pay gas, wait for a payout, or meet a fee that was not stated up front.</p>
+<a class="wp-card link" href="#nea-token"><div class="c-t">See how NEA moves through the platform</div><p>How credits reach you, and what each action costs.</p>
+</a><div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="platform-architecture">
+          <h2><span class="num">05</span> Platform Architecture</h2>
+          <p class="wp-lede">The platform database is the system of record today, with a history behind every balance. On-chain settlement is planned as a later layer.</p>
+<h3>Design principle</h3>
+<p>NewEra is built around one rule today: <strong>the platform database is the system of record, and every balance has an append-only history behind it.</strong></p>
+<p>Balances, ownership, listings, and the fee split are all kept by the NewEra platform. Every change to a balance is recorded in the account&#39;s history. A balance can never go negative. A sale either happens completely or not at all. Platform statistics are counted from real activity, not estimated.</p>
+<p>This is a change, and it is worth being direct about. NewEra&#39;s first phase ran on BNB Smart Chain mainnet, and this page used to say the chain was the source of truth and everything else was a cache. As of 18 September 2026 that is no longer how the product works. On-chain settlement is paused. It made the product slower and dependent on sponsored gas, and creation should be instant and free of crypto friction. Verifiable on-chain settlement is planned to return in a later phase, as a layer on top of what is described here.</p>
+<p>Until then, a user does have to trust us for the record. The last section of this page says exactly where that boundary is.</p>
+<h3>The layers</h3>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Sign-in layer</div><p>A wallet (MetaMask or WalletConnect) signs a free message. That is all the wallet is used for.</p>
+</div><div class="wp-card"><div class="c-t">Account ledger</div><p>NEA balances, ownership, and listings, with an append-only history behind every balance.</p>
+</div><div class="wp-card"><div class="c-t">Application layer</div><p>An API that charges for generation, executes sales atomically, and serves the marketplace.</p>
+</div><div class="wp-card"><div class="c-t">Generation and storage</div><p>An AI inference provider and object storage for generated images.</p>
+</div></div><h3>How a request flows</h3>
+<p>The user signs in. The platform charges. The ledger records. The image is generated and stored. No transaction is sent from the user&#39;s wallet at any point.</p>
+<h3>Account ledger</h3>
+<p>The ledger holds what the first phase&#39;s contracts used to hold.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Record</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Balances</strong></td>
+<td>NEA held in each account. Can never go negative.</td>
+</tr>
+<tr>
+<td><strong>History</strong></td>
+<td>Append-only. Every credit, charge, refund, and reward is a recorded entry.</td>
+</tr>
+<tr>
+<td><strong>Ownership</strong></td>
+<td>Which account owns which image, and which buyers have unlocked which prompt.</td>
+</tr>
+<tr>
+<td><strong>Listings</strong></td>
+<td>The seller&#39;s price for each image or prompt on the market.</td>
+</tr>
+</tbody></table></div>
+<p>The 95/5 split, the 10 NEA generation cost, and the 50 NEA welcome bonus are applied by the platform on every action. They are no longer values in a deployed contract.</p>
+<h3>Sign-in layer</h3>
+<p>This is where the wallet is used, and the only place.</p>
+<ol class="wp-steps"><li><div class="st-t">A wallet connects</div><p>MetaMask or WalletConnect. The wallet does not need to hold anything.</p>
+</li><li><div class="st-t">The wallet signs a message</div><p>Signing in is a free message signature. No funds move, there is no gas, and no transaction is sent.</p>
+</li><li><div class="st-t">The platform verifies the signature</div><p>A valid signature signs you in to the NewEra account tied to that wallet address. There are no passwords.</p>
+</li><li><div class="st-t">Everything else happens in the account</div><p>Generating, listing, buying, and selling are platform actions against your account balance. The wallet is not asked for anything again.</p>
+</li></ol><div class="wp-note"><span class="k">Note</span><p>In the first phase, credits lived at an ERC-4337 smart account address derived from your wallet, and a paymaster sponsored the gas for every action. None of that is part of the live product now. Balances users held from that phase were carried over into their NewEra accounts.</p>
+</div><h3>Application layer</h3>
+<p>The API does three jobs and deliberately no more.</p>
+<p><strong>It charges before it acts.</strong> A generation is charged 10 NEA from the account balance at generation time. If the balance is too low, the request is declined. If generation fails, the NEA is refunded automatically.</p>
+<p><strong>It settles sales atomically.</strong> A purchase charges the buyer, credits the seller 95 percent, takes the 5 percent fee, and moves ownership in one operation. Either all of it happens or none of it does. There is no state where the buyer has paid and the seller has not been credited.</p>
+<p><strong>It records everything.</strong> Every change to a balance is written to the account&#39;s history. Marketplace listings, collections, and community feeds are served from the same platform records.</p>
+<h3>Generation and storage</h3>
+<p>Image generation runs on a hosted inference provider. Generated images are written to object storage and served from a CDN, with only the resulting URL stored in the platform database.</p>
+<p>An earlier version of NewEra stored images inline. A single marketplace request moved 40 MB and took nearly a minute. Moving to object storage cut that to roughly 20 KB and one and a half seconds. Balances and ownership did not change. Where the files live did.</p>
+<h3>What you have to trust us for</h3>
+<p>Most whitepapers stop at &quot;trustless&quot; and move on. Here is the honest boundary, and it moved when on-chain settlement was paused.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">You do not have to trust us for</div><p>Your wallet. NewEra never sees or holds your keys, signing in moves no funds, and the live product never sends a transaction from your wallet.</p>
+</div><div class="wp-card"><div class="c-t">You do have to trust us for</div><p>The record of your balance and what you own. That the 95/5 split and the 10 NEA cost are applied as stated. Availability of the interface. Uptime of image generation.</p>
+</div></div><p>If NewEra went offline today, the record of balances and ownership would go offline with it. In the first phase that was not true, because the records were on a public chain. That is the real cost of the pause, and it is the reason verifiable on-chain settlement is planned to return in a later phase rather than being dropped.</p>
+<div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="ai-generation-engine">
+          <h2><span class="num">06</span> AI Generation Engine</h2>
+          <p class="wp-lede">10 NEA is charged from your balance when you generate. If generation fails, it is refunded automatically.</p>
+<h3>Charge first, then generation</h3>
+<p>Most AI platforms generate the image and bill you afterwards, or bill you nothing and monetize you some other way.</p>
+<p>NewEra reverses the order. The 10 NEA is charged from your account balance at generation time, and only then does generation begin. If it fails, the charge is reversed.</p>
+<ol class="wp-steps"><li><div class="st-t">The user submits a prompt</div><p>The user is signed in with their wallet. Nothing is signed or sent for the generation itself.</p>
+</li><li><div class="st-t">The platform charges the balance</div><p>10 NEA is charged from the account balance. A balance can never go negative, so an account with less than 10 NEA is declined before anything runs.</p>
+</li><li><div class="st-t">Generation runs</div><p>Only after the charge succeeds does the prompt reach the model.</p>
+</li><li><div class="st-t">A failure is refunded</div><p>If generation fails, the 10 NEA is refunded automatically. The charge and the refund both appear in the account&#39;s history.</p>
+</li></ol><div class="wp-note"><span class="k">Note</span><p>In NewEra&#39;s first phase, this charge was a payment on BNB Smart Chain that the backend verified before generating. That flow is not used by the live product while on-chain settlement is paused.</p>
+</div><p>This ordering is what makes generation abuse-resistant. There is no way to receive an image without a recorded 10 NEA charge against a balance that could cover it.</p>
+<h3>The model</h3>
+<p>Generation currently runs on <strong>FLUX.1 [schnell]</strong>, a fast diffusion model tuned for low step counts, hosted on serverless GPU inference.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Model</td>
+<td>FLUX.1 [schnell]</td>
+</tr>
+<tr>
+<td>Inference</td>
+<td>Serverless GPU, hosted</td>
+</tr>
+<tr>
+<td>Steps</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Typical latency</td>
+<td>A few seconds</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>1024 x 1024 image</td>
+</tr>
+</tbody></table></div>
+<p>Schnell is chosen deliberately. At six steps it produces coherent, detailed images in seconds rather than minutes. For a platform where every generation costs the user credits, latency is not a nice-to-have. A user who waits ninety seconds to find out whether their 10 NEA produced something good will not generate twice.</p>
+<div class="wp-note"><span class="k">Note</span><p>The model and inference provider are implementation details, not commitments. NewEra may change either to improve quality, latency, or cost. The cost of 10 NEA per generation is set by the platform.</p>
+</div><h3>Provider resilience</h3>
+<p>A single inference provider is a single point of failure. NewEra runs a provider chain.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Primary</div><p>The main hosted provider serves nearly all generations.</p>
+</div><div class="wp-card"><div class="c-t">Fallbacks</div><p>If the primary fails or rate limits, the request falls through to secondary providers in order.</p>
+</div></div><p>Each provider is retried before falling through. Every returned image is verified before it is accepted: the response must be a real image of plausible size, not an error page, a blank frame, or a truncated stream.</p>
+<p>If every provider fails, the request errors cleanly, the user is told, and the 10 NEA is refunded automatically. A failed generation is a failed generation. It is never a charge for nothing.</p>
+<h3>Where the image actually lives</h3>
+<p>This is worth stating plainly, because plenty of projects blur it.</p>
+<p><strong>The image bytes are not on a chain, and neither is the record of who owns them.</strong> The image is written to object storage and served from a CDN. The charge, the account that paid, and the record that ties the work to that account are kept in NewEra&#39;s platform database.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Platform database</div><p>The 10 NEA charge. The account that paid. Ownership, listings, sales, and the 95/5 split, with a history behind every balance.</p>
+</div><div class="wp-card"><div class="c-t">Object storage</div><p>The image file, served from a CDN.</p>
+</div></div><p>An early version of NewEra stored image data inline in the database. A single marketplace page pulled 40 MB and took nearly a minute to load. Moving images to object storage reduced that to roughly 20 KB and under two seconds. Balances and ownership were untouched. Only where the files live changed.</p>
+<h3>The economics of one generation</h3>
+<p>Every generation is a real cost to the platform and a real charge to the user.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>User pays</td>
+<td>10 NEA, charged from the account balance</td>
+</tr>
+<tr>
+<td>Platform pays</td>
+<td>GPU inference for the image</td>
+</tr>
+<tr>
+<td>Platform pays</td>
+<td>Storage and delivery</td>
+</tr>
+<tr>
+<td>On failure</td>
+<td>The 10 NEA is refunded to the user&#39;s balance</td>
+</tr>
+</tbody></table></div>
+<p>The 10 NEA cost is a platform setting today. In the first phase it was fixed in a Generation contract, where changing it meant deploying a new contract in public. While on-chain settlement is paused, that guarantee does not apply, and we would rather say so than imply it.</p>
+<h3>Honest limits</h3>
+<p>AI models are probabilistic. The same prompt does not produce the same image twice, and a prompt that reads well does not always render well.</p>
+<ul>
+<li><strong>Output is not guaranteed.</strong> NewEra does not warrant that a generated image will match your intent, be original, or be suitable for any particular purpose.</li>
+<li><strong>Models change.</strong> Providers deprecate models. Quality characteristics shift. We will change models when a better one exists.</li>
+<li><strong>Generation can fail.</strong> Providers rate limit and go down. When every fallback fails, the generation fails and the charge is refunded.</li>
+</ul>
+<a class="wp-card link" href="#nea-token"><div class="c-t">How NEA moves through the platform</div><p>Welcome credits, generation cost, sale splits, and rewards.</p>
+</a><div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="creator-economy">
+          <h2><span class="num">07</span> Creator Economy</h2>
+          <p class="wp-lede">95 percent to the creator, credited the moment the sale executes, applied automatically on every sale.</p>
+<h3>The split</h3>
+<p>Every sale on NewEra divides at the moment it executes.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">95% to the creator</div><p>Credited to the seller&#39;s account in the same operation as the purchase.</p>
+</div><div class="wp-card"><div class="c-t">5% platform fee</div><p>The only cut NewEra takes. Applied automatically on every sale.</p>
+</div></div><p>There is no payout window, no minimum threshold, no processing period, and no tier where the numbers get better for some people and worse for others.</p>
+<p>A note on where the percentage lives, because it matters. In NewEra&#39;s first phase the split was held in a marketplace contract on BNB Smart Chain, where anyone could read it. On-chain settlement is paused, so today the split is applied by the platform. It is the same 95/5 on every sale, and every resulting balance change is recorded in the account&#39;s history, but it is a policy we keep rather than something you can confirm independently. Verifiable on-chain settlement is planned to return in a later phase.</p>
+<h3>Four ways credits reach a creator</h3>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Selling an image</div><p>List at any price. When it sells, 95 percent is credited to you immediately.</p>
+</div><div class="wp-card"><div class="c-t">Selling a prompt</div><p>List the prompt behind an image separately. Same 95 percent, same instant settlement, and it can sell to many buyers.</p>
+</div><div class="wp-card"><div class="c-t">Bonus tasks</div><p>One-time credits for the first generation, image listing, prompt listing, and purchase.</p>
+</div><div class="wp-card"><div class="c-t">Referrals</div><p>10 NEA when someone you referred generates their first image.</p>
+</div></div><h3>Bonus tasks</h3>
+<p>New accounts start with a one-time <strong>50 NEA welcome bonus</strong>. Beyond that, four one-time tasks pay out as a creator learns the platform.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Reward</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Generate your first image</td>
+<td>+15 NEA</td>
+</tr>
+<tr>
+<td>List an image for sale</td>
+<td>+10 NEA</td>
+</tr>
+<tr>
+<td>List a prompt for sale</td>
+<td>+10 NEA</td>
+</tr>
+<tr>
+<td>Buy from the marketplace</td>
+<td>+5 NEA</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>40 NEA</strong></td>
+</tr>
+</tbody></table></div>
+<p>Each is one-time and credited to your account balance. Combined with the welcome bonus, a new creator has 90 NEA of runway before they need to earn anything from a sale.</p>
+<p>At 10 NEA per generation, that is enough to explore properly rather than nervously.</p>
+<h3>A worked example</h3>
+<p>Here is what a first session actually looks like, in credits.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Change</th>
+<th>Balance</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sign in, receive welcome bonus</td>
+<td>+50</td>
+<td>50</td>
+</tr>
+<tr>
+<td>Generate an image</td>
+<td>−10</td>
+<td>40</td>
+</tr>
+<tr>
+<td>First-generation task reward</td>
+<td>+15</td>
+<td>55</td>
+</tr>
+<tr>
+<td>List the image for sale</td>
+<td>+10</td>
+<td>65</td>
+</tr>
+<tr>
+<td>List its prompt for sale</td>
+<td>+10</td>
+<td>75</td>
+</tr>
+<tr>
+<td>Buy someone else&#39;s image for 12 NEA</td>
+<td>−12</td>
+<td>63</td>
+</tr>
+<tr>
+<td>First-purchase task reward</td>
+<td>+5</td>
+<td>68</td>
+</tr>
+<tr>
+<td>Your image sells for 20 NEA</td>
+<td>+19</td>
+<td>87</td>
+</tr>
+</tbody></table></div>
+<p>Seven actions. No BNB spent. No gas paid. No transaction sent. No payout requested.</p>
+<p>Every row above is an entry in the account&#39;s history.</p>
+<div class="wp-note"><span class="k">Note</span><p>Listing an image or a prompt costs no NEA. Only generation has a fixed cost of 10 NEA, refunded automatically if the generation fails. Purchases cost whatever the seller set.</p>
+</div><h3>How credits circulate</h3>
+<p>The economy is deliberately closed and deliberately simple.</p>
+<p>A creator generates, lists, and sells. The proceeds fund more generation, or purchases from other creators. A buyer can relist an image they bought. The platform takes 5 percent of each sale and 10 NEA of each generation, and nothing else.</p>
+<p>Nobody has to bring outside money into the system for it to work. That is the point.</p>
+<h3>Prompts have a price now</h3>
+<p>This is the part of NewEra that does not exist elsewhere.</p>
+<p>Getting a specific image out of a model takes taste and iteration. That work is real, and today it evaporates the instant the output gets shared. The person who spent an hour refining a prompt and the person who screenshots the result end up in the same place.</p>
+<p>On NewEra a creator lists the prompt behind an image as a separate asset. The prompt stays locked, with the image as its public preview. A buyer pays and unlocks the exact text. The creator keeps 95 percent, identical to any other sale.</p>
+<p>An image is a single item: when it sells, it leaves the market. A prompt is different. It can sell to many buyers, once each, and the creator earns 95 percent every time.</p>
+<p>The image is the output. The prompt is the craft. Both should be sellable.</p>
+<h3>What NEA is, and what it is not</h3>
+<p>This section is not fine print. Read it before you read anything else about earning.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">What NEA is</div><p>A utility credit for using NewEra, held in your NewEra account. It pays for generation and settles purchases between creators on the platform.</p>
+</div><div class="wp-card"><div class="c-t">What NEA is not</div><p>An investment, a security, a share of revenue, or a claim on anything. It cannot be withdrawn or exchanged for money outside the platform.</p>
+</div></div><p>&quot;Earning&quot; on NewEra means earning credits you can spend on NewEra. When a creator receives 95 percent of a sale, they receive 95 percent of the credits the buyer spent. Those credits fund more generation and more purchases inside the platform.</p>
+<p>NewEra makes no representation about NEA having a price, a market, a listing anywhere, or any monetary value at all. Nothing on this page is a promise of income, returns, or future value.</p>
+<div class="wp-note"><span class="k">Note</span><p>The value of a creation or a prompt is whatever another creator will spend on it, which may be nothing. There is no guaranteed buyer and no guaranteed resale value.</p>
+</div><a class="wp-card link" href="risk.html"><div class="c-t">Read the risk statement</div><p>What to understand before using NewEra.</p>
+</a>
+        </section>
+
+        <section class="doc-sec" id="marketplace">
+          <h2><span class="num">08</span> Marketplace</h2>
+          <p class="wp-lede">List at any price. Sales are instant and atomic inside the platform, with 95 percent to the seller.</p>
+<h3>One marketplace, two asset types</h3>
+<p>The NewEra marketplace handles images and prompts through the same platform ledger.</p>
+<p>A listing is a price and a reference. Buying one executes a single operation inside the platform that charges the buyer, credits the seller, takes the 5 percent platform fee, and moves ownership. There is no escrow period, no settlement delay, and no waiting on a network.</p>
+<p>In NewEra&#39;s first phase this was a marketplace contract on BNB Smart Chain mainnet. On-chain settlement is paused, and that contract is not used by the live product today.</p>
+<h3>Listing</h3>
+<ol class="wp-steps"><li><div class="st-t">Set a price</div><p>Any amount above the minimum. You decide what your work is worth.</p>
+</li><li><div class="st-t">Confirm the listing</div><p>Listing is a platform action. It costs no NEA, there is no gas, and nothing is signed or sent from your wallet.</p>
+</li><li><div class="st-t">The listing goes live</div><p>An image appears on the market at your price. A prompt appears locked, with its image as the public preview.</p>
+</li></ol><p>Listings can be removed by the seller at any time. Nothing is locked, and nothing is held.</p>
+<h3>Buying</h3>
+<p>A purchase is one operation that does four things atomically.</p>
+<p>Either all four happen or none do. There is no state where the buyer has paid and the seller has not been credited, because it is not two steps. It is one.</p>
+<p>A buyer&#39;s balance can never go negative, so a purchase the buyer cannot cover is declined before anything moves. Every balance change a sale causes is written to the history of the accounts involved.</p>
+<div class="wp-note"><span class="k">Note</span><p>Buying needs nothing from your wallet. There is no approval to grant, no transaction to send, and no gas to pay. The price is charged from your NEA balance.</p>
+</div><h3>The split</h3>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Recipient</th>
+<th>Share</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Seller</td>
+<td>95%</td>
+<td>Same operation as the purchase</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td>5%</td>
+<td>Same operation as the purchase</td>
+</tr>
+</tbody></table></div>
+<p>Applied automatically by the platform. Identical for every listing, every seller, and every asset type.</p>
+<p>In the first phase this split was fixed in a contract. Today it is a platform rule, which means you are relying on NewEra to apply it rather than reading it in public code. We apply it on every sale, and we would rather state the difference than blur it.</p>
+<h3>Prompts</h3>
+<p>A prompt is listed the same way an image is, and sells under the same 95/5 terms. Two things are different.</p>
+<p><strong>It stays locked.</strong> The image is the public preview. The prompt text is hidden until a buyer pays, and then it unlocks for that buyer.</p>
+<p><strong>It can sell many times.</strong> An image is a single item. A prompt can sell to many buyers, once each. The creator receives 95 percent of every one of those sales.</p>
+<p>This is the part of the marketplace that has no obvious equivalent elsewhere. The output of a model is easy to copy. The instruction that produced it took work, and until now that work had no price attached to it.</p>
+<h3>Resale</h3>
+<p>A buyer owns the image they bought, which means they can list it again.</p>
+<p>Resale uses the identical path: the new owner lists it, someone buys it, and 95 percent is credited to the reseller. Work moves between creators, prices find a level, and the market stays stocked without NewEra deciding anything.</p>
+<div class="wp-note"><span class="k">Note</span><p>On a resale, the 95 percent goes to the seller of record, which is the current owner. NewEra does not currently implement creator royalties on secondary sales.</p>
+</div><h3>What the platform does, and what it does not</h3>
+<p>Whitepapers are usually vague here. Being precise is more useful.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">The platform does</div><p>Hold the price. Apply the 95/5 split. Move credits and ownership atomically. Record every balance change in the account&#39;s history.</p>
+</div><div class="wp-card"><div class="c-t">The platform does not</div><p>Mint an ERC-721 token. Put sales on a public chain today. Enforce copyright. Guarantee that a listing is still available by the time you click buy.</p>
+</div></div><p><strong>Images are not NFTs.</strong> The buyer, the seller, the price, and the ownership record are all kept in NewEra&#39;s platform database. Nothing about a sale is written to a public chain today. That was different in the first phase, and verifiable on-chain settlement is planned to return in a later phase.</p>
+<p><strong>An image sells once.</strong> When an image sells, ownership transfers to the buyer and it leaves the market. If two buyers reach the same image at once, the first purchase succeeds and the second is declined. The interface tells the second buyer plainly that the item just sold. Nothing is lost and no credits move on a declined purchase.</p>
+<h3>Pricing is yours</h3>
+<p>NewEra sets no floor beyond a small minimum, no ceiling, and no suggested price.</p>
+<div class="wp-note"><span class="k">Note</span><p>Any marketplace involves pricing and demand risk. The value of a creation or a prompt is whatever another creator will spend on it, which may be nothing. There is no guaranteed buyer, resale value, or return.</p>
+</div><a class="wp-card link" href="#creator-economy"><div class="c-t">Creator economy</div><p>How credits reach creators, and what they are and are not.</p>
+</a><div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="prompt-marketplace">
+          <h2><span class="num">09</span> Prompt Marketplace</h2>
+          <p class="wp-lede">The image is the output. The prompt is the craft. Both are sellable.</p>
+<h3>Why prompts have value</h3>
+<p>Getting a specific image out of a model takes taste and iteration. That work is real.</p>
+<p>But the output is what gets shared, and the moment it does, the prompt behind it is copied or lost. The person who spent an hour refining it and the person who screenshots the result end up in the same place.</p>
+<p>NewEra gives that work a price.</p>
+<h3>How it works</h3>
+<ol class="wp-steps"><li><div class="st-t">Generate an image</div><p>The prompt that produced it is stored against your account.</p>
+</li><li><div class="st-t">List the prompt</div><p>Set any price. Listing costs no NEA and no gas. The prompt stays locked, with the image as its public preview.</p>
+</li><li><div class="st-t">A buyer unlocks it</div><p>They pay in NEA. The exact prompt text is revealed to them.</p>
+</li><li><div class="st-t">You keep 95 percent</div><p>Credited to your account instantly, in the same operation as the purchase.</p>
+</li><li><div class="st-t">It can sell again</div><p>A prompt can sell to many buyers, once each. You keep 95 percent every time.</p>
+</li></ol><h3>Terms</h3>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Creator share</td>
+<td>95%</td>
+</tr>
+<tr>
+<td>Platform fee</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Cost to list</td>
+<td>0 NEA, 0 gas</td>
+</tr>
+<tr>
+<td>Settlement</td>
+<td>Instant, in the same operation as the purchase</td>
+</tr>
+<tr>
+<td>Buyers</td>
+<td>Many, once each</td>
+</tr>
+<tr>
+<td>Marketplace</td>
+<td>The same marketplace and the same split as images</td>
+</tr>
+</tbody></table></div>
+<p>A prompt sells on the same 95/5 terms as an image. Nothing about it is a second-class listing. The one difference is that an image is a single item that leaves the market when it sells, and a prompt does not.</p>
+<h3>Buying a prompt</h3>
+<p>You see the image, the title, and the price. You do not see the prompt until you buy it.</p>
+<p>After purchase, the full text is unlocked for you through the platform, and stays locked for everyone who has not bought it. Use it, adapt it, generate from it. You can buy a given prompt once.</p>
+<div class="wp-note"><span class="k">Note</span><p>A prompt is text. Once revealed, it can be reshared by the buyer. NewEra cannot prevent this, and neither can any platform. What NewEra provides is the market and the record of who sold it first.</p>
+</div><h3>What this changes</h3>
+<p>Prompt engineering has been unpaid labor since the day models became good.</p>
+<p>The skill is real, the demand is real, and there has never been a place to price it. This is that place.</p>
+<div class="wp-note"><span class="k">Note</span><p>NEA is a utility credit for using NewEra. It is not an investment, and it cannot be withdrawn or exchanged for money outside the platform. The value of a prompt is whatever another creator will spend on it, which may be nothing.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="nea-token">
+          <h2><span class="num">10</span> NEA</h2>
+          <p class="wp-lede">Free platform credits today. A separate token at TGE. They are not the same thing.</p>
+<div class="wp-note warn"><span class="k">Important</span><p><strong>Read this before anything else.</strong></p>
+<p>The NEA you receive on NewEra today is a <strong>free platform credit</strong>, distributed during the pre-launch phase so creators can test the platform. It has no monetary value, it is not for sale, and it will not be listed on any exchange.</p>
+<p>A <strong>separate NEA token</strong> will be introduced at TGE. It is a different thing entirely: a token contract, where today&#39;s credit is a balance in your NewEra account.</p>
+<p><strong>Platform credits do not convert into the NEA token.</strong> Nothing you earn today becomes something tradeable later. There is no allocation, no airdrop entitlement, and no conversion path.</p>
+</div><h3>Today: free platform credits</h3>
+<p>During pre-launch, NewEra distributes free credits so creators can use the entire platform without spending anything.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>What it is</td>
+<td>A free platform credit for using NewEra</td>
+</tr>
+<tr>
+<td>Where it is held</td>
+<td>In your NewEra account. It is not an on-chain token</td>
+</tr>
+<tr>
+<td>Monetary value</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Withdrawable or exchangeable</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Convertible to the NEA token</td>
+<td>No</td>
+</tr>
+</tbody></table></div>
+<p>Credits exist for one reason: so you can generate, list, buy, and sell without a wallet full of crypto, and decide whether NewEra is worth your time.</p>
+<p>Your wallet is used only to sign in, with a free message signature. It never holds your credits, and no transaction is ever sent from it. Every change to your balance is recorded in your account&#39;s history, and a balance can never go negative.</p>
+<div class="wp-note"><span class="k">Note</span><p>In NewEra&#39;s first phase, the platform credit was an ERC-20 on BNB Smart Chain. On-chain settlement is paused, and the credit is now a balance held in your NewEra account. Balances users held from that phase were carried over into their accounts.</p>
+</div><h4>How credits reach you</h4>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Welcome bonus</div><p>50 credits, once, for new accounts.</p>
+</div><div class="wp-card"><div class="c-t">Bonus tasks</div><p>Up to 40 credits across four one-time tasks: first generation 15, first image listing 10, first prompt listed for sale 10, first purchase 5.</p>
+</div><div class="wp-card"><div class="c-t">Sales</div><p>95 percent of every image or prompt you sell.</p>
+</div><div class="wp-card"><div class="c-t">Referrals</div><p>10 credits when someone you referred generates their first image.</p>
+</div></div><h4>How credits are spent</h4>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Generate an image</td>
+<td>10, refunded automatically if the generation fails</td>
+</tr>
+<tr>
+<td>Buy an image or prompt</td>
+<td>The seller&#39;s price</td>
+</tr>
+<tr>
+<td>List an image or prompt</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<h3>After TGE: the NEA token</h3>
+<p>At TGE, NewEra introduces the actual NEA token. Free credit distribution ends at that point, and generation is paid for with the token.</p>
+<p>The token contract is deployed. Its address, symbol, and supply are published on the <a href="#smart-contracts">Smart Contracts</a> section. <strong>TGE is targeted for September 2026.</strong></p>
+<div class="wp-note warn"><span class="k">Important</span><p>The NEA token is <strong>not live, not listed, and not for sale.</strong> There is no presale.</p>
+<p>Any listing, price, presale, or allocation offered for this token before an official announcement is a scam. Verify every address against the <a href="#smart-contracts">Smart Contracts</a> section.</p>
+<p>The TGE window is a target, not a commitment. It may move.</p>
+</div><h3>The transition</h3>
+<p>NewEra runs in two phases. The switch is deliberate.</p>
+<ol class="wp-steps"><li><div class="st-t">Phase 1: free credits (now)</div><p>Credits are distributed at no cost. Creators use the platform, test the marketplace, and build collections. Nothing costs money and nothing is worth money.</p>
+</li><li><div class="st-t">Phase 2: the token (after TGE)</div><p>Free credit distribution ends. Generation is paid for with the NEA token. The platform mechanics stay identical.</p>
+</li></ol><div class="wp-cards"><div class="wp-card"><div class="c-t">What changes</div><p>Where the credit comes from. Free distribution ends.</p>
+</div><div class="wp-card"><div class="c-t">What does not change</div><p>10 per generation. 95/5 split. No gas for users. Prompts as assets.</p>
+</div></div><h4>What happens to credits you already hold</h4>
+<p>Credits earned in Phase 1 remain in your account and remain usable on the platform under whatever terms NewEra publishes at TGE.</p>
+<p>They do <strong>not</strong> convert into the NEA token, they carry no monetary value, and they confer no claim, allocation, or entitlement of any kind.</p>
+<div class="wp-note warn"><span class="k">Important</span><p>Do not accumulate platform credits as an investment. They are not one. They cannot be sold, converted, or redeemed for anything outside NewEra.</p>
+</div><h3>What is fixed, and where</h3>
+<p>These numbers are the same for every user and every sale. Where they are held has changed, and that is worth stating.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Applied by the platform</div><p>The 50 welcome amount. The 10 per generation. The 95/5 marketplace split. The one-time task and referral rewards.</p>
+</div><div class="wp-card"><div class="c-t">Not in a contract today</div><p>In the first phase these were set in contract code. While on-chain settlement is paused, they are platform rules, and you are relying on NewEra to apply them.</p>
+</div></div><p>The contracts from the first phase are still on BNB Smart Chain mainnet, but the live product does not use them. Verifiable on-chain settlement is planned to return in a later phase.</p>
+<h3>Plainly stated</h3>
+<p>Platform credits are not an investment, not a security, not a claim on revenue, and not a pre-allocation of the NEA token. They cannot be withdrawn or exchanged for money.</p>
+<p>Earning 95 percent of a sale means receiving 95 percent of the credits the buyer spent. Those credits are spent on NewEra. They are not income.</p>
+<p>NewEra makes no representation that platform credits or the NEA token will have any price, market, listing, or future value. Nothing on this page is a promise of returns.</p>
+<div class="wp-note"><span class="k">Note</span><p>The value of a creation or a prompt is whatever another creator will spend on it, which may be nothing. There is no guaranteed buyer, resale value, or return.</p>
+</div><a class="wp-card link" href="risk.html"><div class="c-t">Read the risk statement</div><p>What to understand before using NewEra.</p>
+</a>
+        </section>
+
+        <section class="doc-sec" id="tokenomics">
+          <h2><span class="num">11</span> Tokenomics</h2>
+          <p class="wp-lede">30,000,000,000 NEA. Allocation, vesting, and what unlocks when.</p>
+<div class="wp-note"><span class="k">Note</span><p>This page describes the NEA token planned for TGE. It does not describe the platform credit used on NewEra today, which is a balance in your NewEra account with no monetary value. See <a href="#nea-token">NEA</a>.</p>
+</div><h3>Supply</h3>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Symbol</td>
+<td>NEA</td>
+</tr>
+<tr>
+<td>Total supply</td>
+<td>30,000,000,000 NEA</td>
+</tr>
+<tr>
+<td>Standard</td>
+<td>ERC-20</td>
+</tr>
+<tr>
+<td>Chain</td>
+<td>BNB Smart Chain</td>
+</tr>
+<tr>
+<td>TGE</td>
+<td>Targeted for September 2026</td>
+</tr>
+<tr>
+<td>Mint function</td>
+<td>Disabled after deployment. Supply is fixed.</td>
+</tr>
+</tbody></table></div>
+<p>The supply is fixed at deployment. No further NEA can be minted, by anyone, including us.</p>
+<div class="wp-note"><span class="k">Note</span><p>The TGE window is a target, not a commitment. Listing timelines depend on factors outside NewEra&#39;s control and may move.</p>
+</div><h3>Allocation</h3>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Allocation</th>
+<th>Percent</th>
+<th>NEA</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Ecosystem and rewards</strong></td>
+<td>35%</td>
+<td>10,500,000,000</td>
+<td>Creator rewards, bonus tasks, referrals, and generation subsidies</td>
+</tr>
+<tr>
+<td><strong>Treasury and reserve</strong></td>
+<td>20%</td>
+<td>6,000,000,000</td>
+<td>Operations, infrastructure, gas sponsorship, and contingency</td>
+</tr>
+<tr>
+<td><strong>Team and core contributors</strong></td>
+<td>15%</td>
+<td>4,500,000,000</td>
+<td>Founders and core team, fully vested</td>
+</tr>
+<tr>
+<td><strong>Liquidity</strong></td>
+<td>12%</td>
+<td>3,600,000,000</td>
+<td>Exchange listings and market depth</td>
+</tr>
+<tr>
+<td><strong>Marketing and growth</strong></td>
+<td>10%</td>
+<td>3,000,000,000</td>
+<td>User acquisition, partnerships, campaigns</td>
+</tr>
+<tr>
+<td><strong>Community and airdrop</strong></td>
+<td>5%</td>
+<td>1,500,000,000</td>
+<td>Early supporters and community programs</td>
+</tr>
+<tr>
+<td><strong>Advisors and partners</strong></td>
+<td>3%</td>
+<td>900,000,000</td>
+<td>Strategic advisors, vested</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>100%</strong></td>
+<td><strong>30,000,000,000</strong></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<h3>Vesting</h3>
+<p>The point of a vesting schedule is that the team cannot leave before the product does.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Allocation</th>
+<th>At TGE</th>
+<th>Cliff</th>
+<th>Vesting</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ecosystem and rewards</td>
+<td>0%</td>
+<td>None</td>
+<td>Released as earned, over 48 months</td>
+</tr>
+<tr>
+<td>Treasury and reserve</td>
+<td>0%</td>
+<td>6 months</td>
+<td>36 months linear</td>
+</tr>
+<tr>
+<td>Team and core contributors</td>
+<td>0%</td>
+<td>12 months</td>
+<td>36 months linear</td>
+</tr>
+<tr>
+<td>Liquidity</td>
+<td>100%</td>
+<td>None</td>
+<td>Unlocked at listing</td>
+</tr>
+<tr>
+<td>Marketing and growth</td>
+<td>10%</td>
+<td>None</td>
+<td>24 months linear</td>
+</tr>
+<tr>
+<td>Community and airdrop</td>
+<td>25%</td>
+<td>None</td>
+<td>12 months linear</td>
+</tr>
+<tr>
+<td>Advisors and partners</td>
+<td>0%</td>
+<td>12 months</td>
+<td>24 months linear</td>
+</tr>
+</tbody></table></div>
+<div class="wp-note"><span class="k">Note</span><p>Team and advisor allocations have a full 12 month cliff. Nothing unlocks in the first year. After the cliff, tokens vest linearly, monthly.</p>
+</div><h3>Circulating supply at TGE</h3>
+<p>Only three buckets unlock anything on day one.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>NEA at TGE</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Liquidity</td>
+<td>3,600,000,000</td>
+</tr>
+<tr>
+<td>Marketing (10%)</td>
+<td>300,000,000</td>
+</tr>
+<tr>
+<td>Community and airdrop (25%)</td>
+<td>375,000,000</td>
+</tr>
+<tr>
+<td><strong>Circulating at TGE</strong></td>
+<td><strong>4,275,000,000</strong></td>
+</tr>
+<tr>
+<td><strong>Percent of total supply</strong></td>
+<td><strong>14.25%</strong></td>
+</tr>
+</tbody></table></div>
+<p>The team holds nothing liquid at TGE. Neither do advisors. Neither does the treasury.</p>
+<h3>Where the ecosystem allocation goes</h3>
+<p>The largest bucket exists to pay creators, not to sit in a wallet.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Creator rewards</div><p>Bonus tasks, referral rewards, and creator incentive programs.</p>
+</div><div class="wp-card"><div class="c-t">Generation subsidies</div><p>Reduced-cost or sponsored generation during growth phases.</p>
+</div><div class="wp-card"><div class="c-t">Gas sponsorship</div><p>Funding sponsored gas when on-chain settlement returns in a later phase. The live product sends no transactions today, so nothing is being sponsored now.</p>
+</div><div class="wp-card"><div class="c-t">Grants and campaigns</div><p>Creator grants, contests, and partner integrations.</p>
+</div></div><p>Ecosystem tokens are released as they are earned, not on a calendar. Unearned tokens stay locked.</p>
+<h3>Demand</h3>
+<p>NEA has one job on NewEra: it pays for things.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Sink</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Generation</td>
+<td>10 NEA per image, to the fee collector</td>
+</tr>
+<tr>
+<td>Marketplace fee</td>
+<td>5 percent of every sale, to the fee collector</td>
+</tr>
+<tr>
+<td>Purchases</td>
+<td>Buyers spend NEA, sellers receive 95 percent</td>
+</tr>
+</tbody></table></div>
+<p>Every image generated and every sale executed moves NEA out of a user&#39;s balance. The platform captures 10 NEA per generation and 5 percent per sale, and nothing else.</p>
+<div class="wp-note"><span class="k">Note</span><p>There is no staking, no yield, and no rewards for holding. NEA is spent, not farmed.</p>
+</div><h3>What this document does not promise</h3>
+<a class="wp-card link" href="risk.html"><div class="c-t">Read the risk statement</div><p>What to understand before acquiring or using any token.</p>
+</a>
+        </section>
+
+        <section class="doc-sec" id="smart-contracts">
+          <h2><span class="num">12</span> Smart Contracts</h2>
+          <p class="wp-lede">The NEA token contract, published early so you can verify it before TGE.</p>
+<h3>NEA token</h3>
+<p>The token that will be listed at TGE.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Address</td>
+<td><code>0x562BFE0Eb9180928665cfe67c97Bc410964dd014</code></td>
+</tr>
+<tr>
+<td>Symbol</td>
+<td>NEA</td>
+</tr>
+<tr>
+<td>Chain</td>
+<td>BNB Smart Chain (chain ID 56)</td>
+</tr>
+<tr>
+<td>Standard</td>
+<td>ERC-20</td>
+</tr>
+<tr>
+<td>Total supply</td>
+<td>30,000,000,000</td>
+</tr>
+<tr>
+<td>TGE</td>
+<td>Targeted for September 2026</td>
+</tr>
+</tbody></table></div>
+<div class="wp-note"><span class="k">Note</span><p>The TGE window is a target, not a commitment. Listing timelines depend on factors outside NewEra&#39;s control and may move. Any change will be announced through official channels.</p>
+</div><div class="wp-note warn"><span class="k">Important</span><p>The NEA token is <strong>not live, not listed, and not for sale.</strong> There is no presale.</p>
+<p>Any listing, price, presale, or allocation offered for this token before an official announcement is a scam. The address above is published now precisely so that when TGE happens, you can check it against an address you already had, from a source you already trusted.</p>
+</div><h3>This is not the platform credit</h3>
+<p>The free credits you use on NewEra today are <strong>not this token, and today they are not a contract at all</strong>. They are a balance held in your NewEra account. They have no monetary value, and they do not convert into this token.</p>
+<a class="wp-card link" href="#nea-token"><div class="c-t">Read the difference</div><p>Platform credits today. A listed token at TGE. They are not the same thing.</p>
+</a><h3>Platform contracts</h3>
+<p>NewEra&#39;s first phase ran on three contracts on BNB Smart Chain mainnet: a credit token, a Generation contract, and a Marketplace contract. A standard ERC-4337 EntryPoint handled gasless transactions.</p>
+<p><strong>The live product does not use these contracts.</strong> As of 18 September 2026, on-chain settlement is paused and all accounting happens inside the platform. A wallet is used only to sign in, with a free message signature. Balances users held from the first phase were carried over into their accounts.</p>
+<p>Verifiable on-chain settlement is planned to return in a later phase. Nothing on this page should be read as a design or a date for that.</p>
+<div class="wp-note"><span class="k">Note</span><p>NewEra&#39;s live product never asks your wallet to send a transaction or approve an allowance. If something claiming to be NewEra does, it is not us. For anything involving the NEA token, verify the address against an official source before you approve a transaction, and never approve an unlimited allowance to a contract you have not checked.</p>
+</div><h3>Key parameters</h3>
+<p>These are the platform&#39;s parameters. In the first phase they were fixed in contract code. Today they are applied by the platform on every action, and they are not held in a contract.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Welcome credit</td>
+<td>50</td>
+</tr>
+<tr>
+<td>Generation cost</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Creator share</td>
+<td>95%</td>
+</tr>
+<tr>
+<td>Platform fee</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Listing cost</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<p>While on-chain settlement is paused, you cannot read these numbers in the source of a contract that applies them. You are relying on NewEra to apply them as stated. Every balance change they cause is recorded in your account&#39;s history.</p>
+<h3>Contract security</h3>
+<div class="wp-note warn"><span class="k">Important</span><p><strong>The contracts have not undergone a third-party security audit.</strong></p>
+<p>They are deployed and verified, which means the source is public and matches the bytecode. It does not mean the source has been reviewed by a security firm. Read the contracts before you commit anything you cannot afford to lose.</p>
+</div><div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform. The NEA token is not live and nothing on this page is an offer to sell it.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="security">
+          <h2><span class="num">13</span> Security</h2>
+          <p class="wp-lede">What NewEra controls, what it cannot touch, and what you are responsible for.</p>
+<h3>Custody</h3>
+<p><strong>NewEra never holds your wallet, your keys, or any funds. It does hold the record of your NEA balance and of what you own.</strong> Both halves of that sentence matter, and the second half is new.</p>
+<p>Your wallet is used only to sign in. Signing in is a free message signature. No funds move, no gas is paid, and no transaction is ever sent from your wallet. NewEra never sees your private keys or seed phrase, is not a signer on anything you own outside the platform, and cannot move anything in your wallet.</p>
+<p>Your NEA balance, your images, and your listings are different. They are records in NewEra&#39;s platform database. In the first phase those records were on BNB Smart Chain, where you could verify them yourself and NewEra could not alter them. On-chain settlement is paused, so today you are trusting the platform to keep that record correctly. We are saying this plainly because it is the most important change on this page.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">You control</div><p>Your wallet and its keys. Whether to sign in. What you generate, list, price, and buy.</p>
+</div><div class="wp-card"><div class="c-t">NewEra controls</div><p>The platform database: the record of every NEA balance, every ownership record, every listing, and the platform fee account.</p>
+</div></div><p>NEA is a platform credit with no monetary value, and it cannot be withdrawn. That limits what is at stake, but it does not change the fact: the record is ours to keep, and you are relying on us to keep it.</p>
+<h3>Balance integrity</h3>
+<p>Since the platform holds the record, how the record is kept is what matters.</p>
+<ol class="wp-steps"><li><div class="st-t">Every change is recorded</div><p>Every credit, charge, refund, and reward is written to the account&#39;s history, which is append-only.</p>
+</li><li><div class="st-t">Balances cannot go negative</div><p>A generation or purchase the account cannot cover is declined before anything happens.</p>
+</li><li><div class="st-t">Sales are atomic</div><p>The buyer is charged, the seller is credited, and ownership moves together, or none of it happens. There is no state where one side has paid and the other has not received.</p>
+</li><li><div class="st-t">Failed generations are refunded</div><p>If generation fails, the 10 NEA is refunded automatically, and both the charge and the refund appear in the history.</p>
+</li></ol><p>One-time rewards pay once per account. Platform statistics are counted from real activity.</p>
+<p>What these rules do not give you is independent verification. You can see your own history. You cannot, today, check it against a public chain.</p>
+<h3>Authentication</h3>
+<p>There are no passwords and no email logins.</p>
+<p>Login is a signed message from your wallet (MetaMask or WalletConnect), verified by the platform. It is a free signature. It authorizes nothing except signing you in: it cannot move funds, and it is not a transaction.</p>
+<p>Your account is tied to your wallet address. There is no separate account recovery.</p>
+<h3>On-chain settlement and gas sponsorship</h3>
+<p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet with ERC-4337 account abstraction, and a paymaster sponsored the gas for every user action. That is over. The live product has no gas sponsorship, no paymaster, no smart-account flow, and no bundler, because it sends no transactions at all.</p>
+<div class="wp-note"><span class="k">Note</span><p>On-chain settlement is paused, not abandoned. It made the product slower and dependent on sponsored gas. Verifiable on-chain settlement is planned to return in a later phase. No date or design is promised here.</p>
+</div><h3>Contract security</h3>
+<p>The contracts from the first phase, and the NEA token contract published for TGE, are on BNB Smart Chain mainnet. The live product does not use the first-phase contracts while on-chain settlement is paused.</p>
+<div class="wp-note warn"><span class="k">Important</span><p><strong>The contracts have not undergone a third-party security audit.</strong></p>
+<p>Verified source code is not the same as reviewed source code. Read the contracts, or have someone you trust read them, before you commit anything you cannot afford to lose.</p>
+</div><h3>What is applied and who operates it</h3>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Applied automatically on every action</div><p>The 95/5 split. The 10 per generation. The 50 welcome amount. Atomic settlement of every sale. A recorded history behind every balance.</p>
+</div><div class="wp-card"><div class="c-t">Operated by NewEra</div><p>All of the above, plus the interface, the API and database, and image generation and storage.</p>
+</div></div><p>In the first phase, the first column lived in contract code and would have stayed true if NewEra went offline permanently. Today both columns are operated by NewEra. If NewEra went offline, the record of balances and ownership would go offline with it. That is the honest cost of the pause, and it is why verifiable on-chain settlement is planned to return.</p>
+<h3>Your responsibilities</h3>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Protect your wallet</div><p>Your wallet signs you in to your account. Lose it and you lose access to your credits and your work. There is no recovery.</p>
+</div><div class="wp-card"><div class="c-t">Verify before you sign</div><p>NewEra sign-in is a free message signature. NewEra never asks for a transaction, an approval, BNB, or gas. If a site asks for any of those in our name, it is not us.</p>
+</div><div class="wp-card"><div class="c-t">Treat unsolicited offers as fraud</div><p>NewEra will never DM you first, never ask for a seed phrase, and never run a presale.</p>
+</div><div class="wp-card"><div class="c-t">Understand finality</div><p>Transactions on a blockchain cannot be reversed, by us or by anyone. The live product sends none, but that applies to anything you do with the NEA token contract.</p>
+</div></div><h3>Known limitations</h3>
+<p>Being specific here is more useful than claiming there are none.</p>
+<ul>
+<li><strong>The record is held by NewEra.</strong> Balances and ownership live in the platform database. You cannot verify them on a public chain today.</li>
+<li><strong>Images are not NFTs.</strong> Ownership of an image is a platform record, not a token in your wallet.</li>
+<li><strong>An image sells once.</strong> If two buyers reach the same image at once, the second purchase is declined. Nothing is lost and no credits move, but the interface may briefly show an item that has just sold.</li>
+<li><strong>AI output is not guaranteed.</strong> Models are probabilistic. NewEra does not warrant that a generated image is original, suitable, or matches your intent.</li>
+<li><strong>Generation depends on third parties.</strong> Inference providers rate limit and go down. When every fallback fails, the generation fails and the charge is refunded.</li>
+<li><strong>A revealed prompt can be reshared.</strong> A prompt is text. Once a buyer unlocks it, NewEra cannot stop them passing it on.</li>
+</ul>
+<h3>Responsible disclosure</h3>
+<p>If you find a vulnerability, tell us before you tell anyone else.</p>
+<a class="wp-card link" href="contact.html"><div class="c-t">Report a security issue</div><p>Contact the team directly. We will respond, and we will not pursue researchers acting in good faith.</p>
+</a><div class="wp-note warn"><span class="k">Important</span><p><strong>Add a dedicated security contact before publishing.</strong> A generic contact page is not enough. Publish an address that reaches an engineer, and state your response window.</p>
+</div><div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="roadmap">
+          <h2><span class="num">14</span> Roadmap</h2>
+          <p class="wp-lede">What is built, what ships before TGE, what comes after, and the later phase where on-chain settlement returns.</p>
+<div class="wp-note"><span class="k">Note</span><p>This roadmap describes intent, not commitments. Dates are targets. Features listed as planned or exploratory may change, ship late, or not ship at all. Nothing here is a promise.</p>
+</div><h3>Phase 0: Foundation</h3>
+<p><strong>Status: complete</strong></p>
+<p>The platform works end to end. This was the hard part.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Instant platform accounting</div><p>NEA balances held in each account, with a recorded history behind every change. Balances can never go negative.</p>
+</div><div class="wp-card"><div class="c-t">No crypto friction</div><p>A wallet is used only to sign in, with a free message signature. No gas, no BNB, no transactions.</p>
+</div><div class="wp-card"><div class="c-t">AI generation</div><p>Fast diffusion inference with provider fallback, output verification, and automatic refunds on failure.</p>
+</div><div class="wp-card"><div class="c-t">Marketplace and prompts</div><p>Atomic settlement, the 95/5 split, resale, and prompts as standalone assets that can sell to many buyers.</p>
+</div></div><p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet, with on-chain payments and gasless ERC-4337 account abstraction. As of 18 September 2026, accounting moved into the platform and on-chain settlement was paused, because it made the product slower and dependent on sponsored gas. Balances users held from the first phase were carried over into their accounts. See &quot;On-chain settlement returns&quot; below.</p>
+<h3>Phase 1: Public launch</h3>
+<p><strong>Target: September 2026</strong></p>
+<p>Opening the platform, in order.</p>
+<ol class="wp-steps"><li><div class="st-t">Closed testing</div><p>Internal and invited users exercise the full flow. Bugs found here are cheaper than bugs found later.</p>
+</li><li><div class="st-t">Public interface</div><p>The web app goes live. Anyone can sign in, receive free credits, and generate.</p>
+</li><li><div class="st-t">Mobile wallet support</div><p>Sign-in for wallet connections beyond browser extensions.</p>
+</li></ol><h3>Phase 2: TGE</h3>
+<p><strong>Target: September 2026</strong></p>
+<p>The transition from free credits to a real token.</p>
+<div class="wp-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NEA token listed</td>
+<td>Exchanges, at TGE</td>
+</tr>
+<tr>
+<td>Free credit distribution</td>
+<td>Ends</td>
+</tr>
+<tr>
+<td>Generation</td>
+<td>Paid for with NEA acquired on an exchange</td>
+</tr>
+<tr>
+<td>Platform mechanics</td>
+<td>Unchanged</td>
+</tr>
+</tbody></table></div>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">What changes</div><p>Where the credit comes from. Free distribution ends.</p>
+</div><div class="wp-card"><div class="c-t">What does not change</div><p>10 per generation. 95/5 split. No gas for users. Prompts as assets.</p>
+</div></div><div class="wp-note warn"><span class="k">Important</span><p>Platform credits earned before TGE do not convert into the NEA token. There is no allocation, no airdrop entitlement, and no conversion path. See <a href="#nea-token">NEA</a>.</p>
+</div><p>Vesting contracts for team, treasury, and advisor allocations are deployed and publicly verifiable before any token is distributed.</p>
+<h3>Phase 3: After TGE</h3>
+<p><strong>Target: Q3 to Q4 2026</strong></p>
+<p>The obvious gaps in what exists today, in the order they matter.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Creator royalties</div><p>Exploring a royalty on secondary sales, so original creators earn when their work resells.</p>
+</div><div class="wp-card"><div class="c-t">Creator profiles</div><p>Portfolios, follows, and a reason to come back.</p>
+</div></div><h3>Later phase: On-chain settlement returns</h3>
+<p><strong>No dates</strong></p>
+<p>On-chain settlement is paused, not abandoned. It ran in the first phase, it was paused because it made the product slower and dependent on sponsored gas, and it is planned to return in a later phase.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Verifiable settlement</div><p>Payments, sales, and the 95/5 split recorded where anyone can check them, instead of only in NewEra&#39;s database.</p>
+</div><div class="wp-card"><div class="c-t">On-chain ownership tokens</div><p>Exploring ERC-721 representation for images, so ownership is a token and not a platform record.</p>
+</div><div class="wp-card"><div class="c-t">Chain indexing</div><p>A full event indexer, so that when settlement is on a chain again the interface stays in step with it.</p>
+</div></div><p>We are deliberately not giving a date or a technical design for this. Until it ships, the platform database is the system of record, and the <a href="#security">Security</a> section says what that means for you.</p>
+<h3>Phase 4: Beyond</h3>
+<p><strong>No dates</strong></p>
+<p>NewEra starts with images because that is where AI creation is most alive. The model underneath it is not about images.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">More formats</div><p>The creative surfaces AI opens next, on the same ownership and settlement rails.</p>
+</div><div class="wp-card"><div class="c-t">Open marketplace</div><p>Public APIs and integrations, so NewEra is infrastructure rather than a destination.</p>
+</div></div><p>The goal is not to build a better AI art site. It is to make the ownership question boring, so creators can go back to making things.</p>
+<h3>What we will not do</h3>
+<p>Stating this is as useful as stating the roadmap.</p>
+<ul>
+<li><strong>No staking, no yield, no rewards for holding.</strong> NEA is spent, not farmed.</li>
+<li><strong>No presale.</strong> Anyone offering one is running a scam.</li>
+<li><strong>No changes to the 95/5 split.</strong> While on-chain settlement is paused it is a platform rule rather than contract code, so this is our commitment, not something you can verify. We are stating it as one.</li>
+<li><strong>No custody of wallets or funds.</strong> We never see or hold your keys, and the live product never sends a transaction from your wallet. We do hold the record of balances and ownership today. See <a href="#security">Security</a>.</li>
+<li><strong>No claim of a security audit.</strong> The contracts have not been audited by a third party. They are verified, which is not the same thing.</li>
+</ul>
+<div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform. Nothing on this page is a promise of features, timelines, value, or returns.</p>
+</div>
+        </section>
+
+        <section class="doc-sec" id="disclaimer">
+          <h2><span class="num">15</span> Disclaimer</h2>
+          <p class="wp-lede">Read this before using NewEra or acquiring any token associated with it.</p>
+<div class="wp-note warn"><span class="k">Important</span><p>This document is provided for information only. It is not financial advice, legal advice, tax advice, or investment advice. It is not an offer to sell, or a solicitation of an offer to buy, any security, token, or financial instrument in any jurisdiction.</p>
+<p>Do not make a financial decision based on anything in this document. Consult your own professional advisers.</p>
+</div><h3>No offer, no solicitation</h3>
+<p>Nothing in this whitepaper constitutes an offer, invitation, or recommendation to purchase, sell, or hold NEA or any other asset.</p>
+<p>There is no presale. There is no private round being offered through this document. Any person or channel offering you an allocation, presale, or early purchase of NEA before an official announcement is committing fraud.</p>
+<h3>Two different things are called NEA</h3>
+<p>This is the single most important distinction in this document.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Platform credits (today)</div><p>Free credits distributed during pre-launch, held in your NewEra account. No monetary value. Not for sale. Never listed. Not convertible.</p>
+</div><div class="wp-card"><div class="c-t">The NEA token (at TGE)</div><p>A separate contract, intended for exchange listing. Not live. Not for sale. No presale.</p>
+</div></div><p><strong>Platform credits do not convert into the NEA token.</strong> Credits earned, purchased, traded, or accumulated on the platform confer no claim, allocation, entitlement, airdrop, or right of any kind with respect to the NEA token.</p>
+<p>If you are using NewEra in the expectation that your credits will become a tradeable asset, that expectation is incorrect. Stop.</p>
+<h3>Platform credits are not an investment</h3>
+<p>Platform credits are a utility credit for using NewEra. They are not a security, not a share, not a claim on revenue, assets, or profits, and not a financial instrument.</p>
+<p>They cannot be withdrawn, redeemed, or exchanged for money, cryptocurrency, or anything of value outside the platform.</p>
+<p>Receiving 95 percent of a sale means receiving 95 percent of the credits the buyer spent. Those credits are spent on NewEra. They are not income.</p>
+<h3>No representation of value</h3>
+<p>NewEra makes no representation, warranty, or guarantee that platform credits or the NEA token will have any price, market, liquidity, listing, utility, or value at any time, now or in the future.</p>
+<p>Token prices, if any market ever exists, may go to zero. The value of an image or a prompt is whatever another user will spend on it, which may be nothing. There is no guaranteed buyer, no guaranteed resale value, and no guaranteed return.</p>
+<h3>Forward-looking statements</h3>
+<p>This document contains statements about future plans, features, timelines, and intentions. These are targets and intentions, not commitments.</p>
+<p>Roadmap items, TGE timing, listings, the return of on-chain settlement, and planned features may be delayed, changed materially, or abandoned entirely. Dates are estimates. Nothing described as planned, targeted, intended, or exploratory should be relied upon.</p>
+<h3>Platform record risk</h3>
+<p>As of 18 September 2026, balances, ownership, and sales are recorded in NewEra&#39;s platform database, not on a public blockchain. You cannot independently verify them, and you are relying on NewEra to keep that record accurately and to keep it available.</p>
+<p>The 95/5 split, the 10 NEA generation cost, and the reward amounts are applied by the platform. They are not enforced by a smart contract, and they are not guaranteed by one.</p>
+<h3>Smart contract risk</h3>
+<p>The contracts have <strong>not undergone a third-party security audit.</strong></p>
+<p>Verified source code means the published source matches the deployed bytecode. It does not mean the code has been reviewed by a security firm, and it does not mean the code is free of bugs.</p>
+<p>Smart contracts can contain vulnerabilities. Funds interacting with them can be lost, permanently, with no recourse. Read the contracts, or have someone you trust read them, before you commit anything you cannot afford to lose.</p>
+<p>The live product does not use the first-phase platform contracts while on-chain settlement is paused, and it never asks your wallet to send a transaction. This section applies to the NEA token contract, to the first-phase contracts, and to any contracts a later phase introduces.</p>
+<h3>Blockchain risk</h3>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">Transactions are final</div><p>Transactions on a blockchain, including any involving the NEA token, cannot be reversed by NewEra, by an exchange, or by anyone.</p>
+</div><div class="wp-card"><div class="c-t">Keys are your responsibility</div><p>Your wallet signs you in. Lose your wallet and you lose access to your credits and your work. There is no recovery.</p>
+</div><div class="wp-card"><div class="c-t">Networks can fail</div><p>Chains congest, reorganise, halt, and fork. NewEra does not control BNB Smart Chain.</p>
+</div><div class="wp-card"><div class="c-t">Third parties can fail</div><p>Inference providers, wallet connection services, hosting, database, and storage providers can go down.</p>
+</div></div><h3>On-chain settlement is paused</h3>
+<p>NewEra&#39;s first phase settled payments on BNB Smart Chain and sponsored gas for user actions. That has ended. The live product sends no transactions and sponsors no gas.</p>
+<p>On-chain settlement is planned to return in a later phase. Like every forward-looking statement in this document, that is an intention, not a commitment, and no date is given. If gas sponsorship is offered again, it may be limited, reduced, or discontinued at any time without notice.</p>
+<h3>AI output</h3>
+<p>Generated images are produced by probabilistic models over which NewEra exercises limited control.</p>
+<ul>
+<li>NewEra does not warrant that any output is original, novel, non-infringing, accurate, or suitable for any purpose.</li>
+<li>Models may produce similar or identical outputs for different users.</li>
+<li>You are responsible for how you use, publish, and license work generated on NewEra.</li>
+<li>Prompts are text. Once a prompt is revealed to a buyer, it can be reshared. NewEra cannot prevent this.</li>
+</ul>
+<h3>Platform limitations</h3>
+<p>Stated plainly, because they matter.</p>
+<ul>
+<li><strong>Images are not NFTs.</strong> Ownership of an image is a record in NewEra&#39;s platform database. It is not a token, and it is not on a chain.</li>
+<li><strong>No creator royalties on resale.</strong> The seller of record receives 95 percent, whether or not they created the work.</li>
+<li><strong>The record is NewEra&#39;s.</strong> Balances, ownership, and sales are kept by the platform, and the interface may briefly show a listing that has already sold.</li>
+<li><strong>The platform is early.</strong> It may change, pause, break, or reset without notice.</li>
+</ul>
+<h3>Regulatory and eligibility</h3>
+<p>Laws governing digital assets vary by jurisdiction and change frequently. It is your responsibility to determine whether using NewEra, holding platform credits, or acquiring NEA is lawful where you live.</p>
+<p>NewEra is not available to persons in jurisdictions where its use would be unlawful. Nothing in this document is directed at any person in any jurisdiction where such distribution or use would be contrary to law.</p>
+<h3>No fiduciary relationship</h3>
+<p>NewEra is a software platform. It is not a bank, a broker, a custodian, an exchange, an investment adviser, or a financial service of any kind. Using it creates no fiduciary duty, no advisory relationship, and no obligation of any kind beyond the terms published on the platform.</p>
+<h3>Accuracy and changes</h3>
+<p>This document reflects the state of NewEra at the time of writing. It may contain errors, omissions, and information that becomes outdated.</p>
+<p>NewEra may revise this document at any time without notice. No representation is made that it is complete, accurate, or current.</p>
+<h3>Limitation of liability</h3>
+<p>To the maximum extent permitted by law, NewEra and its contributors accept no liability for any loss or damage arising from use of the platform, reliance on this document, interaction with the contracts, or acquisition of any token, including loss of funds, loss of data, loss of access, or loss of value.</p>
+<p>You use NewEra at your own risk.</p>
+<h3>Get your own advice</h3>
+<p>This document was not prepared by lawyers and is not a substitute for legal, financial, or tax advice.</p>
+<p>If you are considering acquiring NEA, or committing anything of value to this platform, speak to a qualified adviser in your jurisdiction first.</p>
+<a class="wp-card link" href="risk.html"><div class="c-t">Risk statement</div><p>A fuller account of what to understand before using NewEra.</p>
+</a>
+        </section>
+      </main>
+    </div>
+
+    <!-- ===== footer ===== -->
+    <footer class="site-foot">
+      <div class="foot-wrap">
+        <div class="foot-top">
+          <button class="backtop" id="backtop">Back to top
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </button>
+        </div>
+        <div class="foot-main">
+          <div class="foot-brand">
+            <div class="foot-tag">Create with AI.<br><b>Own what you make.</b></div>
+            <div class="foot-social">
+              <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+              <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+              <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+              <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+              <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+            </div>
+          </div>
+          <div class="foot-col">
+            <h4>Product</h4>
+            <a href="index.html#create">Explore</a>
+            <a href="index.html#stack">How it works</a>
+            <a href="studio/marketplace.html">Marketplace</a>
+            <a href="feature-generate.html">Generate AI art</a>
+          </div>
+          <div class="foot-col">
+            <h4>Resources</h4>
+            <a href="docs.html">Docs</a>
+            <a href="whitepaper.html">Whitepaper</a>
+            <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+          </div>
+          <div class="foot-col">
+            <h4>Company</h4>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+          </div>
+          <div class="foot-col">
+            <h4>Legal</h4>
+            <a href="legal.html">Legal center</a>
+            <a href="terms.html">Terms of Use</a>
+            <a href="risk.html">Risk Statement</a>
+            <a href="privacy.html">Privacy Policy</a>
+          </div>
+        </div>
+        <div class="foot-glow"></div>
+        <div class="foot-mark">NEWERA</div>
+        <div class="foot-bottom">
+          <div class="foot-bar">
+            <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+            <span class="cr">&copy; 2026 NewEra &middot; Creator-owned AI</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    var bt = document.getElementById("backtop");
+    if (bt) bt.addEventListener("click", function(){ window.scrollTo({top:0,behavior:"smooth"}); });
+    // scroll-spy for TOC
+    var links = Array.prototype.slice.call(document.querySelectorAll(".doc-toc a"));
+    var secs = links.map(function(a){ return document.querySelector(a.getAttribute("href")); });
+    function onScroll(){
+      var y = window.scrollY + 120, cur = 0;
+      for (var i=0;i<secs.length;i++){ if (secs[i] && secs[i].offsetTop <= y) cur = i; }
+      links.forEach(function(l){ l.classList.remove("active"); });
+      if (links[cur]) links[cur].classList.add("active");
+    }
+    window.addEventListener("scroll", onScroll); onScroll();
+  </script>
+</body>
+</html>
