@@ -305,13 +305,13 @@
           <h2><span class="num">05</span> Platform Architecture</h2>
           <p class="wp-lede">The platform database is the system of record today, with a history behind every balance. On-chain settlement is planned as a later layer.</p>
 <h3>Design principle</h3>
-<p>NewEra is built around one rule today: <strong>the platform database is the system of record, and every balance has an append-only history behind it.</strong></p>
-<p>Balances, ownership, listings, and the fee split are all kept by the NewEra platform. Every change to a balance is recorded in the account&#39;s history. A balance can never go negative. A sale either happens completely or not at all. Platform statistics are counted from real activity, not estimated.</p>
+<p>NewEra is built around one rule today: <strong>the platform database is the system of record, and every balance change the platform makes writes a history entry behind it.</strong></p>
+<p>Balances, ownership, listings, and the fee split are all kept by the NewEra platform. Every change to a balance is recorded in the account&#39;s history. A balance can never go negative. A sale either happens completely or not at all.</p>
 <p>This is a change, and it is worth being direct about. NewEra&#39;s first phase ran on BNB Smart Chain mainnet, and this page used to say the chain was the source of truth and everything else was a cache. As of 18 September 2026 that is no longer how the product works. On-chain settlement is paused. It made the product slower and dependent on sponsored gas, and creation should be instant and free of crypto friction. Verifiable on-chain settlement is planned to return in a later phase, as a layer on top of what is described here.</p>
 <p>Until then, a user does have to trust us for the record. The last section of this page says exactly where that boundary is.</p>
 <h3>The layers</h3>
 <div class="wp-cards"><div class="wp-card"><div class="c-t">Sign-in layer</div><p>A wallet (MetaMask or WalletConnect) signs a free message. That is all the wallet is used for.</p>
-</div><div class="wp-card"><div class="c-t">Account ledger</div><p>NEA balances, ownership, and listings, with an append-only history behind every balance.</p>
+</div><div class="wp-card"><div class="c-t">Account ledger</div><p>NEA balances, ownership, and listings, with a history entry behind every balance change.</p>
 </div><div class="wp-card"><div class="c-t">Application layer</div><p>An API that charges for generation, executes sales atomically, and serves the marketplace.</p>
 </div><div class="wp-card"><div class="c-t">Generation and storage</div><p>An AI inference provider and object storage for generated images.</p>
 </div></div><h3>How a request flows</h3>
@@ -331,7 +331,7 @@
 </tr>
 <tr>
 <td><strong>History</strong></td>
-<td>Append-only. Every credit, charge, refund, and reward is a recorded entry.</td>
+<td>Every credit, charge, refund, and reward the platform makes is a recorded entry. The software only adds entries; the database does not enforce that.</td>
 </tr>
 <tr>
 <td><strong>Ownership</strong></td>
@@ -347,16 +347,16 @@
 <p>This is where the wallet is used, and the only place.</p>
 <ol class="wp-steps"><li><div class="st-t">A wallet connects</div><p>MetaMask or WalletConnect. The wallet does not need to hold anything.</p>
 </li><li><div class="st-t">The wallet signs a message</div><p>Signing in is a free message signature. No funds move, there is no gas, and no transaction is sent.</p>
-</li><li><div class="st-t">The platform verifies the signature</div><p>A valid signature signs you in to the NewEra account tied to that wallet address. There are no passwords.</p>
+</li><li><div class="st-t">The platform verifies the signature</div><p>A valid signature signs you in. Your account is identified by a smart-account address derived from your wallet, the same address it had in the first phase, which is why existing accounts carried over. Checking the signature is a read-only call to BNB Smart Chain. Nothing is sent. A sign-in lasts seven days, and there are no passwords.</p>
 </li><li><div class="st-t">Everything else happens in the account</div><p>Generating, listing, buying, and selling are platform actions against your account balance. The wallet is not asked for anything again.</p>
-</li></ol><div class="wp-note"><span class="k">Note</span><p>In the first phase, credits lived at an ERC-4337 smart account address derived from your wallet, and a paymaster sponsored the gas for every action. None of that is part of the live product now. Balances users held from that phase were carried over into their NewEra accounts.</p>
+</li></ol><div class="wp-note"><span class="k">Note</span><p>In the first phase, credits lived at an ERC-4337 smart account address derived from your wallet, and a paymaster sponsored the gas for every action. The paymaster, the sponsored gas and the on-chain credits are not part of the live product now. The derived address is still used, only as your account identifier. Balances users held from that phase were carried over into their NewEra accounts.</p>
 </div><h3>Application layer</h3>
 <p>The API does three jobs and deliberately no more.</p>
 <p><strong>It charges before it acts.</strong> A generation is charged 10 NEA from the account balance at generation time. If the balance is too low, the request is declined. If generation fails, the NEA is refunded automatically.</p>
 <p><strong>It settles sales atomically.</strong> A purchase charges the buyer, credits the seller 95 percent, takes the 5 percent fee, and moves ownership in one operation. Either all of it happens or none of it does. There is no state where the buyer has paid and the seller has not been credited.</p>
 <p><strong>It records everything.</strong> Every change to a balance is written to the account&#39;s history. Marketplace listings, collections, and community feeds are served from the same platform records.</p>
 <h3>Generation and storage</h3>
-<p>Image generation runs on a hosted inference provider. Generated images are written to object storage and served from a CDN, with only the resulting URL stored in the platform database.</p>
+<p>Image generation runs on a hosted inference provider. Generated images are written to object storage and served from a CDN, with only the resulting URL stored in the platform database. If the upload to object storage fails, the platform keeps the provider&#39;s copy of the image instead, so a generation is not lost.</p>
 <p>An earlier version of NewEra stored images inline. A single marketplace request moved 40 MB and took nearly a minute. Moving to object storage cut that to roughly 20 KB and one and a half seconds. Balances and ownership did not change. Where the files live did.</p>
 <h3>What you have to trust us for</h3>
 <p>Most whitepapers stop at &quot;trustless&quot; and move on. Here is the honest boundary, and it moved when on-chain settlement was paused.</p>
@@ -415,7 +415,8 @@
 <p>A single inference provider is a single point of failure. NewEra runs a provider chain.</p>
 <div class="wp-cards"><div class="wp-card"><div class="c-t">Primary</div><p>The main hosted provider serves nearly all generations.</p>
 </div><div class="wp-card"><div class="c-t">Fallbacks</div><p>If the primary fails or rate limits, the request falls through to secondary providers in order.</p>
-</div></div><p>Each provider is retried before falling through. Every returned image is verified before it is accepted: the response must be a real image of plausible size, not an error page, a blank frame, or a truncated stream.</p>
+</div></div><p>Each provider is tried twice before falling through. A response is accepted only if it actually contains an image. One fallback path checks further, rejecting anything that is not an image type or is too small to be a real picture. The other paths are not checked that strictly today.</p>
+<p>Fallback providers run other hosted models, so an image produced on a fallback can differ from the primary in style and step count.</p>
 <p>If every provider fails, the request errors cleanly, the user is told, and the 10 NEA is refunded automatically. A failed generation is a failed generation. It is never a charge for nothing.</p>
 <h3>Where the image actually lives</h3>
 <p>This is worth stating plainly, because plenty of projects blur it.</p>
@@ -477,7 +478,7 @@
 </div><div class="wp-card"><div class="c-t">Bonus tasks</div><p>One-time credits for the first generation, image listing, prompt listing, and purchase.</p>
 </div><div class="wp-card"><div class="c-t">Referrals</div><p>10 NEA when someone you referred generates their first image.</p>
 </div></div><h3>Bonus tasks</h3>
-<p>New accounts start with a one-time <strong>50 NEA welcome bonus</strong>. Beyond that, four one-time tasks pay out as a creator learns the platform.</p>
+<p>New accounts can claim a one-time <strong>50 NEA welcome bonus</strong>. Beyond that, four one-time tasks pay out as a creator learns the platform.</p>
 <div class="wp-table"><table>
 <thead>
 <tr>
@@ -506,7 +507,7 @@
 <td><strong>40 NEA</strong></td>
 </tr>
 </tbody></table></div>
-<p>Each is one-time and credited to your account balance. Combined with the welcome bonus, a new creator has 90 NEA of runway before they need to earn anything from a sale.</p>
+<p>Each is one-time and credited to your account balance. You claim each one from the Claim tab on your profile once the task is done. The referral reward is the exception: it is credited automatically. Combined with the welcome bonus, a new creator has 90 NEA of runway before they need to earn anything from a sale.</p>
 <p>At 10 NEA per generation, that is enough to explore properly rather than nervously.</p>
 <h3>A worked example</h3>
 <p>Here is what a first session actually looks like, in credits.</p>
@@ -519,7 +520,7 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>Sign in, receive welcome bonus</td>
+<td>Sign in, claim the welcome bonus</td>
 <td>+50</td>
 <td>50</td>
 </tr>
@@ -591,10 +592,10 @@
 <p>A listing is a price and a reference. Buying one executes a single operation inside the platform that charges the buyer, credits the seller, takes the 5 percent platform fee, and moves ownership. There is no escrow period, no settlement delay, and no waiting on a network.</p>
 <p>In NewEra&#39;s first phase this was a marketplace contract on BNB Smart Chain mainnet. On-chain settlement is paused, and that contract is not used by the live product today.</p>
 <h3>Listing</h3>
-<ol class="wp-steps"><li><div class="st-t">Set a price</div><p>Any amount above the minimum. You decide what your work is worth.</p>
+<ol class="wp-steps"><li><div class="st-t">Set a price</div><p>Any amount above 5 NEA, the current minimum in the studio. You decide what your work is worth.</p>
 </li><li><div class="st-t">Confirm the listing</div><p>Listing is a platform action. It costs no NEA, there is no gas, and nothing is signed or sent from your wallet.</p>
 </li><li><div class="st-t">The listing goes live</div><p>An image appears on the market at your price. A prompt appears locked, with its image as the public preview.</p>
-</li></ol><p>Listings can be removed by the seller at any time. Nothing is locked, and nothing is held.</p>
+</li></ol><p>There is no unlist action yet. Once listed, an image or a prompt stays on the market until it sells. NewEra can hide a listing that breaks the rules.</p>
 <h3>Buying</h3>
 <p>A purchase is one operation that does four things atomically.</p>
 <p>Either all four happen or none do. There is no state where the buyer has paid and the seller has not been credited, because it is not two steps. It is one.</p>
@@ -633,12 +634,12 @@
 <div class="wp-note"><span class="k">Note</span><p>On a resale, the 95 percent goes to the seller of record, which is the current owner. NewEra does not currently implement creator royalties on secondary sales.</p>
 </div><h3>What the platform does, and what it does not</h3>
 <p>Whitepapers are usually vague here. Being precise is more useful.</p>
-<div class="wp-cards"><div class="wp-card"><div class="c-t">The platform does</div><p>Hold the price. Apply the 95/5 split. Move credits and ownership atomically. Record every balance change in the account&#39;s history.</p>
+<div class="wp-cards"><div class="wp-card"><div class="c-t">The platform does</div><p>Hold the price. Apply the 95/5 split. Move credits and ownership atomically. Record every balance change in the account&#39;s history. Hide listings that break the rules.</p>
 </div><div class="wp-card"><div class="c-t">The platform does not</div><p>Mint an ERC-721 token. Put sales on a public chain today. Enforce copyright. Guarantee that a listing is still available by the time you click buy.</p>
 </div></div><p><strong>Images are not NFTs.</strong> The buyer, the seller, the price, and the ownership record are all kept in NewEra&#39;s platform database. Nothing about a sale is written to a public chain today. That was different in the first phase, and verifiable on-chain settlement is planned to return in a later phase.</p>
 <p><strong>An image sells once.</strong> When an image sells, ownership transfers to the buyer and it leaves the market. If two buyers reach the same image at once, the first purchase succeeds and the second is declined. The interface tells the second buyer plainly that the item just sold. Nothing is lost and no credits move on a declined purchase.</p>
 <h3>Pricing is yours</h3>
-<p>NewEra sets no floor beyond a small minimum, no ceiling, and no suggested price.</p>
+<p>NewEra sets no floor beyond a 5 NEA minimum, no ceiling, and no suggested price.</p>
 <div class="wp-note"><span class="k">Note</span><p>Any marketplace involves pricing and demand risk. The value of a creation or a prompt is whatever another creator will spend on it, which may be nothing. There is no guaranteed buyer, resale value, or return.</p>
 </div><a class="wp-card link" href="#creator-economy"><div class="c-t">Creator economy</div><p>How credits reach creators, and what they are and are not.</p>
 </a><div class="wp-note"><span class="k">Note</span><p>Platform credits are free credits for using NewEra during pre-launch. They have no monetary value and cannot be withdrawn or exchanged for money outside the platform.</p>
@@ -1117,16 +1118,16 @@
 </div></div><p>NEA is a platform credit with no monetary value, and it cannot be withdrawn. That limits what is at stake, but it does not change the fact: the record is ours to keep, and you are relying on us to keep it.</p>
 <h3>Balance integrity</h3>
 <p>Since the platform holds the record, how the record is kept is what matters.</p>
-<ol class="wp-steps"><li><div class="st-t">Every change is recorded</div><p>Every credit, charge, refund, and reward is written to the account&#39;s history, which is append-only.</p>
+<ol class="wp-steps"><li><div class="st-t">Every change is recorded</div><p>Every credit, charge, refund, and reward is written to the account&#39;s history. The platform only ever adds entries. That is a rule of the software, not something the database enforces.</p>
 </li><li><div class="st-t">Balances cannot go negative</div><p>A generation or purchase the account cannot cover is declined before anything happens.</p>
 </li><li><div class="st-t">Sales are atomic</div><p>The buyer is charged, the seller is credited, and ownership moves together, or none of it happens. There is no state where one side has paid and the other has not received.</p>
 </li><li><div class="st-t">Failed generations are refunded</div><p>If generation fails, the 10 NEA is refunded automatically, and both the charge and the refund appear in the history.</p>
-</li></ol><p>One-time rewards pay once per account. Platform statistics are counted from real activity.</p>
+</li></ol><p>One-time rewards pay once per account. An account is a wallet, and wallets are free to create, so once per account is not once per person.</p>
 <p>What these rules do not give you is independent verification. You can see your own history. You cannot, today, check it against a public chain.</p>
 <h3>Authentication</h3>
 <p>There are no passwords and no email logins.</p>
 <p>Login is a signed message from your wallet (MetaMask or WalletConnect), verified by the platform. It is a free signature. It authorizes nothing except signing you in: it cannot move funds, and it is not a transaction.</p>
-<p>Your account is tied to your wallet address. There is no separate account recovery.</p>
+<p>Your account is identified by a smart-account address derived from your wallet. The signature is checked with a read-only call to BNB Smart Chain, a sign-in lasts seven days, and there is no separate account recovery.</p>
 <h3>On-chain settlement and gas sponsorship</h3>
 <p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet with ERC-4337 account abstraction, and a paymaster sponsored the gas for every user action. That is over. The live product has no gas sponsorship, no paymaster, no smart-account flow, and no bundler, because it sends no transactions at all.</p>
 <div class="wp-note"><span class="k">Note</span><p>On-chain settlement is paused, not abandoned. It made the product slower and dependent on sponsored gas. Verifiable on-chain settlement is planned to return in a later phase. No date or design is promised here.</p>
@@ -1152,6 +1153,9 @@
 <li><strong>AI output is not guaranteed.</strong> Models are probabilistic. NewEra does not warrant that a generated image is original, suitable, or matches your intent.</li>
 <li><strong>Generation depends on third parties.</strong> Inference providers rate limit and go down. When every fallback fails, the generation fails and the charge is refunded.</li>
 <li><strong>A revealed prompt can be reshared.</strong> A prompt is text. Once a buyer unlocks it, NewEra cannot stop them passing it on.</li>
+<li><strong>No unlisting yet.</strong> Once listed, an image or a prompt stays on the market until it sells.</li>
+<li><strong>The accounting code is unaudited.</strong> The platform&#39;s balance and marketplace code has not been reviewed by a third party.</li>
+<li><strong>Listed images are not locked files.</strong> A listed image is shown in full on the market. Buying it transfers ownership on the platform; it does not unlock a hidden file.</li>
 </ul>
 <h3>Responsible disclosure</h3>
 <p>If you find a vulnerability, tell us before you tell anyone else.</p>
@@ -1170,15 +1174,15 @@
 <p>The platform works end to end. This was the hard part.</p>
 <div class="wp-cards"><div class="wp-card"><div class="c-t">Instant platform accounting</div><p>NEA balances held in each account, with a recorded history behind every change. Balances can never go negative.</p>
 </div><div class="wp-card"><div class="c-t">No crypto friction</div><p>A wallet is used only to sign in, with a free message signature. No gas, no BNB, no transactions.</p>
-</div><div class="wp-card"><div class="c-t">AI generation</div><p>Fast diffusion inference with provider fallback, output verification, and automatic refunds on failure.</p>
+</div><div class="wp-card"><div class="c-t">AI generation</div><p>Fast diffusion inference with provider fallback, basic output checks, and automatic refunds on failure.</p>
 </div><div class="wp-card"><div class="c-t">Marketplace and prompts</div><p>Atomic settlement, the 95/5 split, resale, and prompts as standalone assets that can sell to many buyers.</p>
 </div></div><p>NewEra&#39;s first phase ran on BNB Smart Chain mainnet, with on-chain payments and gasless ERC-4337 account abstraction. As of 18 September 2026, accounting moved into the platform and on-chain settlement was paused, because it made the product slower and dependent on sponsored gas. Balances users held from the first phase were carried over into their accounts. See &quot;On-chain settlement returns&quot; below.</p>
 <h3>Phase 1: Public launch</h3>
 <p><strong>Target: September 2026</strong></p>
-<p>Opening the platform, in order.</p>
-<ol class="wp-steps"><li><div class="st-t">Closed testing</div><p>Internal and invited users exercise the full flow. Bugs found here are cheaper than bugs found later.</p>
-</li><li><div class="st-t">Public interface</div><p>The web app goes live. Anyone can sign in, receive free credits, and generate.</p>
-</li><li><div class="st-t">Mobile wallet support</div><p>Sign-in for wallet connections beyond browser extensions.</p>
+<p>Opening the platform. The first two steps are already live.</p>
+<ol class="wp-steps"><li><div class="st-t">Public interface (live)</div><p>The web app is live. Anyone can sign in, claim free credits, and generate.</p>
+</li><li><div class="st-t">Mobile wallet support (live)</div><p>Sign-in works through WalletConnect as well as browser extensions, which covers mobile wallets.</p>
+</li><li><div class="st-t">Hardening</div><p>Wider testing of the full flow with real users: generation, listing, buying, prompts, and rewards. Bugs found here are cheaper than bugs found later.</p>
 </li></ol><h3>Phase 2: TGE</h3>
 <p><strong>Target: September 2026</strong></p>
 <p>The transition from free credits to a real token.</p>
