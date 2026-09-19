@@ -86,7 +86,7 @@
       .then(function(r){ return r.json(); })
       .then(function(s){
         // map backend fields -> the 3 cards (in order)
-        // Cumulative totals: NewEra's first phase on BNB Chain plus everything since.
+        // Cumulative totals from the stats API (lifetime block).
         // If the API predates `lifetime`, keep the defaults baked into the HTML.
         var L = s.lifetime;
         if (L) {
