@@ -34,7 +34,7 @@
 
   /* entrance reveal */
   (function(){
-    document.querySelectorAll('.stats-intro,.stat-card,.features-intro,.fcard,.gallery-head,.news-top,.faq-head,.faq-item,.foot-frame').forEach(function(el){ if(!el.hasAttribute('data-rv')) el.setAttribute('data-rv',''); });
+    document.querySelectorAll('.stats-intro,.stat-card,.features-intro,.fcard,.gallery-head,.team-head,.faq-head,.faq-item,.foot-frame').forEach(function(el){ if(!el.hasAttribute('data-rv')) el.setAttribute('data-rv',''); });
     var els=Array.prototype.slice.call(document.querySelectorAll('[data-rv]'));
     var keyer=0, counts={};
     els.forEach(function(e){
@@ -139,45 +139,6 @@
     }
     var html=items.map(card).join('');
     track.innerHTML=html+html; /* duplicate for seamless infinite loop */
-  })();
-
-  /* news from Substack (auto-updates when you publish) */
-  (function(){
-    var row=document.getElementById('newsRow'); if(!row) return;
-    var API = "https://newerabackend-production.up.railway.app/news";
-
-    function esc(s){return (s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-    function fmtDate(d){try{return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return "";}}
-    var arrow='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>';
-
-    function card(item){
-      return '<a class="news-card" href="'+esc(item.link||"#")+'" target="_blank" rel="noopener">'
-        +'<div class="news-logo"><span class="src"><i></i>NewEra</span></div>'
-        +'<div class="news-title">'+esc(item.title||"Untitled")+'</div>'
-        +'<div class="news-meta"><span class="news-date">'+fmtDate(item.pubDate)+'</span>'
-        +'<span class="news-read">Read '+arrow+'</span></div></a>';
-    }
-
-    fetch(API)
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(!data || data.status!=="ok" || !data.items || !data.items.length){
-          row.innerHTML='<div class="news-loading">No posts yet. Check back soon.</div>'; return;
-        }
-        row.innerHTML = data.items.slice(0,9).map(card).join('');
-        wireArrows();
-      })
-      .catch(function(err){
-        console.log("News feed failed:", err);
-        row.innerHTML='<div class="news-loading">Updates are on the way.</div>';
-      });
-
-    function wireArrows(){
-      function amt(){var c=row.querySelector('.news-card');return c?c.getBoundingClientRect().width+22:322;}
-      var p=document.getElementById('newsPrev'),n=document.getElementById('newsNext');
-      if(p)p.addEventListener('click',function(){row.scrollBy({left:-amt(),behavior:'smooth'});});
-      if(n)n.addEventListener('click',function(){row.scrollBy({left:amt(),behavior:'smooth'});});
-    }
   })();
 
   /* FAQ accordion (single open) */
