@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Platform Analytics &middot; NewEra</title>
+<meta name="description" content="Live NewEra platform numbers: users, images generated, marketplace listings, sales and volume, read straight from the public API." />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="legal.css">
+<style>
+.an{max-width:1040px;margin:0 auto;width:100%;padding:40px 24px 20px}
+.an-head{margin:0 0 34px}
+.an-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:"JetBrains Mono",monospace;font-size:11.5px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--lg-muted);margin-bottom:14px}
+.an-eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--lg-acc);box-shadow:0 0 0 3px rgba(205,255,77,.14)}
+.an-head h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(28px,4vw,40px);
+  letter-spacing:-.02em;margin:0 0 10px;color:var(--lg-text)}
+.an-head p{color:var(--lg-muted);font-size:15px;line-height:1.65;margin:0;max-width:62ch}
+.an-updated{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--lg-dim);margin-top:14px}
+.an-sec{margin:0 0 44px}
+.an-sec h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em;
+  color:var(--lg-text);margin:0 0 4px}
+.an-sec .sub{color:var(--lg-dim);font-size:13.5px;margin:0 0 18px}
+.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.an-card{border:1px solid var(--lg-line);border-radius:16px;padding:18px 20px;background:rgba(255,255,255,.02)}
+.an-card .k{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim)}
+.an-card .v{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:30px;letter-spacing:-.02em;
+  color:var(--lg-acc);margin-top:8px;line-height:1.1}
+.an-card .v.sm{font-size:22px;color:var(--lg-text)}
+.an-bars{display:flex;align-items:flex-end;gap:7px;height:170px;padding:14px 0 0;overflow-x:auto}
+.an-bar{flex:1 1 0;min-width:18px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:7px;height:100%}
+.an-bar .fill{width:100%;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--lg-acc),rgba(205,255,77,.35));min-height:3px}
+.an-bar .n{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--lg-muted)}
+.an-bar .d{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--lg-dim);white-space:nowrap}
+.an-legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 6px}
+.an-legend button{background:none;border:1px solid var(--lg-line);border-radius:9px;padding:6px 12px;cursor:pointer;
+  font-size:12.5px;color:var(--lg-muted);font-family:inherit;transition:.18s}
+.an-legend button.on{color:var(--lg-acc);border-color:rgba(205,255,77,.5);background:rgba(205,255,77,.06)}
+.an-table{width:100%;border:1px solid var(--lg-line);border-radius:14px;overflow:hidden}
+.an-table table{border-collapse:collapse;width:100%;font-size:14px}
+.an-table th,.an-table td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--lg-line);color:var(--lg-muted)}
+.an-table th{color:var(--lg-text);font-weight:600;background:rgba(255,255,255,.03);font-size:12.5px}
+.an-table tr:last-child td{border-bottom:0}
+.an-table td.addr{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--lg-text)}
+.an-table td.num{text-align:right;font-family:"JetBrains Mono",monospace;color:var(--lg-text)}
+.an-verify{border:1px solid rgba(205,255,77,.22);background:rgba(205,255,77,.05);border-radius:14px;padding:18px 20px}
+.an-verify p{color:var(--lg-muted);font-size:14px;line-height:1.65;margin:0 0 12px}
+.an-verify ul{list-style:none;padding:0;margin:0 0 12px}
+.an-verify li{margin-bottom:7px}
+.an-verify a{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--lg-acc);text-decoration:none;word-break:break-all}
+.an-verify a:hover{text-decoration:underline}
+.an-note{color:var(--lg-dim);font-size:13px;line-height:1.6;margin:0}
+.an-loading{color:var(--lg-dim);font-size:13.5px;font-family:"JetBrains Mono",monospace}
+@media(max-width:600px){.an{padding:22px 18px 14px}.an-card .v{font-size:25px}.an-bars{height:140px}.an-bar .n{display:none}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <nav class="lg-nav">
+      <a href="index.html" class="brand">
+        <span class="logo"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/></svg></span>
+        NewEra
+      </a>
+      <div class="nl">
+        <a href="index.html#home">Explore</a>
+        <a href="index.html#create">Features</a>
+        <a href="studio/community.html">Creators</a>
+        <a href="studio/marketplace.html">Market</a>
+      </div>
+      <a href="studio/index.html" class="cta">Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </nav>
+
+  <div class="an">
+    <div class="an-head">
+      <div class="an-eyebrow"><i></i> Live from the platform</div>
+      <h1>Platform analytics</h1>
+      <p>Every number here is read from the NewEra platform when this page loads. Nothing is cached, typed in by hand, or rounded for effect. The same figures are public through the API, so anyone can check them.</p>
+      <div class="an-updated" id="anUpdated">Loading&hellip;</div>
+    </div>
+
+    <section class="an-sec">
+      <h2>Totals</h2>
+      <p class="sub">Everything the platform has done since launch.</p>
+      <div class="an-grid" id="anTotals"><div class="an-loading">Loading&hellip;</div></div>
+    </section>
+
+    <section class="an-sec">
+      <h2>The last 14 days</h2>
+      <p class="sub">Today is partial, so the final bar is always lower than a full day.</p>
+      <div class="an-legend" id="anLegend"></div>
+      <div class="an-bars" id="anBars"><div class="an-loading">Loading&hellip;</div></div>
+    </section>
+
+    <section class="an-sec">
+      <h2>Top creators</h2>
+      <p class="sub">Ranked by NEA earned from sales. Creators keep 95 percent of every sale.</p>
+      <div class="an-table" id="anCreators"><div class="an-loading" style="padding:15px">Loading&hellip;</div></div>
+    </section>
+
+    <section class="an-sec">
+      <h2>Top referrers</h2>
+      <p class="sub">Each referral pays 10 NEA once the person they brought generates their first image.</p>
+      <div class="an-table" id="anReferrers"><div class="an-loading" style="padding:15px">Loading&hellip;</div></div>
+    </section>
+
+    <section class="an-sec">
+      <h2>Check these numbers yourself</h2>
+      <p class="sub">No key, no sign-up, no permission needed.</p>
+      <div class="an-verify">
+        <p>Every figure above comes from these public endpoints. Open any of them in a browser and you will see the same raw numbers this page is built from.</p>
+        <ul>
+          <li><a href="https://newerabackend-production.up.railway.app/analytics/overview" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/overview</a> &mdash; every headline number on this page</li>
+          <li><a href="https://newerabackend-production.up.railway.app/analytics/growth" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/growth</a> &mdash; the daily figures in the chart</li>
+          <li><a href="https://newerabackend-production.up.railway.app/analytics/top-creators" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/top-creators</a> &mdash; the creator leaderboard</li>
+          <li><a href="https://newerabackend-production.up.railway.app/analytics/referrals" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/referrals</a> &mdash; the referrer leaderboard</li>
+          <li><a href="https://newerabackend-production.up.railway.app/stats" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/stats</a> &mdash; the totals shown on the home page</li>
+        </ul>
+        <p class="an-note">Being straight about what this does and does not prove: these endpoints report what the NewEra platform recorded. They are our records, published openly, not an independent audit. Settlement on a public chain, which anyone could verify without trusting us, is paused and returns after the token event.</p>
+      </div>
+    </section>
+  </div>
+
+    <!-- ===== footer ===== -->
+    <footer class="site-foot">
+      <div class="foot-wrap">
+        <div class="foot-top">
+          <button class="backtop" id="backtop">Back to top
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </button>
+        </div>
+        <div class="foot-main">
+          <div class="foot-brand">
+            <div class="foot-tag">Create with AI.<br><b>Own what you make.</b></div>
+            <div class="foot-social">
+              <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+              <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+              <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+              <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+              <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+            </div>
+          </div>
+          <div class="foot-col">
+            <h4>Product</h4>
+            <a href="index.html#create">Explore</a>
+            <a href="index.html#stack">How it works</a>
+            <a href="studio/marketplace.html">Marketplace</a>
+            <a href="feature-generate.html">Generate AI art</a>
+          </div>
+          <div class="foot-col">
+            <h4>Resources</h4>
+            <a href="docs.html">Docs</a>
+            <a href="whitepaper.html">Whitepaper</a>
+            <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+          </div>
+          <div class="foot-col">
+            <h4>Company</h4>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+          </div>
+          <div class="foot-col">
+            <h4>Legal</h4>
+            <a href="legal.html">Legal center</a>
+            <a href="terms.html">Terms of Use</a>
+            <a href="risk.html">Risk Statement</a>
+            <a href="privacy.html">Privacy Policy</a>
+          </div>
+        </div>
+        <div class="foot-glow"></div>
+        <div class="foot-mark">NEWERA</div>
+        <div class="foot-bottom">
+          <div class="foot-bar">
+            <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+            <span class="cr">&copy; 2026 NewEra &middot; Creator-owned AI</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+<script>
+(function(){
+  var API = "https://newerabackend-production.up.railway.app";
+  var fmt = function(n){ return Math.floor(Number(n)||0).toLocaleString('en-US'); };
+  var money = function(n){ return (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var el = function(id){ return document.getElementById(id); };
+  var fail = function(node, what){ node.innerHTML = '<div class="an-loading" style="padding:15px">Could not load ' + what + '. Try again in a moment.</div>'; };
+
+  function card(k, v, small){ return '<div class="an-card"><div class="k">' + k + '</div><div class="v' + (small ? ' sm' : '') + '">' + v + '</div></div>'; }
+
+  fetch(API + "/analytics/overview").then(function(r){ return r.json(); }).then(function(d){
+    el('anTotals').innerHTML =
+      card('Users', fmt(d.users)) +
+      card('Images generated', fmt(d.images)) +
+      card('Prompts created', fmt(d.prompts)) +
+      card('Sales completed', fmt(d.sales)) +
+      card('Sales volume', money(d.volume && d.volume.total) + ' NEA', true) +
+      card('Paid to creators', money(d.volume && d.volume.toCreators) + ' NEA', true) +
+      card('Images for sale', fmt(d.activeImageListings), true) +
+      card('Prompts for sale', fmt(d.activePromptListings), true);
+    var when = d.generatedAt ? new Date(d.generatedAt) : new Date();
+    el('anUpdated').textContent = 'Read from the platform at ' + when.toUTCString().replace('GMT', 'UTC');
+  }).catch(function(){ fail(el('anTotals'), 'the totals'); el('anUpdated').textContent = ''; });
+
+  fetch(API + "/analytics/growth").then(function(r){ return r.json(); }).then(function(d){
+    var series = [
+      { key: 'newUsersByDay', label: 'New users' },
+      { key: 'newImagesByDay', label: 'Images' },
+      { key: 'salesByDay', label: 'Sales' }
+    ].filter(function(s){ return d[s.key] && Object.keys(d[s.key]).length; });
+    if (!series.length) { fail(el('anBars'), 'the daily figures'); return; }
+
+    function draw(i){
+      var data = d[series[i].key];
+      var days = Object.keys(data).sort();
+      var max = Math.max.apply(null, days.map(function(k){ return data[k]; })) || 1;
+      el('anBars').innerHTML = days.map(function(k){
+        var v = data[k], h = Math.max(3, Math.round((v / max) * 100));
+        var label = k.slice(8) + '/' + k.slice(5,7);
+        return '<div class="an-bar" title="' + k + ': ' + fmt(v) + '">' +
+               '<span class="n">' + fmt(v) + '</span>' +
+               '<span class="fill" style="height:' + h + '%"></span>' +
+               '<span class="d">' + label + '</span></div>';
+      }).join('');
+      Array.prototype.forEach.call(el('anLegend').children, function(b, j){ b.className = j === i ? 'on' : ''; });
+    }
+    el('anLegend').innerHTML = series.map(function(s){ return '<button type="button">' + s.label + '</button>'; }).join('');
+    Array.prototype.forEach.call(el('anLegend').children, function(b, i){ b.addEventListener('click', function(){ draw(i); }); });
+    draw(0);
+  }).catch(function(){ fail(el('anBars'), 'the daily figures'); });
+
+  function table(node, head, rows){
+    if (!rows.length) { node.innerHTML = '<div class="an-loading" style="padding:15px">Nothing to show yet.</div>'; return; }
+    node.innerHTML = '<table><thead><tr>' + head.map(function(h, i){ return '<th' + (i ? ' style="text-align:right"' : '') + '>' + h + '</th>'; }).join('') +
+      '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+  }
+  var short = function(a){ return a ? a.slice(0, 6) + '\u2026' + a.slice(-4) : 'unknown'; };
+
+  fetch(API + "/analytics/top-creators").then(function(r){ return r.json(); }).then(function(d){
+    table(el('anCreators'), ['Creator', 'Sales', 'Earned (NEA)'], (d.topCreators || []).map(function(c, i){
+      return '<tr><td class="addr">' + (i + 1) + '. ' + short(c.address) + '</td><td class="num">' + fmt(c.sales) +
+             '</td><td class="num">' + money(c.earned) + '</td></tr>';
+    }));
+  }).catch(function(){ fail(el('anCreators'), 'the creator leaderboard'); });
+
+  fetch(API + "/analytics/referrals").then(function(r){ return r.json(); }).then(function(d){
+    table(el('anReferrers'), ['Referrer', 'People referred'], (d.topReferrers || []).map(function(c, i){
+      return '<tr><td class="addr">' + (i + 1) + '. ' + short(c.address) + '</td><td class="num">' + fmt(c.referrals) + '</td></tr>';
+    }));
+  }).catch(function(){ fail(el('anReferrers'), 'the referrer leaderboard'); });
+})();
+</script>
+</body>
+</html>
