@@ -75,7 +75,9 @@
   (function(){
     var API = "https://newerabackend-production.up.railway.app"; // backend URL (change when deployed)
     var nums=document.querySelectorAll('.stat-num[data-to]'); if(!nums.length) return;
-    function fmt(n){return Math.floor(n).toLocaleString();}
+    /* fixed grouping: without a locale the browser decides, so the same number
+       renders as 131,390 in one place and 1,31,390 in another */
+    function fmt(n){return Math.floor(n).toLocaleString('en-US');}
     function run(el){var to=+el.getAttribute('data-to'),dur=1500,st=null;
       function step(ts){if(!st)st=ts;var p=Math.min((ts-st)/dur,1),e=1-Math.pow(1-p,3);
         el.textContent=fmt(to*e);if(p<1)requestAnimationFrame(step);else el.textContent=fmt(to);}
