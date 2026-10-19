@@ -188,6 +188,7 @@
 (function(){
   var API = "https://newerabackend-production.up.railway.app";
   var fmt = function(n){ return Math.floor(Number(n)||0).toLocaleString('en-US'); };
+  var num = function(n){ return Number(n) || 0; };
   var money = function(n){ return (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); };
   var el = function(id){ return document.getElementById(id); };
   var fail = function(node, what){ node.innerHTML = '<div class="an-loading" style="padding:15px">Could not load ' + what + '. Try again in a moment.</div>'; };
@@ -200,8 +201,10 @@
       card('Images generated', fmt(d.images)) +
       card('Prompts created', fmt(d.prompts)) +
       card('Sales completed', fmt(d.sales)) +
-      card('Sales volume', money(d.volume && d.volume.total) + ' NEA', true) +
-      card('Paid to creators', money(d.volume && d.volume.toCreators) + ' NEA', true) +
+      // the money cards appear only when the API reports volume, so an older
+      // deploy that omits the field leaves them out instead of printing 0.00
+      (num(d.volume && d.volume.total) > 0 ? card('Sales volume', money(d.volume.total) + ' NEA', true) : '') +
+      (num(d.volume && d.volume.toCreators) > 0 ? card('Paid to creators', money(d.volume.toCreators) + ' NEA', true) : '') +
       card('Images for sale', fmt(d.activeImageListings), true) +
       card('Prompts for sale', fmt(d.activePromptListings), true);
     var when = d.generatedAt ? new Date(d.generatedAt) : new Date();
