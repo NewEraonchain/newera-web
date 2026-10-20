@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Launch Tasks &middot; NewEra</title>
+<meta name="description" content="Follow NewEra on X and post once a day for three days. Every tweet is verified automatically; follows are checked before rewards go out." />
+<link rel="icon" type="image/png" href="favicon logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="legal.css">
+
+<style>
+.tk{max-width:900px;margin:0 auto;width:100%;padding:40px 24px 20px}
+.tk-head{margin:0 0 30px}
+.tk-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:"JetBrains Mono",monospace;font-size:11.5px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--lg-muted);margin-bottom:14px}
+.tk-eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--lg-acc);box-shadow:0 0 0 3px rgba(205,255,77,.14)}
+.tk-head h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(28px,4vw,40px);
+  letter-spacing:-.02em;margin:0 0 10px;color:var(--lg-text)}
+.tk-head p{color:var(--lg-muted);font-size:15px;line-height:1.65;margin:0;max-width:62ch}
+
+.tk-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 30px}
+.tk-stat{border:1px solid var(--lg-line);border-radius:14px;padding:14px 16px;background:rgba(255,255,255,.02)}
+.tk-stat .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim)}
+.tk-stat .v{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:21px;color:var(--lg-text);margin-top:6px;
+  line-height:1.2;word-break:break-word}
+.tk-stat .v.acc{color:var(--lg-acc)}
+
+.tk-step{border:1px solid var(--lg-line);border-radius:18px;padding:22px;background:rgba(255,255,255,.02);margin:0 0 16px;
+  transition:border-color .2s ease,opacity .2s ease}
+.tk-step.locked{opacity:.52}
+.tk-step.done{border-color:rgba(205,255,77,.42)}
+.tk-step-top{display:flex;align-items:flex-start;gap:14px}
+.tk-num{flex:0 0 28px;width:28px;height:28px;border-radius:50%;border:1px solid var(--lg-line);display:flex;align-items:center;
+  justify-content:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--lg-muted)}
+.tk-step.done .tk-num{background:var(--lg-acc);border-color:var(--lg-acc);color:#0b0d08}
+.tk-step-main{flex:1 1 auto;min-width:0}
+.tk-step h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16.5px;color:var(--lg-text);margin:1px 0 6px}
+.tk-step p{color:var(--lg-muted);font-size:13.5px;line-height:1.6;margin:0}
+.tk-chip{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.04em;
+  text-transform:uppercase;padding:5px 9px;border-radius:999px;border:1px solid var(--lg-line);color:var(--lg-dim);white-space:nowrap}
+.tk-chip.ok{border-color:rgba(205,255,77,.5);color:var(--lg-acc)}
+.tk-chip.wait{border-color:rgba(255,205,77,.42);color:#ffcd4d}
+.tk-chip.bad{border-color:rgba(255,120,120,.45);color:#ff8d8d}
+
+.tk-act{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.tk-btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:10px 18px;font-size:13.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;border:1px solid var(--lg-line);background:transparent;color:var(--lg-text);
+  text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.tk-btn:hover{border-color:rgba(205,255,77,.5)}
+.tk-btn.acc{background:var(--lg-acc);border-color:var(--lg-acc);color:#0b0d08}
+.tk-btn.acc:hover{filter:brightness(1.06)}
+.tk-btn[disabled]{opacity:.45;cursor:not-allowed}
+.tk-btn.ghost{color:var(--lg-muted)}
+
+.tk-code{display:inline-flex;align-items:center;gap:10px;font-family:"JetBrains Mono",monospace;font-size:15px;
+  letter-spacing:.08em;color:var(--lg-acc);border:1px dashed rgba(205,255,77,.42);border-radius:10px;padding:8px 14px;
+  background:rgba(205,255,77,.05)}
+.tk-paste{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.tk-paste input{flex:1 1 260px;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--lg-line);border-radius:10px;
+  padding:11px 13px;color:var(--lg-text);font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.tk-paste input:focus{outline:none;border-color:rgba(205,255,77,.5)}
+.tk-msg{margin-top:12px;font-size:13px;line-height:1.55;color:var(--lg-muted);min-height:1px}
+.tk-msg.err{color:#ff8d8d}
+.tk-msg.good{color:var(--lg-acc)}
+
+.tk-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:16px}
+.tk-day{border:1px solid var(--lg-line);border-radius:12px;padding:12px 14px;background:rgba(0,0,0,.18)}
+.tk-day .d{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim)}
+.tk-day .s{font-size:13px;color:var(--lg-muted);margin-top:5px}
+.tk-day.filled{border-color:rgba(205,255,77,.4)}
+.tk-day.filled .s{color:var(--lg-acc)}
+.tk-day .s a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+
+.tk-fine{border-top:1px solid var(--lg-line);margin-top:34px;padding-top:22px}
+.tk-fine h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16px;color:var(--lg-text);margin:0 0 12px}
+.tk-fine ul{margin:0;padding-left:18px;color:var(--lg-muted);font-size:13.5px;line-height:1.75}
+.tk-fine li{margin-bottom:5px}
+.tk-fine b{color:var(--lg-text);font-weight:600}
+@media(max-width:600px){
+  .tk{padding:24px 18px 14px}
+  .tk-step{padding:18px 16px}
+  .tk-head h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+    <nav class="lg-nav">
+      <a href="index.html" class="brand">
+        <span class="logo"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3 L27 26 H5 Z" stroke="#cdff4d" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 12 L21.5 23 H10.5 Z" fill="#cdff4d"/></svg></span>
+        NewEra
+      </a>
+      <div class="nl">
+        <a href="index.html#home">Explore</a>
+        <a href="index.html#create">Features</a>
+        <a href="studio/community.html">Creators</a>
+        <a href="studio/marketplace.html">Market</a>
+      </div>
+      <a href="studio/index.html" class="cta">Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </nav>
+
+  <main class="tk">
+    <header class="tk-head">
+      <div class="tk-eyebrow"><i></i> Launch tasks</div>
+      <h1>Follow, post, and join the rewards list</h1>
+      <p>Two things to do: follow NewEra on X, and post about it on <b id="tkDayCount">three</b> separate days.
+         Every tweet is checked automatically the moment you paste it. Follows are checked once, together, before
+         any rewards are decided &mdash; so the follow row below sits at <em>pending</em> until then.</p>
+    </header>
+
+    <section class="tk-strip">
+      <div class="tk-stat"><div class="k">Your code</div><div class="v acc" id="tkCode">&mdash;</div></div>
+      <div class="tk-stat"><div class="k">Tweet days</div><div class="v" id="tkProgress">&mdash;</div></div>
+      <div class="tk-stat"><div class="k">People joined</div><div class="v" id="tkJoined">&mdash;</div></div>
+      <div class="tk-stat"><div class="k">Tweets verified</div><div class="v" id="tkVerified">&mdash;</div></div>
+    </section>
+
+    <section class="tk-step" id="tkStep1">
+      <div class="tk-step-top">
+        <div class="tk-num">1</div>
+        <div class="tk-step-main">
+          <h3>Connect your wallet</h3>
+          <p>Your wallet is your entry. Signing in is free, moves nothing, and is how we know where rewards
+             would go &mdash; the address has to be signed for, so nobody can enter a wallet they do not hold.</p>
+          <div class="tk-act" id="tkConnectAct">
+            <button class="btn primary tk-btn acc">Connect wallet</button>
+          </div>
+        </div>
+        <span class="tk-chip" id="tkChip1">Not connected</span>
+      </div>
+    </section>
+
+    <section class="tk-step locked" id="tkStep2">
+      <div class="tk-step-top">
+        <div class="tk-num">2</div>
+        <div class="tk-step-main">
+          <h3>Follow <span id="tkHandle2">@New_EraAI</span> on X</h3>
+          <p>Checked in one pass before rewards are decided, not right now. Stay followed until then &mdash;
+             unfollowing before the check undoes it.</p>
+          <div class="tk-act">
+            <a class="tk-btn" id="tkFollowBtn" href="https://x.com/New_EraAI" target="_blank" rel="noopener">Open X and follow</a>
+          </div>
+        </div>
+        <span class="tk-chip" id="tkChip2">Pending check</span>
+      </div>
+    </section>
+
+    <section class="tk-step locked" id="tkStep3">
+      <div class="tk-step-top">
+        <div class="tk-num">3</div>
+        <div class="tk-step-main">
+          <h3>Post once a day, on <span id="tkDayCount2">three</span> separate days</h3>
+          <p>Mention <span id="tkHandle3">@New_EraAI</span> and include your code so we can tell the tweet is yours.
+             Write it however you like. Then copy the link to your tweet and paste it below.</p>
+          <div class="tk-act">
+            <a class="tk-btn acc" id="tkPostBtn" href="#" target="_blank" rel="noopener">Post on X</a>
+            <button class="tk-btn ghost" id="tkCopyCode" type="button">Copy my code</button>
+          </div>
+          <div class="tk-paste">
+            <input id="tkUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+                   placeholder="https://x.com/you/status/..." aria-label="Link to your tweet" />
+            <button class="tk-btn acc" id="tkVerify" type="button">Verify tweet</button>
+          </div>
+          <div class="tk-msg" id="tkMsg"></div>
+          <div class="tk-days" id="tkDays"></div>
+        </div>
+        <span class="tk-chip" id="tkChip3">0 of 3</span>
+      </div>
+    </section>
+
+    <section class="tk-fine">
+      <h2>How this is checked, and what it does not promise</h2>
+      <ul>
+        <li><b>Days are counted in UTC.</b> Two tweets in one UTC day count once, so spacing them out is the point.</li>
+        <li><b>The posting time comes from the tweet itself</b>, not from when you paste it. Late submissions of an
+            earlier tweet are fine; backdating is not possible.</li>
+        <li><b>Deleting a tweet undoes it.</b> Every tweet is re-checked before rewards, and a deleted one stops counting.</li>
+        <li><b>One X account per wallet, one wallet per X account.</b> The first tweet you verify binds the two together.</li>
+        <li><b>Private accounts cannot be verified</b> &mdash; we can only read public posts.</li>
+        <li><b>This is a list, not a payment.</b> Completing the tasks records your address for future rewards.
+            It is not a purchase, it carries no guarantee of value, and nothing is owed to you by taking part.</li>
+      </ul>
+    </section>
+  </main>
+
+    <!-- ===== footer ===== -->
+    <footer class="site-foot">
+      <div class="foot-wrap">
+        <div class="foot-top">
+          <button class="backtop" id="backtop">Back to top
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </button>
+        </div>
+        <div class="foot-main">
+          <div class="foot-brand">
+            <div class="foot-tag">Create with AI.<br><b>Own what you make.</b></div>
+            <div class="foot-social">
+              <a href="https://x.com/New_EraAI" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.1 7H2l8.1-9.3L1 2h7l4.9 6.5L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg></a>
+              <a href="https://t.me/Leo_Park23" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.4 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.3-.1-.5-.6-.2L6.3 13 1.6 11.5c-1-.3-1-.9.2-1.4l19-7.3c.9-.3 1.6.2 1.1 1.6Z"/></svg></a>
+              <a href="https://substack.com/@neweraonchain" aria-label="Substack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.6h18v2.5H3z"/><path d="M3 9.1h18v2.5H3z"/><path d="M3 13.6h18V22l-9-5.3L3 22z"/></svg></a>
+              <a href="https://linktr.ee/NewEraAI" aria-label="Linktree"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.736 5.853l4.005-4.117 2.325 2.38-4.2 4.005h5.908v3.305h-5.937l4.229 4.108-2.325 2.334-5.74-5.769-5.74 5.769-2.325-2.325 4.229-4.108H1.901V8.121h5.908l-4.2-4.004 2.324-2.381 4.005 4.117V0h3.797v5.853zM10.084 16.063h3.797v7.937h-3.797v-7.937z"/></svg></a>
+              <a href="https://www.linkedin.com/company/newera-ai" aria-label="LinkedIn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zM4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193V6.169h-2.4c.03.678 0 7.225 0 7.225z"/></svg></a>
+            </div>
+          </div>
+          <div class="foot-col">
+            <h4>Product</h4>
+            <a href="index.html#create">Explore</a>
+            <a href="index.html#stack">How it works</a>
+            <a href="studio/marketplace.html">Marketplace</a>
+            <a href="feature-generate.html">Generate AI art</a>
+          </div>
+          <div class="foot-col">
+            <h4>Resources</h4>
+            <a href="docs.html">Docs</a>
+            <a href="whitepaper.html">Whitepaper</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="https://neweraonchain.substack.com" target="_blank" rel="noopener">Blog</a>
+          </div>
+          <div class="foot-col">
+            <h4>Company</h4>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+          </div>
+          <div class="foot-col">
+            <h4>Legal</h4>
+            <a href="legal.html">Legal center</a>
+            <a href="terms.html">Terms of Use</a>
+            <a href="risk.html">Risk Statement</a>
+            <a href="privacy.html">Privacy Policy</a>
+          </div>
+        </div>
+        <div class="foot-glow"></div>
+        <div class="foot-mark">NEWERA</div>
+        <div class="foot-bottom">
+          <div class="foot-bar">
+            <span class="bd"><img src="favicon logo.png" alt="NewEra logo" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> NewEra</span>
+            <span class="cr">&copy; 2026 NewEra &middot; Creator-owned AI</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+<script type="module" src="wallet.js"></script>
+<script>
+(function(){
+  "use strict";
+  var API = "https://newerabackend-production.up.railway.app";
+  function token(){ return localStorage.getItem("newera_token"); }
+  function el(id){ return document.getElementById(id); }
+  function num(n){ return Math.floor(Number(n) || 0).toLocaleString("en-US"); }
+  function words(n){
+    var w = ["zero","one","two","three","four","five","six","seven"];
+    return w[n] || String(n);
+  }
+
+  var state = { campaign: null, me: null, intent: null };
+
+  function chip(node, text, cls){
+    node.textContent = text;
+    node.className = "tk-chip" + (cls ? " " + cls : "");
+  }
+  function msg(text, cls){
+    var m = el("tkMsg");
+    m.textContent = text || "";
+    m.className = "tk-msg" + (cls ? " " + cls : "");
+  }
+
+  function renderCampaign(d){
+    state.campaign = d.campaign;
+    var required = d.campaign.requiredDays;
+    el("tkDayCount").textContent = words(required);
+    el("tkDayCount2").textContent = words(required);
+    var handle = "@" + d.campaign.handle;
+    el("tkHandle2").textContent = handle;
+    el("tkHandle3").textContent = handle;
+    el("tkFollowBtn").href = "https://x.com/" + d.campaign.handle;
+    el("tkJoined").textContent = num(d.participants);
+    el("tkVerified").textContent = num(d.tweetsVerified);
+  }
+
+  function renderDays(me){
+    var required = me.campaign.requiredDays;
+    var done = (me.tweets && me.tweets.days) || [];
+    var out = "";
+    for (var i = 0; i < required; i++) {
+      var day = done[i];
+      if (day) {
+        out += '<div class="tk-day filled"><div class="d">' + day.day + '</div>' +
+               '<div class="s"><a href="' + day.url + '" target="_blank" rel="noopener">tweet verified</a></div></div>';
+      } else {
+        out += '<div class="tk-day"><div class="d">day ' + (i + 1) + '</div>' +
+               '<div class="s">waiting for a tweet</div></div>';
+      }
+    }
+    el("tkDays").innerHTML = out;
+  }
+
+  function renderMe(me){
+    state.me = me;
+    state.intent = me.intent || null;
+
+    el("tkStep1").classList.remove("locked");
+    el("tkStep1").classList.add("done");
+    var addr = localStorage.getItem("newera_address") || "";
+    chip(el("tkChip1"), addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "Connected", "ok");
+
+    if (!me.joined) {
+      el("tkCode").textContent = "\u2014";
+      el("tkProgress").textContent = "\u2014";
+      el("tkStep3").classList.add("locked");
+      el("tkStep2").classList.remove("locked");
+      msg("Tap \u201cPost on X\u201d to get your code and your first tweet.", "");
+      return;
+    }
+
+    var required = me.campaign.requiredDays;
+    var done = me.tweets.done;
+    el("tkCode").textContent = me.entry.code;
+    el("tkProgress").textContent = done + " of " + required;
+    el("tkStep2").classList.remove("locked");
+    el("tkStep3").classList.remove("locked");
+    if (done >= required) el("tkStep3").classList.add("done");
+    chip(el("tkChip3"), done + " of " + required, done >= required ? "ok" : "");
+
+    var follow = me.follow && me.follow.state;
+    if (follow === "VERIFIED") chip(el("tkChip2"), "Following", "ok");
+    else if (follow === "NOT_FOLLOWING") chip(el("tkChip2"), "Not following", "bad");
+    else if (follow === "AWAITING_TWEET") chip(el("tkChip2"), "Post first", "wait");
+    else chip(el("tkChip2"), "Pending check", "wait");
+    if (follow === "VERIFIED") el("tkStep2").classList.add("done");
+
+    if (state.intent) el("tkPostBtn").href = state.intent.url;
+    renderDays(me);
+  }
+
+  function renderSignedOut(){
+    el("tkStep2").classList.add("locked");
+    el("tkStep3").classList.add("locked");
+    chip(el("tkChip1"), "Not connected", "");
+    chip(el("tkChip2"), "Pending check", "wait");
+    el("tkDays").innerHTML = "";
+  }
+
+  function loadMe(){
+    if (!token()) { renderSignedOut(); return; }
+    fetch(API + "/quests/me", { headers: { authorization: "Bearer " + token() } })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if (d && d.campaign) renderMe(d); })
+      .catch(function(){ msg("Could not load your progress. Reload the page.", "err"); });
+  }
+
+  function join(then){
+    if (!token()) return;
+    fetch(API + "/quests/join", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+      body: "{}"
+    }).then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.intent) { state.intent = d.intent; el("tkPostBtn").href = d.intent.url; }
+        loadMe();
+        if (then) then(d);
+      }).catch(function(){ msg("Could not start your entry. Try again.", "err"); });
+  }
+
+  // "Post on X": join first if needed, so the code is in the tweet from the start
+  el("tkPostBtn").addEventListener("click", function(e){
+    if (!token()) {
+      e.preventDefault();
+      msg("Connect your wallet first \u2014 your code is tied to it.", "err");
+      return;
+    }
+    if (!state.intent) {
+      e.preventDefault();
+      join(function(d){
+        if (d && d.intent) window.open(d.intent.url, "_blank", "noopener");
+      });
+    }
+  });
+
+  el("tkCopyCode").addEventListener("click", function(){
+    var code = state.me && state.me.joined ? state.me.entry.code : null;
+    if (!code) { msg("Connect your wallet to get a code.", "err"); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code).then(function(){ msg("Code " + code + " copied.", "good"); },
+        function(){ msg("Your code is " + code, ""); });
+    } else {
+      msg("Your code is " + code, "");
+    }
+  });
+
+  el("tkVerify").addEventListener("click", function(){
+    if (!token()) { msg("Connect your wallet first.", "err"); return; }
+    var url = el("tkUrl").value.trim();
+    if (!url) { msg("Paste the link to your tweet first.", "err"); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Checking\u2026";
+    msg("Reading your tweet\u2026", "");
+
+    fetch(API + "/quests/proof", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+      body: JSON.stringify({ url: url })
+    }).then(function(r){
+      return r.json().then(function(body){ return { status: r.status, body: body }; });
+    }).then(function(res){
+      if (res.status === 200 && res.body.accepted) {
+        el("tkUrl").value = "";
+        msg("Counted for " + res.body.day + " (UTC). " + res.body.done + " of " + res.body.required + " days done.", "good");
+        loadMe();
+      } else {
+        msg(res.body.error || "That tweet could not be verified.", "err");
+      }
+    }).catch(function(){
+      msg("Could not reach NewEra. Try again in a moment.", "err");
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = "Verify tweet";
+    });
+  });
+
+  el("tkUrl").addEventListener("keydown", function(e){
+    if (e.key === "Enter") { e.preventDefault(); el("tkVerify").click(); }
+  });
+
+  // wallet.js fires this after a successful sign-in
+  window.addEventListener("newera:ready", function(){ loadMe(); });
+  window.addEventListener("storage", function(e){ if (e.key === "newera_token") loadMe(); });
+
+  fetch(API + "/quests/active")
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.campaign) {
+        el("tkJoined").textContent = "\u2014";
+        msg("No campaign is running right now.", "");
+        return;
+      }
+      renderCampaign(d);
+      loadMe();
+    })
+    .catch(function(){ msg("Could not load the campaign. Reload the page.", "err"); });
+})();
+</script>
+</body>
+</html>
