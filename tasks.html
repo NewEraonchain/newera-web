@@ -113,7 +113,7 @@
     <header class="tk-head">
       <div class="tk-eyebrow"><i></i> Launch tasks</div>
       <h1>Follow, post, and join the rewards list</h1>
-      <p>Two things to do: follow NewEra on X, and post about it on <b id="tkDayCount">three</b> separate days.
+      <p>Two things to do: follow NewEra on X, and post about it on <b id="tkDayCount">three separate days</b>.
          Every tweet is checked automatically the moment you paste it. Follows are checked once, together, before
          any rewards are decided &mdash; so the follow row below sits at <em>pending</em> until then.</p>
     </header>
@@ -161,7 +161,7 @@
       <div class="tk-step-top">
         <div class="tk-num">3</div>
         <div class="tk-step-main">
-          <h3>Post once a day, on <span id="tkDayCount2">three</span> separate days</h3>
+          <h3>Post once a day, on <span id="tkDayCount2">three separate days</span></h3>
           <p>Mention <span id="tkHandle3">@New_EraAI</span> and include your code so we can tell the tweet is yours.
              Write it however you like. Then copy the link to your tweet and paste it below.</p>
           <div class="tk-act">
@@ -281,8 +281,9 @@
   function renderCampaign(d){
     state.campaign = d.campaign;
     var required = d.campaign.requiredDays;
-    el("tkDayCount").textContent = words(required);
-    el("tkDayCount2").textContent = words(required);
+    var phrase = required === 1 ? "a single day" : words(required) + " separate days";
+    el("tkDayCount").textContent = phrase;
+    el("tkDayCount2").textContent = phrase;
     var handle = "@" + d.campaign.handle;
     el("tkHandle2").textContent = handle;
     el("tkHandle3").textContent = handle;
