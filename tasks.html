@@ -22,6 +22,10 @@
   letter-spacing:-.02em;margin:0 0 10px;color:var(--lg-text)}
 .tk-head p{color:var(--lg-muted);font-size:15px;line-height:1.65;margin:0;max-width:62ch}
 
+.tk-notice{border:1px solid rgba(255,205,77,.38);background:rgba(255,205,77,.06);border-radius:14px;
+  padding:14px 18px;margin:0 0 24px;color:var(--lg-text);font-size:14px;line-height:1.6}
+.tk-notice b{color:#ffcd4d}
+.tk-notice a{color:var(--lg-acc)}
 .tk-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 30px}
 .tk-stat{border:1px solid var(--lg-line);border-radius:14px;padding:14px 16px;background:rgba(255,255,255,.02)}
 .tk-stat .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim)}
@@ -113,6 +117,8 @@
          Every tweet is checked automatically the moment you paste it. Follows are checked once, together, before
          any rewards are decided &mdash; so the follow row below sits at <em>pending</em> until then.</p>
     </header>
+
+    <div class="tk-notice" id="tkNotice" hidden></div>
 
     <section class="tk-strip">
       <div class="tk-stat"><div class="k">Your code</div><div class="v acc" id="tkCode">&mdash;</div></div>
@@ -340,6 +346,52 @@
     renderDays(me);
   }
 
+  function notice(html){
+    var n = el("tkNotice");
+    if (!html) { n.hidden = true; n.innerHTML = ""; return; }
+    n.hidden = false;
+    n.innerHTML = html;
+  }
+
+  function lockAll(){
+    ["tkStep1","tkStep2","tkStep3"].forEach(function(id){ el(id).classList.add("locked"); });
+    el("tkVerify").disabled = true;
+    el("tkUrl").disabled = true;
+  }
+
+  function dayText(iso){
+    return new Date(iso).toLocaleDateString("en-GB",
+      { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  }
+
+  // true when tweets can be submitted right now; otherwise it explains why not
+  function checkWindow(c){
+    var now = Date.now();
+    if (!c.isActive) {
+      notice("<b>Not open yet.</b> The next round of tasks hasn't started. Follow " +
+             '<a href="https://x.com/' + c.handle + '" target="_blank" rel="noopener">@' + c.handle +
+             "</a> and the steps here go live when it opens.");
+      lockAll();
+      return false;
+    }
+    if (new Date(c.startsAt).getTime() > now) {
+      notice("<b>Opens " + dayText(c.startsAt) + " (UTC).</b> You can connect now and get your code ready, " +
+             "but tweets only count from the opening day.");
+      el("tkVerify").disabled = true;
+      el("tkUrl").disabled = true;
+      return false;
+    }
+    if (new Date(c.endsAt).getTime() < now) {
+      notice("<b>This round has closed.</b> Tweets are no longer counted. Follows are checked " +
+             "before rewards are decided.");
+      el("tkVerify").disabled = true;
+      el("tkUrl").disabled = true;
+      return false;
+    }
+    notice("");
+    return true;
+  }
+
   function renderSignedOut(){
     el("tkStep2").classList.add("locked");
     el("tkStep3").classList.add("locked");
@@ -441,11 +493,15 @@
     .then(function(d){
       if (!d || !d.campaign) {
         el("tkJoined").textContent = "\u2014";
-        msg("No campaign is running right now.", "");
+        notice("<b>Not open yet.</b> There is no task round running right now. Follow " +
+               '<a href="https://x.com/New_EraAI" target="_blank" rel="noopener">@New_EraAI</a>' +
+               " and this page will show the steps when the next one opens.");
+        lockAll();
         return;
       }
       renderCampaign(d);
-      loadMe();
+      checkWindow(d.campaign);
+      if (d.campaign.isActive) loadMe();
     })
     .catch(function(){ msg("Could not load the campaign. Reload the page.", "err"); });
 })();
