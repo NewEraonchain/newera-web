@@ -114,17 +114,17 @@
       <div class="tk-eyebrow"><i></i> Launch tasks</div>
       <h1>Follow, post, and join the rewards list</h1>
       <p>Two things to do: follow NewEra on X, and post about it on <b id="tkDayCount">three separate days</b>.
-         Every tweet is checked automatically the moment you paste it. Follows are checked once, together, before
-         any rewards are decided &mdash; so the follow row below sits at <em>pending</em> until then.</p>
+         Every tweet is checked automatically the moment you paste it. Follows are identified when
+         rewards are distributed.</p>
     </header>
 
     <div class="tk-notice" id="tkNotice" hidden></div>
 
     <section class="tk-strip">
-      <div class="tk-stat"><div class="k">Your code</div><div class="v acc" id="tkCode">&mdash;</div></div>
-      <div class="tk-stat"><div class="k">Tweet days</div><div class="v" id="tkProgress">&mdash;</div></div>
-      <div class="tk-stat"><div class="k">People joined</div><div class="v" id="tkJoined">&mdash;</div></div>
-      <div class="tk-stat"><div class="k">Tweets verified</div><div class="v" id="tkVerified">&mdash;</div></div>
+      <div class="tk-stat"><div class="k">Your code</div><div class="v acc" id="tkCode">&ndash;</div></div>
+      <div class="tk-stat"><div class="k">Tweet days</div><div class="v" id="tkProgress">&ndash;</div></div>
+      <div class="tk-stat"><div class="k">People joined</div><div class="v" id="tkJoined">&ndash;</div></div>
+      <div class="tk-stat"><div class="k">Tweets verified</div><div class="v" id="tkVerified">&ndash;</div></div>
     </section>
 
     <section class="tk-step" id="tkStep1">
@@ -133,7 +133,7 @@
         <div class="tk-step-main">
           <h3>Connect your wallet</h3>
           <p>Your wallet is your entry. Signing in is free, moves nothing, and is how we know where rewards
-             would go &mdash; the address has to be signed for, so nobody can enter a wallet they do not hold.</p>
+             would go. The address has to be signed for, so nobody can enter a wallet they do not hold.</p>
           <div class="tk-act" id="tkConnectAct">
             <button class="btn primary tk-btn acc">Connect wallet</button>
           </div>
@@ -147,13 +147,13 @@
         <div class="tk-num">2</div>
         <div class="tk-step-main">
           <h3>Follow <span id="tkHandle2">@New_EraAI</span> on X</h3>
-          <p>Checked in one pass before rewards are decided, not right now. Stay followed until then &mdash;
-             unfollowing before the check undoes it.</p>
+          <p>Follows are identified when rewards are distributed. Stay followed until then.
+             Unfollowing before rewards go out disqualifies your entry.</p>
           <div class="tk-act">
             <a class="tk-btn" id="tkFollowBtn" href="https://x.com/New_EraAI" target="_blank" rel="noopener">Open X and follow</a>
           </div>
         </div>
-        <span class="tk-chip" id="tkChip2">Pending check</span>
+        <span class="tk-chip" id="tkChip2">Checked at rewards</span>
       </div>
     </section>
 
@@ -188,7 +188,7 @@
             earlier tweet are fine; backdating is not possible.</li>
         <li><b>Deleting a tweet undoes it.</b> Every tweet is re-checked before rewards, and a deleted one stops counting.</li>
         <li><b>One X account per wallet, one wallet per X account.</b> The first tweet you verify binds the two together.</li>
-        <li><b>Private accounts cannot be verified</b> &mdash; we can only read public posts.</li>
+        <li><b>Private accounts cannot be verified</b>, because we can only read public posts.</li>
         <li><b>This is a list, not a payment.</b> Completing the tasks records your address for future rewards.
             It is not a purchase, it carries no guarantee of value, and nothing is owed to you by taking part.</li>
       </ul>
@@ -268,6 +268,12 @@
 
   var state = { campaign: null, me: null, intent: null };
 
+  // Going to X is the only part of the follow step we can observe. We remember it so the
+  // page stops looking locked when they come back; the real check happens at reward time.
+  var FOLLOW_KEY = "newera_followed";
+  function markWentToFollow(){ try { localStorage.setItem(FOLLOW_KEY, "1"); } catch (e) {} }
+  function wentToFollow(){ try { return localStorage.getItem(FOLLOW_KEY) === "1"; } catch (e) { return false; } }
+
   function chip(node, text, cls){
     node.textContent = text;
     node.className = "tk-chip" + (cls ? " " + cls : "");
@@ -319,10 +325,15 @@
     chip(el("tkChip1"), addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "Connected", "ok");
 
     if (!me.joined) {
-      el("tkCode").textContent = "\u2014";
-      el("tkProgress").textContent = "\u2014";
-      el("tkStep3").classList.add("locked");
+      el("tkCode").textContent = "\u2013";
+      el("tkProgress").textContent = "\u2013";
       el("tkStep2").classList.remove("locked");
+      if (wentToFollow()) {
+        el("tkStep2").classList.add("done");
+        el("tkStep3").classList.remove("locked");
+      } else {
+        el("tkStep3").classList.add("locked");
+      }
       msg("Tap \u201cPost on X\u201d to get your code and your first tweet.", "");
       return;
     }
@@ -340,8 +351,8 @@
     if (follow === "VERIFIED") chip(el("tkChip2"), "Following", "ok");
     else if (follow === "NOT_FOLLOWING") chip(el("tkChip2"), "Not following", "bad");
     else if (follow === "AWAITING_TWEET") chip(el("tkChip2"), "Post first", "wait");
-    else chip(el("tkChip2"), "Pending check", "wait");
-    if (follow === "VERIFIED") el("tkStep2").classList.add("done");
+    else chip(el("tkChip2"), "Checked at rewards", "wait");
+    if (follow === "VERIFIED" || wentToFollow()) el("tkStep2").classList.add("done");
 
     if (state.intent) el("tkPostBtn").href = state.intent.url;
     renderDays(me);
@@ -393,12 +404,19 @@
     return true;
   }
 
+  function openFollowSteps(){
+    el("tkStep2").classList.remove("locked");
+    el("tkStep2").classList.add("done");
+    el("tkStep3").classList.remove("locked");
+  }
+
   function renderSignedOut(){
     el("tkStep2").classList.add("locked");
     el("tkStep3").classList.add("locked");
     chip(el("tkChip1"), "Not connected", "");
-    chip(el("tkChip2"), "Pending check", "wait");
+    chip(el("tkChip2"), "Checked at rewards", "wait");
     el("tkDays").innerHTML = "";
+    if (wentToFollow()) openFollowSteps();
   }
 
   function loadMe(){
@@ -427,7 +445,7 @@
   el("tkPostBtn").addEventListener("click", function(e){
     if (!token()) {
       e.preventDefault();
-      msg("Connect your wallet first \u2014 your code is tied to it.", "err");
+      msg("Connect your wallet first. Your code is tied to it.", "err");
       return;
     }
     if (!state.intent) {
@@ -437,6 +455,22 @@
       });
     }
   });
+
+  el("tkFollowBtn").addEventListener("click", function(){
+    markWentToFollow();
+    openFollowSteps();
+    // claim the code now so it is waiting when they come back from X
+    if (token() && !state.intent) join();
+  });
+
+  // coming back to the tab is the cue to refresh and drop the locked look
+  function onReturn(){
+    if (document.visibilityState === "hidden") return;
+    if (wentToFollow()) openFollowSteps();
+    if (token()) loadMe();
+  }
+  window.addEventListener("focus", onReturn);
+  document.addEventListener("visibilitychange", onReturn);
 
   el("tkCopyCode").addEventListener("click", function(){
     var code = state.me && state.me.joined ? state.me.entry.code : null;
