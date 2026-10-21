@@ -264,7 +264,11 @@
       </div>
       <div class="tk-refstats">
         <div class="tk-refstat"><div class="n" id="tkRefJoined">0</div><div class="l">joined</div></div>
-        <div class="tk-refstat"><div class="n" id="tkRefDone">0</div><div class="l">finished the tasks</div></div>
+        <div class="tk-refstat"><div class="n" id="tkRefDone">0</div><div class="l">finished everything</div></div>
+        <div class="tk-refstat" id="tkRefEarnedBox" hidden>
+          <div class="n" id="tkRefEarned" style="color:var(--lg-acc)">$0</div>
+          <div class="l">earned so far</div>
+        </div>
       </div>
     </section>
 
@@ -428,8 +432,8 @@
     el("tkAmountNote").textContent = o.note ||
       "in NewEra tokens, once the tasks are done and checked.";
 
-    var perReferral = state.campaign && state.campaign.rewards
-      ? Number(state.campaign.rewards.referralPerPerson) : 0;
+    var referralsPaid = Boolean(state.campaign && state.campaign.rewards &&
+                                state.campaign.rewards.referralsPaid);
     var rows = "";
     rows += '<div class="tk-rrow"><span>Tasks finished</span><b>' + usd(rewards.base) + '</b></div>';
     rows += '<div class="tk-rrow' + (rewards.newUserBonusApplied ? '' : ' off') + '">' +
@@ -437,9 +441,9 @@
             (rewards.newUserBonusApplied
               ? "+" + usd(Number(rewards.own) - Number(rewards.base))
               : "not claimed") + '</b></div>';
-    if (perReferral > 0) {
+    if (referralsPaid) {
       rows += '<div class="tk-rrow' + (Number(rewards.referral) > 0 ? '' : ' off') + '">' +
-              '<span>Referrals, ' + usd(perReferral) + ' each</span><b>+' + usd(rewards.referral) + '</b></div>';
+              '<span>People you brought in</span><b>+' + usd(rewards.referral) + '</b></div>';
     }
     el("tkRewardRows").innerHTML = rows;
   }
@@ -486,11 +490,15 @@
     el("tkRefJoined").textContent = me.referral.joined;
     el("tkRefDone").textContent = me.referral.completed;
 
-    var per = state.campaign && state.campaign.rewards
-      ? Number(state.campaign.rewards.referralPerPerson) : 0;
-    el("tkRefText").textContent = per > 0
-      ? "Share your link. You earn " + usd(per) + " for every person who joins through it and finishes the tasks."
+    var paid = Boolean(state.campaign && state.campaign.rewards &&
+                       state.campaign.rewards.referralsPaid);
+    var earned = me.referral.rewardUsd;
+    el("tkRefText").textContent = paid
+      ? "Share your link. Your reward grows with every person who joins through it and finishes "
+        + "everything: the tweets, the follow and their UID."
       : "Share your link. Anyone who joins through it is counted as yours.";
+    el("tkRefEarned").textContent = paid && earned ? usd(earned) : "";
+    el("tkRefEarnedBox").hidden = !(paid && Number(earned) > 0);
   }
 
   function renderDays(me){
