@@ -79,6 +79,39 @@
 .tk-day.filled .s{color:var(--lg-acc)}
 .tk-day .s a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 
+.tk-reward{border:1px solid rgba(205,255,77,.32);background:linear-gradient(180deg,rgba(205,255,77,.07),rgba(205,255,77,.02));
+  border-radius:18px;padding:20px 22px;margin:0 0 26px;display:flex;flex-wrap:wrap;gap:22px;align-items:center;justify-content:space-between}
+.tk-reward .lead{flex:1 1 220px;min-width:0}
+.tk-reward .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim)}
+.tk-reward .amt{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:38px;line-height:1.05;
+  letter-spacing:-.02em;color:var(--lg-acc);margin-top:6px}
+.tk-reward .sub{color:var(--lg-muted);font-size:13px;margin-top:6px;line-height:1.55}
+.tk-reward .rows{flex:0 1 300px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.tk-rrow{display:flex;justify-content:space-between;gap:14px;font-size:13px;color:var(--lg-muted)}
+.tk-rrow b{color:var(--lg-text);font-weight:600;font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.tk-rrow.off{opacity:.45}
+
+.tk-field{margin-top:14px}
+.tk-field label{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--lg-dim);margin-bottom:7px}
+.tk-field select,.tk-field input{width:100%;max-width:340px;background:rgba(0,0,0,.25);border:1px solid var(--lg-line);
+  border-radius:10px;padding:11px 13px;color:var(--lg-text);font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.tk-field select:focus,.tk-field input:focus{outline:none;border-color:rgba(205,255,77,.5)}
+.tk-check{display:flex;gap:10px;align-items:flex-start;margin-top:14px;max-width:460px;cursor:pointer}
+.tk-check input{margin-top:3px;accent-color:var(--lg-acc);width:15px;height:15px;flex:0 0 auto}
+.tk-check span{font-size:13px;color:var(--lg-muted);line-height:1.55}
+.tk-check b{color:var(--lg-acc)}
+
+.tk-ref{border:1px solid var(--lg-line);border-radius:18px;padding:22px;background:rgba(255,255,255,.02);margin:0 0 16px}
+.tk-ref h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16.5px;color:var(--lg-text);margin:0 0 6px}
+.tk-ref p{color:var(--lg-muted);font-size:13.5px;line-height:1.6;margin:0}
+.tk-link{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.tk-link input{flex:1 1 280px;min-width:0;background:rgba(0,0,0,.25);border:1px dashed rgba(205,255,77,.35);border-radius:10px;
+  padding:11px 13px;color:var(--lg-acc);font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.tk-refstats{display:flex;gap:26px;margin-top:16px;flex-wrap:wrap}
+.tk-refstat .n{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:22px;color:var(--lg-text)}
+.tk-refstat .l{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lg-dim);margin-top:3px}
+@media(max-width:600px){.tk-reward .amt{font-size:31px}.tk-reward{padding:18px}}
 .tk-fine{border-top:1px solid var(--lg-line);margin-top:34px;padding-top:22px}
 .tk-fine h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16px;color:var(--lg-text);margin:0 0 12px}
 .tk-fine ul{margin:0;padding-left:18px;color:var(--lg-muted);font-size:13.5px;line-height:1.75}
@@ -119,6 +152,15 @@
     </header>
 
     <div class="tk-notice" id="tkNotice" hidden></div>
+
+    <section class="tk-reward" id="tkReward" hidden>
+      <div class="lead">
+        <div class="k">You will receive</div>
+        <div class="amt" id="tkAmount">$5.00</div>
+        <div class="sub" id="tkAmountNote">in NewEra tokens, once the tasks are done and checked.</div>
+      </div>
+      <div class="rows" id="tkRewardRows"></div>
+    </section>
 
     <section class="tk-strip">
       <div class="tk-stat"><div class="k">Your code</div><div class="v acc" id="tkCode">&ndash;</div></div>
@@ -180,6 +222,52 @@
       </div>
     </section>
 
+    <section class="tk-step locked" id="tkStep4">
+      <div class="tk-step-top">
+        <div class="tk-num">4</div>
+        <div class="tk-step-main">
+          <h3>Tell us where to send it</h3>
+          <p>Rewards are paid to an exchange account, so we need the UID of the account you want them in.</p>
+
+          <div class="tk-field">
+            <label for="tkExchange">Exchange</label>
+            <select id="tkExchange"></select>
+          </div>
+
+          <div class="tk-field">
+            <label for="tkUid">Your UID</label>
+            <input id="tkUid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                   placeholder="184920113" aria-label="Your exchange UID" />
+          </div>
+
+          <label class="tk-check">
+            <input type="checkbox" id="tkNewUser" />
+            <span>I made this account through NewEra and it is new. <b>New accounts earn double.</b>
+                  This is checked against the exchange's own records before anything is paid.</span>
+          </label>
+
+          <div class="tk-act">
+            <button class="tk-btn acc" id="tkSaveUid" type="button">Save UID</button>
+          </div>
+          <div class="tk-msg" id="tkUidMsg"></div>
+        </div>
+        <span class="tk-chip" id="tkChip4">Not set</span>
+      </div>
+    </section>
+
+    <section class="tk-ref" id="tkRefBox" hidden>
+      <h3>Bring people with you</h3>
+      <p id="tkRefText">Share your link. Anyone who joins through it is counted as yours.</p>
+      <div class="tk-link">
+        <input id="tkRefLink" type="text" readonly aria-label="Your referral link" />
+        <button class="tk-btn acc" id="tkCopyLink" type="button">Copy link</button>
+      </div>
+      <div class="tk-refstats">
+        <div class="tk-refstat"><div class="n" id="tkRefJoined">0</div><div class="l">joined</div></div>
+        <div class="tk-refstat"><div class="n" id="tkRefDone">0</div><div class="l">finished the tasks</div></div>
+      </div>
+    </section>
+
     <section class="tk-fine">
       <h2>How this is checked, and what it does not promise</h2>
       <ul>
@@ -189,8 +277,12 @@
         <li><b>Deleting a tweet undoes it.</b> Every tweet is re-checked before rewards, and a deleted one stops counting.</li>
         <li><b>One X account per wallet, one wallet per X account.</b> The first tweet you verify binds the two together.</li>
         <li><b>Private accounts cannot be verified</b>, because we can only read public posts.</li>
-        <li><b>This is a list, not a payment.</b> Completing the tasks records your address for future rewards.
-            It is not a purchase, it carries no guarantee of value, and nothing is owed to you by taking part.</li>
+        <li><b>The doubled reward is for genuinely new exchange accounts.</b> We check the claim against the
+            exchange's own records, and an account that is not new is paid the standard amount.</li>
+        <li><b>Referrals count when the person you brought finishes the tasks</b>, not when they arrive.</li>
+        <li><b>Amounts shown are what the tasks are worth, not a payment.</b> Rewards are paid in NewEra tokens
+            after the campaign and after checking. Taking part is not a purchase, carries no guarantee of
+            value, and nothing is owed to you by taking part.</li>
       </ul>
     </section>
   </main>
@@ -271,6 +363,19 @@
   // Going to X is the only part of the follow step we can observe. We remember it so the
   // page stops looking locked when they come back; the real check happens at reward time.
   var FOLLOW_KEY = "newera_followed";
+  var REF_KEY = "newera_ref";
+
+  // A ?ref= code is remembered, not acted on straight away: people arrive on the link,
+  // then connect a wallet minutes later, and the credit has to survive that gap.
+  (function captureRef(){
+    try {
+      var m = /[?&]ref=([A-Za-z0-9_-]{2,24})/.exec(window.location.search);
+      if (m) localStorage.setItem(REF_KEY, m[1].toUpperCase());
+    } catch (e) {}
+  })();
+  function storedRef(){ try { return localStorage.getItem(REF_KEY) || null; } catch (e) { return null; } }
+
+  function usd(v){ return "$" + (Number(v) || 0).toFixed(2); }
   function markWentToFollow(){ try { localStorage.setItem(FOLLOW_KEY, "1"); } catch (e) {} }
   function wentToFollow(){ try { return localStorage.getItem(FOLLOW_KEY) === "1"; } catch (e) { return false; } }
 
@@ -278,6 +383,12 @@
     node.textContent = text;
     node.className = "tk-chip" + (cls ? " " + cls : "");
   }
+  function uidMsg(text, cls){
+    var m = el("tkUidMsg");
+    m.textContent = text || "";
+    m.className = "tk-msg" + (cls ? " " + cls : "");
+  }
+
   function msg(text, cls){
     var m = el("tkMsg");
     m.textContent = text || "";
@@ -286,6 +397,17 @@
 
   function renderCampaign(d){
     state.campaign = d.campaign;
+    if (d.campaign.rewards) {
+      renderRewards({
+        base: d.campaign.rewards.base,
+        own: d.campaign.rewards.base,
+        potentialTotal: d.campaign.rewards.base,
+        referral: "0.00",
+        multiplier: d.campaign.rewards.newUserMultiplier,
+        newUserBonusApplied: false,
+      }, { note: "in NewEra tokens, or double that with a new exchange account." });
+    }
+    if (d.campaign.exchanges) renderExchange({ campaign: d.campaign });
     var required = d.campaign.requiredDays;
     var phrase = required === 1 ? "a single day" : words(required) + " separate days";
     el("tkDayCount").textContent = phrase;
@@ -296,6 +418,79 @@
     el("tkFollowBtn").href = "https://x.com/" + d.campaign.handle;
     el("tkJoined").textContent = num(d.participants);
     el("tkVerified").textContent = num(d.tweetsVerified);
+  }
+
+  function renderRewards(rewards, opts){
+    if (!rewards) return;
+    var o = opts || {};
+    el("tkReward").hidden = false;
+    el("tkAmount").textContent = usd(rewards.potentialTotal || rewards.base);
+    el("tkAmountNote").textContent = o.note ||
+      "in NewEra tokens, once the tasks are done and checked.";
+
+    var perReferral = state.campaign && state.campaign.rewards
+      ? Number(state.campaign.rewards.referralPerPerson) : 0;
+    var rows = "";
+    rows += '<div class="tk-rrow"><span>Tasks finished</span><b>' + usd(rewards.base) + '</b></div>';
+    rows += '<div class="tk-rrow' + (rewards.newUserBonusApplied ? '' : ' off') + '">' +
+            '<span>New exchange account, ' + (rewards.multiplier || 2) + 'x</span><b>' +
+            (rewards.newUserBonusApplied
+              ? "+" + usd(Number(rewards.own) - Number(rewards.base))
+              : "not claimed") + '</b></div>';
+    if (perReferral > 0) {
+      rows += '<div class="tk-rrow' + (Number(rewards.referral) > 0 ? '' : ' off') + '">' +
+              '<span>Referrals, ' + usd(perReferral) + ' each</span><b>+' + usd(rewards.referral) + '</b></div>';
+    }
+    el("tkRewardRows").innerHTML = rows;
+  }
+
+  function renderExchange(me){
+    var options = (me.exchange && me.exchange.options) ||
+                  (me.campaign && me.campaign.exchanges) || [];
+    var select = el("tkExchange");
+    if (!select.dataset.filled) {
+      var html = "";
+      for (var i = 0; i < options.length; i++) {
+        var o = options[i];
+        html += '<option value="' + o.id + '"' + (o.enabled ? '' : ' disabled') + '>' +
+                o.label + (o.enabled ? '' : ' (coming soon)') + '</option>';
+      }
+      select.innerHTML = html;
+      select.dataset.filled = "1";
+    }
+
+    var ex = me.exchange || {};
+    if (ex.selected) select.value = ex.selected;
+    else {
+      for (var j = 0; j < options.length; j++) {
+        if (options[j].enabled) { select.value = options[j].id; break; }
+      }
+    }
+    if (ex.uid) el("tkUid").value = ex.uid;
+    el("tkNewUser").checked = Boolean(ex.newUser);
+
+    if (ex.uid) {
+      chip(el("tkChip4"), ex.newUser ? "Saved, 2x" : "Saved", "ok");
+      el("tkStep4").classList.add("done");
+    } else {
+      chip(el("tkChip4"), "Not set", "wait");
+      el("tkStep4").classList.remove("done");
+    }
+  }
+
+  function renderReferral(me){
+    if (!me.referral) return;
+    el("tkRefBox").hidden = false;
+    var link = window.location.origin + window.location.pathname + "?ref=" + me.referral.code;
+    el("tkRefLink").value = link;
+    el("tkRefJoined").textContent = me.referral.joined;
+    el("tkRefDone").textContent = me.referral.completed;
+
+    var per = state.campaign && state.campaign.rewards
+      ? Number(state.campaign.rewards.referralPerPerson) : 0;
+    el("tkRefText").textContent = per > 0
+      ? "Share your link. You earn " + usd(per) + " for every person who joins through it and finishes the tasks."
+      : "Share your link. Anyone who joins through it is counted as yours.";
   }
 
   function renderDays(me){
@@ -328,6 +523,8 @@
       el("tkCode").textContent = "\u2013";
       el("tkProgress").textContent = "\u2013";
       el("tkStep2").classList.remove("locked");
+      renderExchange(me);
+      renderRewards(me.rewards, { note: "in NewEra tokens. Finish the tasks below to earn it." });
       if (wentToFollow()) {
         el("tkStep2").classList.add("done");
         el("tkStep3").classList.remove("locked");
@@ -354,6 +551,15 @@
     else chip(el("tkChip2"), "Checked at rewards", "wait");
     if (follow === "VERIFIED" || wentToFollow()) el("tkStep2").classList.add("done");
 
+    el("tkStep4").classList.remove("locked");
+    renderExchange(me);
+    renderReferral(me);
+    renderRewards(me.rewards, {
+      note: done >= required
+        ? "in NewEra tokens, once follows are checked after the campaign."
+        : "in NewEra tokens, once the tasks are done and checked."
+    });
+
     if (state.intent) el("tkPostBtn").href = state.intent.url;
     renderDays(me);
   }
@@ -366,7 +572,7 @@
   }
 
   function lockAll(){
-    ["tkStep1","tkStep2","tkStep3"].forEach(function(id){ el(id).classList.add("locked"); });
+    ["tkStep1","tkStep2","tkStep3","tkStep4"].forEach(function(id){ el(id).classList.add("locked"); });
     el("tkVerify").disabled = true;
     el("tkUrl").disabled = true;
   }
@@ -413,6 +619,7 @@
   function renderSignedOut(){
     el("tkStep2").classList.add("locked");
     el("tkStep3").classList.add("locked");
+    el("tkStep4").classList.add("locked");
     chip(el("tkChip1"), "Not connected", "");
     chip(el("tkChip2"), "Checked at rewards", "wait");
     el("tkDays").innerHTML = "";
@@ -432,7 +639,7 @@
     fetch(API + "/quests/join", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer " + token() },
-      body: "{}"
+      body: JSON.stringify({ ref: storedRef() })
     }).then(function(r){ return r.json(); })
       .then(function(d){
         if (d && d.intent) { state.intent = d.intent; el("tkPostBtn").href = d.intent.url; }
@@ -471,6 +678,51 @@
   }
   window.addEventListener("focus", onReturn);
   document.addEventListener("visibilitychange", onReturn);
+
+  el("tkSaveUid").addEventListener("click", function(){
+    if (!token()) { uidMsg("Connect your wallet first.", "err"); return; }
+    var exchange = el("tkExchange").value;
+    var uid = el("tkUid").value.trim();
+    if (!uid) { uidMsg("Enter your UID first.", "err"); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Saving\u2026";
+
+    fetch(API + "/quests/exchange", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+      body: JSON.stringify({ exchange: exchange, uid: uid, isNewUser: el("tkNewUser").checked })
+    }).then(function(r){
+      return r.json().then(function(body){ return { status: r.status, body: body }; });
+    }).then(function(res){
+      if (res.status === 200 && res.body.saved) {
+        uidMsg("Saved. Rewards go to your " + exchange.charAt(0) + exchange.slice(1).toLowerCase() +
+               " account ending " + uid.slice(-4) + ".", "good");
+        loadMe();
+      } else {
+        uidMsg(res.body.error || "That could not be saved.", "err");
+      }
+    }).catch(function(){
+      uidMsg("Could not reach NewEra. Try again in a moment.", "err");
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = "Save UID";
+    });
+  });
+
+  el("tkCopyLink").addEventListener("click", function(){
+    var link = el("tkRefLink").value;
+    if (!link) return;
+    var btn = this;
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy link"; }, 1800); }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link).then(done, function(){ el("tkRefLink").select(); });
+    } else {
+      el("tkRefLink").select();
+      done();
+    }
+  });
 
   el("tkCopyCode").addEventListener("click", function(){
     var code = state.me && state.me.joined ? state.me.entry.code : null;
