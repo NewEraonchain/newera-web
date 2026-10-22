@@ -152,8 +152,8 @@
     <section class="tk-reward" id="tkReward" hidden>
       <div class="lead">
         <div class="k">You will receive</div>
-        <div class="amt" id="tkAmount">$5.00</div>
-        <div class="sub" id="tkAmountNote">in NewEra tokens, once the tasks are done and checked.</div>
+        <div class="amt" id="tkAmount">6,000 $NEA</div>
+        <div class="sub" id="tkAmountNote">once the tasks are done and checked.</div>
       </div>
     </section>
 
@@ -374,7 +374,9 @@
   })();
   function storedRef(){ try { return localStorage.getItem(REF_KEY) || null; } catch (e) { return null; } }
 
-  function usd(v){ return "$" + (Number(v) || 0).toFixed(2); }
+  function tokens(amount, symbol){
+    return Math.round(Number(amount) || 0).toLocaleString("en-US") + " $" + (symbol || "NEA");
+  }
   function markWentToFollow(){ try { localStorage.setItem(FOLLOW_KEY, "1"); } catch (e) {} }
   function wentToFollow(){ try { return localStorage.getItem(FOLLOW_KEY) === "1"; } catch (e) { return false; } }
 
@@ -398,7 +400,8 @@
     state.campaign = d.campaign;
     if (d.campaign.rewards) {
       // before anyone joins, the panel advertises the base amount
-      renderRewards({ base: d.campaign.rewards.base, potentialTotal: d.campaign.rewards.base });
+      renderRewards({ symbol: d.campaign.rewards.symbol,
+                      tokens: { base: d.campaign.rewards.tokens } });
     }
     if (d.campaign.exchanges) renderExchange({ campaign: d.campaign });
     var required = d.campaign.requiredDays;
@@ -416,12 +419,18 @@
   function renderRewards(rewards){
     if (!rewards) return;
     el("tkReward").hidden = false;
-    el("tkAmount").textContent = usd(rewards.potentialTotal || rewards.base);
+
+    var symbol = rewards.symbol ||
+      (state.campaign && state.campaign.rewards && state.campaign.rewards.symbol) || "NEA";
+    var amount = rewards.tokens
+      ? (rewards.tokens.potentialTotal || rewards.tokens.base)
+      : (state.campaign && state.campaign.rewards && state.campaign.rewards.tokens);
+    el("tkAmount").textContent = tokens(amount, symbol);
 
     var mult = (state.campaign && state.campaign.rewards && state.campaign.rewards.newUserMultiplier) ||
                rewards.multiplier || 2;
     el("tkAmountNote").textContent =
-      "On finishing the tasks you'll receive this amount in NewEra tokens. " +
+      "On finishing the tasks you'll receive this amount. " +
       "New exchange accounts earn " + mult + "x rewards.";
   }
 
@@ -474,8 +483,10 @@
       ? "Share your link. Your reward grows with every person who joins through it and finishes "
         + "everything: the tweets, the follow and their UID."
       : "Share your link. Anyone who joins through it is counted as yours.";
-    el("tkRefEarned").textContent = paid && earned ? usd(earned) : "";
-    el("tkRefEarnedBox").hidden = !(paid && Number(earned) > 0);
+    var refTokens = me.rewards && me.rewards.tokens ? me.rewards.tokens.referral : null;
+    var symbol = (state.campaign && state.campaign.rewards && state.campaign.rewards.symbol) || "NEA";
+    el("tkRefEarned").textContent = paid && Number(refTokens) > 0 ? tokens(refTokens, symbol) : "";
+    el("tkRefEarnedBox").hidden = !(paid && Number(refTokens) > 0);
   }
 
   function renderDays(me){
