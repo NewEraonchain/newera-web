@@ -441,9 +441,10 @@
             (rewards.newUserBonusApplied
               ? "+" + usd(Number(rewards.own) - Number(rewards.base))
               : "not claimed") + '</b></div>';
-    if (referralsPaid) {
-      rows += '<div class="tk-rrow' + (Number(rewards.referral) > 0 ? '' : ' off') + '">' +
-              '<span>People you brought in</span><b>+' + usd(rewards.referral) + '</b></div>';
+    // only once it is worth something: a row reading "+$0.00" reads as a promise unkept
+    if (referralsPaid && Number(rewards.referral) > 0) {
+      rows += '<div class="tk-rrow"><span>People you brought in</span><b>+' +
+              usd(rewards.referral) + '</b></div>';
     }
     el("tkRewardRows").innerHTML = rows;
   }
