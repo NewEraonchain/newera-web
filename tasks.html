@@ -357,7 +357,7 @@
     return w[n] || String(n);
   }
 
-  var state = { campaign: null, me: null, intent: null };
+  var state = { campaign: null, me: null, intent: null, windowOpen: true };
 
   // Going to X is the only part of the follow step we can observe. We remember it so the
   // page stops looking locked when they come back; the real check happens at reward time.
@@ -497,6 +497,7 @@
 
   function renderMe(me){
     state.me = me;
+    syncForms(true);
     state.intent = me.intent || null;
 
     el("tkStep1").classList.remove("locked");
@@ -566,11 +567,13 @@
   // true when tweets can be submitted right now; otherwise it explains why not
   function checkWindow(c){
     var now = Date.now();
+    state.windowOpen = true;
     if (!c.isActive) {
       notice("<b>Not open yet.</b> The next round of tasks hasn't started. Follow " +
              '<a href="https://x.com/' + c.handle + '" target="_blank" rel="noopener">@' + c.handle +
              "</a> and the steps here go live when it opens.");
       lockAll();
+      state.windowOpen = false;
       return false;
     }
     if (new Date(c.startsAt).getTime() > now) {
@@ -578,6 +581,7 @@
              "but tweets only count from the opening day.");
       el("tkVerify").disabled = true;
       el("tkUrl").disabled = true;
+      state.windowOpen = false;
       return false;
     }
     if (new Date(c.endsAt).getTime() < now) {
@@ -585,10 +589,22 @@
              "before rewards are decided.");
       el("tkVerify").disabled = true;
       el("tkUrl").disabled = true;
+      state.windowOpen = false;
       return false;
     }
     notice("");
     return true;
+  }
+
+  // The controls that need an account and an open round. Navigational things (Open X,
+  // Post on X) stay clickable: following does not need a wallet, and a dimmed step whose
+  // buttons still work is worse than one that is honestly unavailable.
+  function syncForms(signedIn){
+    var on = state.windowOpen !== false && signedIn;
+    ["tkVerify", "tkUrl", "tkSaveUid", "tkUid", "tkExchange", "tkNewUser"].forEach(function(id){
+      var node = el(id);
+      if (node) node.disabled = !on;
+    });
   }
 
   function openFollowSteps(){
@@ -604,14 +620,43 @@
     chip(el("tkChip1"), "Not connected", "");
     chip(el("tkChip2"), "Checked at rewards", "wait");
     el("tkDays").innerHTML = "";
+    syncForms(false);
     if (wentToFollow()) openFollowSteps();
+  }
+
+  // A stored token can be refused long after it was issued: it expires after a week, and
+  // rotating the server secret voids every token at once. Without this the page sat at
+  // "not connected" while the wallet button still showed an address, which looks broken.
+  function clearStaleSession(note){
+    try {
+      localStorage.removeItem("newera_token");
+      localStorage.removeItem("newera_address");
+      localStorage.removeItem("newera_owner");
+    } catch (e) {}
+    // put the connect buttons back: wallet.js already rendered them as connected
+    var buttons = document.querySelectorAll("[data-nw-addr]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].textContent = "Connect wallet";
+      buttons[i].removeAttribute("data-nw-addr");
+    }
+    renderSignedOut();
+    if (note) msg(note, "err");
   }
 
   function loadMe(){
     if (!token()) { renderSignedOut(); return; }
     fetch(API + "/quests/me", { headers: { authorization: "Bearer " + token() } })
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if (d && d.campaign) renderMe(d); })
+      .then(function(r){
+        return r.json().then(function(body){ return { status: r.status, body: body }; });
+      })
+      .then(function(res){
+        if (res.status === 401) {
+          clearStaleSession("Your session has expired. Connect your wallet again to carry on.");
+          return;
+        }
+        if (res.body && res.body.campaign) renderMe(res.body);
+        else msg(res.body && res.body.error ? res.body.error : "Could not load your progress.", "err");
+      })
       .catch(function(){ msg("Could not load your progress. Reload the page.", "err"); });
   }
 
@@ -621,8 +666,15 @@
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer " + token() },
       body: JSON.stringify({ ref: storedRef() })
-    }).then(function(r){ return r.json(); })
-      .then(function(d){
+    }).then(function(r){
+      return r.json().then(function(body){ return { status: r.status, body: body }; });
+    })
+      .then(function(res){
+        if (res.status === 401) {
+          clearStaleSession("Your session has expired. Connect your wallet again to carry on.");
+          return;
+        }
+        var d = res.body;
         if (d && d.intent) { state.intent = d.intent; el("tkPostBtn").href = d.intent.url; }
         loadMe();
         if (then) then(d);
@@ -678,9 +730,14 @@
       return r.json().then(function(body){ return { status: r.status, body: body }; });
     }).then(function(res){
       if (res.status === 200 && res.body.saved) {
-        uidMsg("Saved. Rewards go to your " + exchange.charAt(0) + exchange.slice(1).toLowerCase() +
+        var picked = el("tkExchange").options[el("tkExchange").selectedIndex];
+        uidMsg("Saved. Rewards go to your " + (picked ? picked.text : exchange) +
                " account ending " + uid.slice(-4) + ".", "good");
         loadMe();
+      } else if (res.status === 401) {
+        clearStaleSession("Your session has expired. Connect your wallet again to carry on.");
+      } else if (/join the campaign/i.test(res.body.error || "")) {
+        join(function(){ uidMsg("Entry created. Press Save once more.", ""); });
       } else {
         uidMsg(res.body.error || "That could not be saved.", "err");
       }
@@ -737,6 +794,11 @@
         el("tkUrl").value = "";
         msg("Counted for " + res.body.day + " (UTC). " + res.body.done + " of " + res.body.required + " days done.", "good");
         loadMe();
+      } else if (res.status === 401) {
+        clearStaleSession("Your session has expired. Connect your wallet again to carry on.");
+      } else if (/join the campaign/i.test(res.body.error || "")) {
+        // they pasted a link before claiming a code; claim it and let them press again
+        join(function(){ msg("Entry created. Press Verify once more.", ""); });
       } else {
         msg(res.body.error || "That tweet could not be verified.", "err");
       }
@@ -756,9 +818,23 @@
   window.addEventListener("newera:ready", function(){ loadMe(); });
   window.addEventListener("storage", function(e){ if (e.key === "newera_token") loadMe(); });
 
+  // "no round is running" and "we cannot reach the server" look identical to a visitor
+  // unless we say which it is. Announcing the campaign is over during an outage would
+  // tell people to stop, so an unreachable backend says so plainly instead.
+  function unreachable(){
+    notice("<b>We can't reach NewEra right now.</b> This is on our side, not yours. " +
+           "The campaign is unaffected: refresh in a minute and your progress will be here.");
+    lockAll();
+  }
+
   fetch(API + "/quests/active")
-    .then(function(r){ return r.json(); })
-    .then(function(d){
+    .then(function(r){
+      return r.json().then(function(body){ return { status: r.status, body: body }; },
+                           function(){ return { status: r.status, body: null }; });
+    })
+    .then(function(res){
+      if (res.status >= 500) { unreachable(); return; }
+      var d = res.body;
       if (!d || !d.campaign) {
         el("tkJoined").textContent = "\u2014";
         notice("<b>Not open yet.</b> There is no task round running right now. Follow " +
@@ -771,7 +847,7 @@
       checkWindow(d.campaign);
       if (d.campaign.isActive) loadMe();
     })
-    .catch(function(){ msg("Could not load the campaign. Reload the page.", "err"); });
+    .catch(function(){ unreachable(); });
 })();
 </script>
 </body>
