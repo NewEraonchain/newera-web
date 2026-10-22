@@ -237,8 +237,8 @@
 
           <label class="tk-check">
             <input type="checkbox" id="tkNewUser" />
-            <span>I made this account through NewEra and it is new. <b>New accounts earn double.</b>
-                  This is checked against the exchange's own records before anything is paid.</span>
+            <span>I created this account through NewEra and it is new.
+                  This is recorded with your entry and checked against the exchange's own records.</span>
           </label>
 
           <div class="tk-act">
@@ -276,8 +276,8 @@
         <li><b>Deleting a tweet undoes it.</b> Every tweet is re-checked before rewards, and a deleted one stops counting.</li>
         <li><b>One X account per wallet, one wallet per X account.</b> The first tweet you verify binds the two together.</li>
         <li><b>Private accounts cannot be verified</b>, because we can only read public posts.</li>
-        <li><b>The doubled reward is for genuinely new exchange accounts.</b> We check the claim against the
-            exchange's own records, and an account that is not new is paid the standard amount.</li>
+        <li><b>Tell us honestly whether your exchange account is new.</b> We check it against the
+            exchange's own records, and the answer is recorded with your entry.</li>
         <li><b>Referrals count when the person you brought finishes the tasks</b>, not when they arrive.</li>
         <li><b>Amounts shown are what the tasks are worth, not a payment.</b> Rewards are paid in NewEra tokens
             after the campaign and after checking. Taking part is not a purchase, carries no guarantee of
@@ -422,20 +422,18 @@
 
     var symbol = rewards.symbol ||
       (state.campaign && state.campaign.rewards && state.campaign.rewards.symbol) || "NEA";
-    var amount = rewards.tokens
-      ? (rewards.tokens.potentialTotal || rewards.tokens.base)
-      : (state.campaign && state.campaign.rewards && state.campaign.rewards.tokens);
+    // Everyone is shown the same figure. The server still records who claims a new
+    // exchange account, but what that is worth is not decided here.
+    var amount = (rewards.tokens && rewards.tokens.base) ||
+      (state.campaign && state.campaign.rewards && state.campaign.rewards.tokens);
 
     // An API that predates this field would otherwise render "0 $NEA", which is worse
     // than showing nothing: keep the panel hidden until there is a real figure.
     if (!(Number(amount) > 0)) { el("tkReward").hidden = true; return; }
     el("tkAmount").textContent = tokens(amount, symbol);
 
-    var mult = (state.campaign && state.campaign.rewards && state.campaign.rewards.newUserMultiplier) ||
-               rewards.multiplier || 2;
     el("tkAmountNote").textContent =
-      "On finishing the tasks you'll receive this amount. " +
-      "New exchange accounts earn " + mult + "x rewards.";
+      "On finishing the tasks you'll receive this amount, once everything is checked.";
   }
 
   function renderExchange(me){
@@ -464,7 +462,7 @@
     el("tkNewUser").checked = Boolean(ex.newUser);
 
     if (ex.uid) {
-      chip(el("tkChip4"), ex.newUser ? "Saved, 2x" : "Saved", "ok");
+      chip(el("tkChip4"), "Saved", "ok");
       el("tkStep4").classList.add("done");
     } else {
       chip(el("tkChip4"), "Not set", "wait");
