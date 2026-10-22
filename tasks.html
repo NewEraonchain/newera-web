@@ -425,6 +425,10 @@
     var amount = rewards.tokens
       ? (rewards.tokens.potentialTotal || rewards.tokens.base)
       : (state.campaign && state.campaign.rewards && state.campaign.rewards.tokens);
+
+    // An API that predates this field would otherwise render "0 $NEA", which is worse
+    // than showing nothing: keep the panel hidden until there is a real figure.
+    if (!(Number(amount) > 0)) { el("tkReward").hidden = true; return; }
     el("tkAmount").textContent = tokens(amount, symbol);
 
     var mult = (state.campaign && state.campaign.rewards && state.campaign.rewards.newUserMultiplier) ||
