@@ -86,10 +86,6 @@
 .tk-reward .amt{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:38px;line-height:1.05;
   letter-spacing:-.02em;color:var(--lg-acc);margin-top:6px}
 .tk-reward .sub{color:var(--lg-muted);font-size:13px;margin-top:6px;line-height:1.55}
-.tk-reward .rows{flex:0 1 300px;display:flex;flex-direction:column;gap:7px;min-width:0}
-.tk-rrow{display:flex;justify-content:space-between;gap:14px;font-size:13px;color:var(--lg-muted)}
-.tk-rrow b{color:var(--lg-text);font-weight:600;font-family:"JetBrains Mono",monospace;font-size:12.5px}
-.tk-rrow.off{opacity:.45}
 
 .tk-field{margin-top:14px}
 .tk-field label{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;
@@ -159,7 +155,6 @@
         <div class="amt" id="tkAmount">$5.00</div>
         <div class="sub" id="tkAmountNote">in NewEra tokens, once the tasks are done and checked.</div>
       </div>
-      <div class="rows" id="tkRewardRows"></div>
     </section>
 
     <section class="tk-strip">
@@ -402,14 +397,8 @@
   function renderCampaign(d){
     state.campaign = d.campaign;
     if (d.campaign.rewards) {
-      renderRewards({
-        base: d.campaign.rewards.base,
-        own: d.campaign.rewards.base,
-        potentialTotal: d.campaign.rewards.base,
-        referral: "0.00",
-        multiplier: d.campaign.rewards.newUserMultiplier,
-        newUserBonusApplied: false,
-      }, { note: "in NewEra tokens, or double that with a new exchange account." });
+      // before anyone joins, the panel advertises the base amount
+      renderRewards({ base: d.campaign.rewards.base, potentialTotal: d.campaign.rewards.base });
     }
     if (d.campaign.exchanges) renderExchange({ campaign: d.campaign });
     var required = d.campaign.requiredDays;
@@ -424,29 +413,16 @@
     el("tkVerified").textContent = num(d.tweetsVerified);
   }
 
-  function renderRewards(rewards, opts){
+  function renderRewards(rewards){
     if (!rewards) return;
-    var o = opts || {};
     el("tkReward").hidden = false;
     el("tkAmount").textContent = usd(rewards.potentialTotal || rewards.base);
-    el("tkAmountNote").textContent = o.note ||
-      "in NewEra tokens, once the tasks are done and checked.";
 
-    var referralsPaid = Boolean(state.campaign && state.campaign.rewards &&
-                                state.campaign.rewards.referralsPaid);
-    var rows = "";
-    rows += '<div class="tk-rrow"><span>Tasks finished</span><b>' + usd(rewards.base) + '</b></div>';
-    rows += '<div class="tk-rrow' + (rewards.newUserBonusApplied ? '' : ' off') + '">' +
-            '<span>New exchange account, ' + (rewards.multiplier || 2) + 'x</span><b>' +
-            (rewards.newUserBonusApplied
-              ? "+" + usd(Number(rewards.own) - Number(rewards.base))
-              : "not claimed") + '</b></div>';
-    // only once it is worth something: a row reading "+$0.00" reads as a promise unkept
-    if (referralsPaid && Number(rewards.referral) > 0) {
-      rows += '<div class="tk-rrow"><span>People you brought in</span><b>+' +
-              usd(rewards.referral) + '</b></div>';
-    }
-    el("tkRewardRows").innerHTML = rows;
+    var mult = (state.campaign && state.campaign.rewards && state.campaign.rewards.newUserMultiplier) ||
+               rewards.multiplier || 2;
+    el("tkAmountNote").textContent =
+      "On finishing the tasks you'll receive this amount in NewEra tokens. " +
+      "New exchange accounts earn " + mult + "x rewards.";
   }
 
   function renderExchange(me){
@@ -533,7 +509,7 @@
       el("tkProgress").textContent = "\u2013";
       el("tkStep2").classList.remove("locked");
       renderExchange(me);
-      renderRewards(me.rewards, { note: "in NewEra tokens. Finish the tasks below to earn it." });
+      renderRewards(me.rewards);
       if (wentToFollow()) {
         el("tkStep2").classList.add("done");
         el("tkStep3").classList.remove("locked");
@@ -563,11 +539,7 @@
     el("tkStep4").classList.remove("locked");
     renderExchange(me);
     renderReferral(me);
-    renderRewards(me.rewards, {
-      note: done >= required
-        ? "in NewEra tokens, once follows are checked after the campaign."
-        : "in NewEra tokens, once the tasks are done and checked."
-    });
+    renderRewards(me.rewards);
 
     if (state.intent) el("tkPostBtn").href = state.intent.url;
     renderDays(me);
