@@ -114,13 +114,13 @@
       <h2>Check these numbers yourself</h2>
       <p class="sub">No key, no sign-up, no permission needed.</p>
       <div class="an-verify">
-        <p>Every figure above comes from these public endpoints. Open any of them in a browser and you will see the same raw numbers this page is built from.</p>
+        <p>Every figure above comes from these public endpoints on this site. Open any of them in a browser and you will see the same raw numbers this page is built from.</p>
         <ul>
-          <li><a href="https://newerabackend-production.up.railway.app/analytics/overview" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/overview</a> &mdash; every headline number on this page</li>
-          <li><a href="https://newerabackend-production.up.railway.app/analytics/growth" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/growth</a> &mdash; the daily figures in the chart</li>
-          <li><a href="https://newerabackend-production.up.railway.app/analytics/top-creators" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/top-creators</a> &mdash; the creator leaderboard</li>
-          <li><a href="https://newerabackend-production.up.railway.app/analytics/referrals" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/analytics/referrals</a> &mdash; the referrer leaderboard</li>
-          <li><a href="https://newerabackend-production.up.railway.app/stats" target="_blank" rel="noopener">https://newerabackend-production.up.railway.app/stats</a> &mdash; the totals shown on the home page</li>
+          <li><a href="/api/analytics/overview" target="_blank" rel="noopener">/api/analytics/overview</a> &mdash; every headline number on this page</li>
+          <li><a href="/api/analytics/growth" target="_blank" rel="noopener">/api/analytics/growth</a> &mdash; the daily figures in the chart</li>
+          <li><a href="/api/analytics/top-creators" target="_blank" rel="noopener">/api/analytics/top-creators</a> &mdash; the creator leaderboard</li>
+          <li><a href="/api/analytics/referrals" target="_blank" rel="noopener">/api/analytics/referrals</a> &mdash; the referrer leaderboard</li>
+          <li><a href="/api/stats" target="_blank" rel="noopener">/api/stats</a> &mdash; the totals shown on the home page</li>
         </ul>
         <p class="an-note">Being straight about what this does and does not prove: these endpoints report what the NewEra platform recorded. They are our records, published openly, not an independent audit. Settlement on a public chain, which anyone could verify without trusting us, is paused and returns after the token event.</p>
       </div>
@@ -187,7 +187,7 @@
 
 <script>
 (function(){
-  var API = "https://newerabackend-production.up.railway.app";
+  var API = "/api";
   var fmt = function(n){ return Math.floor(Number(n)||0).toLocaleString('en-US'); };
   var num = function(n){ return Number(n) || 0; };
   var money = function(n){ return (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); };

@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  var API = "https://newerabackend-production.up.railway.app";
+  var API = "/api";
   var NEA_ADDRESS = "0xBcD3Efa389cBd00E424a6ca19929023B3F1DCFaD";
   var MARKET_ADDRESS = "0x8f585e8c9f8784cEC2D92f328046303240f35769";
   // viem-style ABIs (for gasless calls via window.newera)

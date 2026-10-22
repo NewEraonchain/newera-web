@@ -73,7 +73,7 @@
 
   /* stats count-up - real numbers from backend /stats */
   (function(){
-    var API = "https://newerabackend-production.up.railway.app"; // backend URL (change when deployed)
+    var API = "/api"; // backend URL (change when deployed)
     var nums=document.querySelectorAll('.stat-num[data-to]'); if(!nums.length) return;
     /* fixed grouping: without a locale the browser decides, so the same number
        renders as 131,390 in one place and 1,31,390 in another */

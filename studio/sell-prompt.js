@@ -11,7 +11,7 @@
   "use strict";
 
   // ---- config ----
-  var API = "https://newerabackend-production.up.railway.app";
+  var API = "/api";
   var MARKET_ADDRESS = "0x8f585e8c9f8784cEC2D92f328046303240f35769";
   var MIN_PRICE = 5;
   // viem-style ABI (for gasless calls via window.newera)

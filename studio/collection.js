@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  var API = "https://newerabackend-production.up.railway.app";
+  var API = "/api";
 
   function token() { return localStorage.getItem("newera_token"); }
   function address() { return localStorage.getItem("newera_address"); }

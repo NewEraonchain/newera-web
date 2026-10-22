@@ -12,3 +12,14 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
+
+# The API is proxied rather than called by hostname, so the site never hardcodes
+# where the backend lives. Moving hosts is this one line, not 25 edits across 15
+# files, and the backend origin is not exposed to visitors.
+#
+# CUTOVER: set `to` to the real Render hostname before pushing this.
+[[redirects]]
+  from = "/api/*"
+  to = "https://newera-api.onrender.com/:splat"
+  status = 200
+  force = true

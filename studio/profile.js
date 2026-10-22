@@ -7,7 +7,7 @@
   "use strict";
 
   // ---- config (same as studio-generate.js) ----
-  var API = "https://newerabackend-production.up.railway.app"; // backend (change when deployed)
+  var API = "/api"; // backend (change when deployed)
   var NEA_ADDRESS = "0xBcD3Efa389cBd00E424a6ca19929023B3F1DCFaD";
   // viem-style ABI (for gasless calls via window.newera)
   var NEA_ABI_V = [

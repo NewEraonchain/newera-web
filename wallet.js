@@ -7,7 +7,7 @@ import { bsc } from "https://esm.sh/viem@2.37.3/chains";
 import { entryPoint07Address } from "https://esm.sh/viem@2.37.3/account-abstraction";
 import { toSafeSmartAccount } from "https://esm.sh/permissionless@0.3.6/accounts";
 
-const API = "https://newerabackend-production.up.railway.app";
+const API = "/api";
 const projectId = "b5c417441aeb7274081e5868eb7cdedb";
 
 // ---- account identity ----
