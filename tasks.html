@@ -99,6 +99,12 @@
 .tk-check span{font-size:13px;color:var(--lg-muted);line-height:1.55}
 .tk-check b{color:var(--lg-acc)}
 
+.tk-sub{border:1px solid var(--lg-line);border-radius:14px;padding:16px 18px;margin-top:16px;background:rgba(0,0,0,.18)}
+.tk-sub.bonus{border-color:rgba(205,255,77,.35);background:rgba(205,255,77,.045)}
+.tk-sub h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:14.5px;color:var(--lg-text);margin:0 0 5px}
+.tk-sub p{color:var(--lg-muted);font-size:13px;line-height:1.6;margin:0}
+.tk-sub .tag{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--lg-acc);border:1px solid rgba(205,255,77,.4);border-radius:999px;padding:3px 8px;margin-left:8px;vertical-align:2px}
 .tk-ref{border:1px solid var(--lg-line);border-radius:18px;padding:22px;background:rgba(255,255,255,.02);margin:0 0 16px}
 .tk-ref h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16.5px;color:var(--lg-text);margin:0 0 6px}
 .tk-ref p{color:var(--lg-muted);font-size:13.5px;line-height:1.6;margin:0}
@@ -223,27 +229,40 @@
         <div class="tk-num">4</div>
         <div class="tk-step-main">
           <h3>Tell us where to send it</h3>
-          <p>Rewards are paid to an exchange account, so we need the UID of the account you want them in.</p>
+          <p>Rewards are paid to an exchange account, so we need the UID of the account you want them in. Fill in either box, or both if you have an account already and open a new one.</p>
 
           <div class="tk-field">
             <label for="tkExchange">Exchange</label>
             <select id="tkExchange"></select>
           </div>
 
-          <div class="tk-field">
-            <label for="tkUid">Your UID</label>
-            <input id="tkUid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
-                   placeholder="184920113" aria-label="Your exchange UID" />
+          <div class="tk-sub">
+            <h4>An account you already have</h4>
+            <p>Put the UID of your existing account here.</p>
+            <div class="tk-field">
+              <label for="tkUid">Existing UID</label>
+              <input id="tkUid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                     placeholder="184920113" aria-label="Your existing exchange UID" />
+            </div>
           </div>
 
-          <label class="tk-check">
-            <input type="checkbox" id="tkNewUser" />
-            <span>I created this account through NewEra and it is new.
-                  This is recorded with your entry and checked against the exchange's own records.</span>
-          </label>
+          <div class="tk-sub bonus" id="tkBonusBlock" hidden>
+            <h4>Or open a new one through us <span class="tag">doubled</span></h4>
+            <p>Open a fresh account using the link below and put <em>that</em> UID here. Because the
+               account is created through our link, the exchange can confirm it is genuinely new,
+               which is what the doubled reward is for.</p>
+            <div class="tk-act">
+              <a class="tk-btn acc" id="tkSignupBtn" href="#" target="_blank" rel="noopener">Create a new account</a>
+            </div>
+            <div class="tk-field">
+              <label for="tkNewUid">New account UID</label>
+              <input id="tkNewUid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                     placeholder="192837465" aria-label="Your new exchange account UID" />
+            </div>
+          </div>
 
           <div class="tk-act">
-            <button class="tk-btn acc" id="tkSaveUid" type="button">Save UID</button>
+            <button class="tk-btn acc" id="tkSaveUid" type="button">Save</button>
           </div>
           <div class="tk-msg" id="tkUidMsg"></div>
         </div>
@@ -277,8 +296,9 @@
         <li><b>Deleting a tweet undoes it.</b> Every tweet is re-checked before rewards, and a deleted one stops counting.</li>
         <li><b>One X account per wallet, one wallet per X account.</b> The first tweet you verify binds the two together.</li>
         <li><b>Private accounts cannot be verified</b>, because we can only read public posts.</li>
-        <li><b>Tell us honestly whether your exchange account is new.</b> We check it against the
-            exchange's own records, and the answer is recorded with your entry.</li>
+        <li><b>A new account has to be opened through our link to count as new.</b> The exchange can
+            confirm which sign-ups came from it, so the UID in that box is checked rather than taken
+            on trust.</li>
         <li><b>Referrals count when the person you brought finishes the tasks</b>, not when they arrive.</li>
         <li><b>Amounts shown are what the tasks are worth, not a payment.</b> Rewards are paid in NewEra tokens
             after the campaign and after checking. Taking part is not a purchase, carries no guarantee of
@@ -459,9 +479,14 @@
       }
     }
     if (ex.uid) el("tkUid").value = ex.uid;
-    el("tkNewUser").checked = Boolean(ex.newUser);
+    if (ex.newUid) el("tkNewUid").value = ex.newUid;
 
-    if (ex.uid) {
+    // the doubled path only exists when there is a link to attribute it to
+    var signup = state.campaign && state.campaign.rewards && state.campaign.rewards.signupUrl;
+    el("tkBonusBlock").hidden = !signup;
+    if (signup) el("tkSignupBtn").href = signup;
+
+    if (ex.uid || ex.newUid) {
       chip(el("tkChip4"), "Saved", "ok");
       el("tkStep4").classList.add("done");
     } else {
@@ -614,7 +639,7 @@
   // buttons still work is worse than one that is honestly unavailable.
   function syncForms(signedIn){
     var on = state.windowOpen !== false && signedIn;
-    ["tkVerify", "tkUrl", "tkSaveUid", "tkUid", "tkExchange", "tkNewUser"].forEach(function(id){
+    ["tkVerify", "tkUrl", "tkSaveUid", "tkUid", "tkNewUid", "tkExchange"].forEach(function(id){
       var node = el(id);
       if (node) node.disabled = !on;
     });
@@ -729,7 +754,8 @@
     if (!token()) { uidMsg("Connect your wallet first.", "err"); return; }
     var exchange = el("tkExchange").value;
     var uid = el("tkUid").value.trim();
-    if (!uid) { uidMsg("Enter your UID first.", "err"); return; }
+    var newUid = el("tkNewUid").value.trim();
+    if (!uid && !newUid) { uidMsg("Enter a UID in one of the two boxes.", "err"); return; }
 
     var btn = this;
     btn.disabled = true;
@@ -738,14 +764,15 @@
     fetch(API + "/quests/exchange", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer " + token() },
-      body: JSON.stringify({ exchange: exchange, uid: uid, isNewUser: el("tkNewUser").checked })
+      body: JSON.stringify({ exchange: exchange, uid: uid, newUid: newUid })
     }).then(function(r){
       return r.json().then(function(body){ return { status: r.status, body: body }; });
     }).then(function(res){
       if (res.status === 200 && res.body.saved) {
         var picked = el("tkExchange").options[el("tkExchange").selectedIndex];
+        var shown = res.body.exchange.newUid || res.body.exchange.uid || "";
         uidMsg("Saved. Rewards go to your " + (picked ? picked.text : exchange) +
-               " account ending " + uid.slice(-4) + ".", "good");
+               " account ending " + shown.slice(-4) + ".", "good");
         loadMe();
       } else if (res.status === 401) {
         clearStaleSession("Your session has expired. Connect your wallet again to carry on.");
