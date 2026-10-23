@@ -259,6 +259,7 @@
               <input id="tkNewUid" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
                      placeholder="192837465" aria-label="Your new exchange account UID" />
             </div>
+            <div class="tk-msg" id="tkNewUidState"></div>
           </div>
 
           <div class="tk-act">
@@ -485,6 +486,25 @@
     var signup = state.campaign && state.campaign.rewards && state.campaign.rewards.signupUrl;
     el("tkBonusBlock").hidden = !signup;
     if (signup) el("tkSignupBtn").href = signup;
+
+    // say what the exchange made of the new-account UID, rather than leaving them guessing
+    var verdicts = {
+      PENDING: ["Saved. KuCoin is asked about this account before rewards are decided.", ""],
+      VERIFIED: ["Confirmed: KuCoin says this account was opened through our link.", "good"],
+      NOT_FOUND: ["KuCoin has no record of this account coming from our link. It will count as an ordinary account.", "err"],
+      TOO_OLD: ["KuCoin says this account existed before the campaign started, so it does not count as new.", "err"],
+      NEEDS_KYC: ["This account has not completed KuCoin's identity check yet.", "err"],
+      NEEDS_DEPOSIT: ["This account has not been funded yet.", "err"]
+    };
+    var verdict = verdicts[(ex.newAccount && ex.newAccount.state) || ""];
+    var stateLine = el("tkNewUidState");
+    if (ex.newUid && verdict) {
+      stateLine.textContent = verdict[0];
+      stateLine.className = "tk-msg" + (verdict[1] ? " " + verdict[1] : "");
+    } else {
+      stateLine.textContent = "";
+      stateLine.className = "tk-msg";
+    }
 
     if (ex.uid || ex.newUid) {
       chip(el("tkChip4"), "Saved", "ok");
